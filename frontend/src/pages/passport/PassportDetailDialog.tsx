@@ -128,7 +128,7 @@ function RotatableCard({ data, rot, onRotate, reduced, onActivate, glow = true, 
   };
 
   return (
-    <div className="micro-slot w-full" style={{ position: "relative", overflow: "hidden" }}>
+    <div className="micro-slot w-full" style={{ position: "relative", overflow: "visible" }}>
       <div style={{ perspective: reduced ? "none" : 1200 }}>
         <div
           className="touch-none select-none"
@@ -259,7 +259,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
 
         <div className="relative z-10 grid max-h-[92vh] w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-white/15 bg-white shadow-2xl lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
           {/* ── Cột trái: thẻ hologram xoay được → panel dọc riêng ── */}
-          <div className="flex flex-col gap-4 overflow-y-auto border-b border-line bg-canvas-soft/40 p-5 lg:max-h-[92vh] lg:border-b-0 lg:border-r lg:p-6">
+          <div className="flex flex-col gap-4 overflow-y-auto overflow-x-hidden border-b border-line bg-canvas-soft/40 p-5 lg:max-h-[92vh] lg:border-b-0 lg:border-r lg:p-6">
             <RotatableCard
               data={data}
               rot={rot}
@@ -503,7 +503,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
             role="dialog"
             aria-modal="true"
             aria-label={`Talent Passport của ${s.full_name} — chế độ toàn màn hình`}
-            className="fixed inset-0 z-[100] overflow-y-auto"
+            className="fixed inset-0 z-[100] overflow-y-auto overflow-x-hidden"
             onClick={() => setFocus(false)}
           >
             <div className="pointer-events-none absolute inset-0 bg-ink/85 backdrop-blur-lg" aria-hidden="true" />

@@ -52,11 +52,11 @@ export function StatCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-medium text-muted">{label}</div>
-          <div className={`mt-1 text-[28px] font-extrabold leading-tight text-ink tabular-nums ${valueClass}`}>
+          <div className={`mt-1 text-[28px] font-extrabold leading-tight text-ink tabular-nums ${valueClass} break-words`}>
             {value}
           </div>
           {delta && (
-            <div className="mt-1 text-xs font-semibold text-emerald-600">
+            <div className="mt-1 text-xs font-semibold text-emerald-600 break-words overflow-wrap-anywhere">
               {delta}
             </div>
           )}
@@ -91,7 +91,7 @@ export function PageHeader({
   const revealClass = reveal ? "reveal-up" : "";
   return (
     <div className={`mb-6 flex items-start justify-between gap-4 ${revealClass}`} style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}>
-      <div>
+      <div className="min-w-0 flex-1">
         <h1 className="text-2xl font-extrabold tracking-tight text-ink">
           {title}
         </h1>

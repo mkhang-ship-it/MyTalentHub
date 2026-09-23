@@ -71,7 +71,7 @@ export default function Statistics() {
       />
 
       {/* KPI (slide 18) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.05s both" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.05s both" }}>
         {KPIS.map((k) => (
           <Card key={k.label} className="hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
             <div className="flex items-center gap-3">
@@ -93,9 +93,9 @@ export default function Statistics() {
         <Card>
           <h2 className="font-bold text-ink">Phân bổ năng khiếu</h2>
           <p className="text-xs text-muted mb-4">Theo định hướng toàn trường</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <div
-              className="h-40 w-40 shrink-0 rounded-full"
+              className="h-32 w-32 sm:h-40 sm:w-40 shrink-0 rounded-full"
               style={{
                 background: `conic-gradient(${gradient})`,
                 mask: "radial-gradient(circle, transparent 55%, black 56%)",
@@ -103,7 +103,7 @@ export default function Statistics() {
                 animation: "scaleIn 0.8s ease-out 0.2s both",
               }}
             />
-            <div className="flex-1 space-y-2.5">
+            <div className="w-full sm:flex-1 space-y-2.5">
               {DONUT.map((s) => (
                 <div key={s.field} className="flex items-center gap-2 text-sm">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
@@ -119,16 +119,16 @@ export default function Statistics() {
         <Card>
           <h2 className="font-bold text-ink">Tham gia & hoàn thành</h2>
           <p className="text-xs text-muted mb-4">6 tháng gần nhất</p>
-          <div className="flex items-end justify-between gap-3 h-48">
+          <div className="flex items-end justify-between gap-2 sm:gap-3 h-48">
             {BARS.map((b) => (
               <div key={b.m} className="flex-1 flex flex-col items-center gap-1">
                 <div className="flex items-end gap-1 h-36">
                   <div
-                    className="w-4 rounded-t bg-orange-500"
+                    className="w-3 sm:w-4 rounded-t bg-orange-500"
                     style={{ height: `${Math.round((b.dk / maxBar) * 100)}%`, animation: "barGrow 0.7s ease-out both" }}
                   />
                   <div
-                    className="w-4 rounded-t bg-pink-500"
+                    className="w-3 sm:w-4 rounded-t bg-pink-500"
                     style={{ height: `${Math.round((b.ht / maxBar) * 100)}%`, animation: "barGrow 0.7s ease-out 0.15s both" }}
                   />
                 </div>

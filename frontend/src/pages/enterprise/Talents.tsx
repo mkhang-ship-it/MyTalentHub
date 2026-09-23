@@ -248,7 +248,7 @@ export default function Talents() {
       </div>
 
       <div className="overflow-x-auto" style={{ animation: "fadeUp 0.6s ease-out 0.15s both" }}>
-        <table className="w-full text-sm tabular-nums" role="grid">
+        <table className="w-full min-w-[600px] text-sm tabular-nums" role="grid">
           <thead>
             <tr className="text-left text-xs text-muted-light uppercase tracking-wider border-b border-line">
               <th className="pb-2 pr-4" scope="col">Họ tên</th>
@@ -271,17 +271,17 @@ export default function Talents() {
             )}
             {data.items.map((t) => (
               <tr key={t.id} className="border-b border-line/50 hover:bg-portal-soft/20 hover:-translate-y-0.5 transition-all duration-150 ease-out">
-                <td className="py-3 pr-4 font-medium text-ink">{t.full_name}</td>
-                <td className="py-3 pr-4 text-muted">{t.class_name}</td>
-                <td className="py-3 pr-4 text-muted">Khối {t.grade}</td>
-                <td className="py-3 pr-4 font-semibold text-portal" aria-label={`Điểm năng lực ${t.talent_score}`}>{t.talent_score}</td>
-                <td className="py-3 pr-4 font-semibold text-amber-600" aria-label={`Điểm kỹ thuật ${t.technical_score}`}>{t.technical_score}</td>
+                <td className="py-3 pr-4 font-medium text-ink max-w-[180px] truncate" title={t.full_name}>{t.full_name}</td>
+                <td className="py-3 pr-4 text-muted whitespace-nowrap">{t.class_name}</td>
+                <td className="py-3 pr-4 text-muted whitespace-nowrap">Khối {t.grade}</td>
+                <td className="py-3 pr-4 font-semibold text-portal whitespace-nowrap" aria-label={`Điểm năng lực ${t.talent_score}`}>{t.talent_score}</td>
+                <td className="py-3 pr-4 font-semibold text-amber-600 whitespace-nowrap" aria-label={`Điểm kỹ thuật ${t.technical_score}`}>{t.technical_score}</td>
                 <td className="py-3 pr-4">
                   <div className="flex flex-wrap gap-1" aria-label={`Kỹ năng: ${t.top_skills.slice(0, 3).join(", ")}`}>
                     {t.top_skills.slice(0, 3).map((skill, i) => (
                       <span
                         key={i}
-                        className="text-[11px] px-2 py-0.5 rounded-full bg-portal-soft text-portal-dark font-medium"
+                        className="text-[11px] px-2 py-0.5 rounded-full bg-portal-soft text-portal-dark font-medium whitespace-nowrap"
                       >
                         {skill}
                       </span>
@@ -289,7 +289,7 @@ export default function Talents() {
                   </div>
                 </td>
                 <td className="py-3 pr-4">
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Link
                       to={`/passport/${t.id}`}
                       className="text-xs px-3 py-1.5 rounded-full border border-line font-semibold text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"

@@ -84,7 +84,7 @@ export default function Overview() {
         <h2 id="kpi-heading" className="sr-only">
           Chỉ số quan trọng
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
           <StatCard
             label="Hồ sơ phù hợp"
             value={data.matching_profiles}
@@ -108,7 +108,7 @@ export default function Overview() {
           />
           <StatCard
             label="Tổng tài trợ"
-            value={`${(data.total_sponsored / 1_000_000).toFixed(0)}M₫`}
+            value={<span className="whitespace-nowrap text-[28px] sm:text-[24px] md:text-[28px] font-extrabold leading-tight text-ink tabular-nums">{`${(data.total_sponsored / 1_000_000).toFixed(0)}M₫`}</span>}
             delta={`${data.sponsorship_count} dự án`}
             icon={<HandCoins size={18} aria-hidden="true" />}
             color="text-portal"

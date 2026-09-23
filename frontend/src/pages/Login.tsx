@@ -155,7 +155,7 @@ export default function Login() {
             <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-muted">
               Tài khoản demo · mật khẩu <span className="font-mono">demo123</span>
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {DEMO_ACCOUNTS.map((acc) => (
                 <button
                   key={acc.role}
@@ -164,14 +164,14 @@ export default function Login() {
                     setEmail(acc.email);
                     setError("");
                   }}
-                  className="flex items-center gap-2 rounded-xl border border-line px-2.5 py-2 text-left text-xs text-ink-soft transition-colors hover:border-transparent"
+                  className="flex items-start gap-2 rounded-xl border border-line px-3 py-2 text-left text-xs text-ink-soft transition-colors hover:border-transparent"
                   style={{ backgroundColor: ACCENT_SOFT + "55" }}
                 >
-                  <acc.icon size={14} style={{ color: ACCENT }} />
-                  <span className="truncate">
-                    <span className="block font-semibold">{acc.label}</span>
-                    <span className="block truncate text-[10px] text-muted">{acc.email}</span>
-                  </span>
+                  <acc.icon size={14} className="shrink-0 mt-0.5" style={{ color: ACCENT }} />
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-semibold text-ink truncate">{acc.label}</span>
+                    <span className="block text-[10px] text-muted break-words whitespace-normal leading-snug">{acc.email}</span>
+                  </div>
                 </button>
               ))}
             </div>

@@ -102,7 +102,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.7s ease-out 0.1s both" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.7s ease-out 0.1s both" }}>
         <StatCard label="Điểm năng lực" value={data.talent_score} delta="Thang điểm 100" icon={<Trophy size={18} />} color="text-portal-dark" />
         <StatCard label="Giờ trải nghiệm" value={`${data.experience_hours}h`} delta="Tích lũy tự động qua check-in" icon={<Flame size={18} />} color="text-portal-dark" />
         <StatCard label="Xếp hạng khối" value={`#${data.school_rank}/${data.school_total}`} delta={`Khối ${data.grade} · ${data.school_total} bạn`} icon={<Users size={18} />} color="text-portal" />
@@ -148,12 +148,12 @@ export default function Dashboard() {
             {data.roadmap.length === 0 && (
               <p className="text-sm text-muted">Chưa có lộ trình — AI sẽ gợi ý sau bài khảo sát năng khiếu.</p>
             )}
-            {data.roadmap.map((r) => (
+            {data.roadmap.map((r, idx) => (
               <div key={r.title} className="flex gap-3">
                 <div className="shrink-0 h-8 w-8 rounded-full bg-portal-soft text-portal-dark flex items-center justify-center text-xs font-bold">
-                  {r.title.replace("Tháng ", "T")}
+                  T{idx + 1}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-sm font-medium text-ink">{r.title}</div>
                   <div className="text-xs text-muted">{r.content}</div>
                 </div>

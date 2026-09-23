@@ -116,7 +116,7 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
         <StatCard label="Học sinh hoạt động" value={data.total_students} delta={data.trends.students_delta} icon={<Users size={18} />} color="text-portal" />
         <StatCard label="Hoạt động/tháng" value={data.activities_per_month} delta={data.trends.hours_delta} icon={<CalendarDays size={18} />} color="text-portal" />
         <StatCard label="Tỷ lệ tham gia" value={`${data.participation_pct}%`} delta={data.trends.participation_delta} icon={<Activity size={18} />} color="text-portal" />
@@ -126,15 +126,15 @@ export default function Overview() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
         <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <h2 className="font-semibold text-ink mb-4">Phân bố năng khiếu</h2>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <div
-              className="h-36 w-36 shrink-0 rounded-full"
+              className="h-32 w-32 sm:h-36 sm:w-36 shrink-0 rounded-full"
               style={{ background: `conic-gradient(${gradient})`, mask: "radial-gradient(circle, transparent 52%, black 53%)", WebkitMask: "radial-gradient(circle, transparent 52%, black 53%)", animation: "scaleIn 0.8s ease-out 0.2s both" }}
               role="img"
               aria-label={`Biểu đồ donut phân bố năng khiếu: ${shares.map(s => `${FIELD_LABELS[s.field] ?? s.field} ${s.pct}%`).join(", ")}`}
               tabIndex={0}
             />
-            <div className="flex-1 space-y-2" role="list" aria-label="Chi tiết phần trăm từng lĩnh vực">
+            <div className="w-full sm:flex-1 space-y-2" role="list" aria-label="Chi tiết phần trăm từng lĩnh vực">
               {shares.map((s) => (
                 <div key={s.field} className="flex items-center gap-2 text-sm" role="listitem">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} aria-hidden="true" />
@@ -157,7 +157,7 @@ export default function Overview() {
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-pink-500" aria-hidden="true" /> Hoàn thành</span>
           </div>
           <div 
-            className="flex items-end gap-3 h-44" 
+            className="flex items-end gap-2 sm:gap-3 h-44" 
             role="img" 
             aria-label={`Biểu đồ cột 6 tháng tham gia và hoàn thành: ${data.monthly.map(m => `Tháng ${m.month}: ${m.registrations} đăng ký, ${m.completions} hoàn thành`).join("; ")}`}
             tabIndex={0}
@@ -166,13 +166,13 @@ export default function Overview() {
               <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
                 <div className="flex items-end gap-1 h-32" role="group" aria-label={`Tháng ${m.month}: ${m.registrations} đăng ký, ${m.completions} hoàn thành`}>
                   <div
-                    className="w-4 rounded-t bg-orange-500"
+                    className="w-3 sm:w-4 rounded-t bg-orange-500"
                     style={{ height: `${Math.max(3, (m.registrations / maxMonthly) * 100)}%`, animation: "barGrow 0.7s ease-out both" }}
                     aria-label={`${m.registrations} đăng ký`}
                     role="img"
                   />
                   <div
-                    className="w-4 rounded-t bg-pink-500"
+                    className="w-3 sm:w-4 rounded-t bg-pink-500"
                     style={{ height: `${Math.max(3, (m.completions / maxMonthly) * 100)}%`, animation: "barGrow 0.7s ease-out 0.15s both" }}
                     aria-label={`${m.completions} hoàn thành`}
                     role="img"

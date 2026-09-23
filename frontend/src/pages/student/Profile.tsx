@@ -145,13 +145,13 @@ export default function Profile() {
           ) : (
             <ul className="space-y-3">
               {data.certificates.map((c, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <span className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center">
+                <li key={i} className="flex items-start gap-3">
+                  <span className="h-9 w-9 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center">
                     <Award size={16} />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-ink truncate">{c.title}</div>
-                    <div className="text-xs text-muted">
+                    <div className="text-sm font-semibold text-ink line-clamp-2 leading-snug">{c.title}</div>
+                    <div className="text-xs text-muted mt-0.5">
                       {c.issuer}{c.issued_at ? ` · ${c.issued_at}` : ""}
                     </div>
                   </div>

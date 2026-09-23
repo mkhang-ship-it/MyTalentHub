@@ -102,12 +102,21 @@ export default function Analysis() {
               const align = lx < CENTER - 20 ? "end" : lx > CENTER + 20 ? "start" : "middle";
               lx = Math.max(56, Math.min(SIZE - 56, lx));
               ly = Math.max(14, Math.min(SIZE - 14, ly));
+              // Wrap long labels (2+ words) into two lines
+              const nameParts = s.name.split(" ");
               return (
                 <g key={s.code}>
                   <line x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#e2e8f0" strokeWidth="1" />
                   <circle cx={x} cy={y} r="2.5" fill="#ec4899" />
-                  <text x={lx} y={ly - 2} textAnchor={align} fontSize="10" fill="#64748b">{s.name}</text>
-                  <text x={lx} y={ly + 11} textAnchor={align} fontSize="12" fontWeight="bold" fill="#db2777">{s.avg_score}</text>
+                  {nameParts.length > 1 ? (
+                    <>
+                      <text x={lx} y={ly - 6} textAnchor={align} fontSize="9" fill="#64748b">{nameParts[0]}</text>
+                      <text x={lx} y={ly + 5} textAnchor={align} fontSize="9" fill="#64748b">{nameParts.slice(1).join(" ")}</text>
+                    </>
+                  ) : (
+                    <text x={lx} y={ly - 2} textAnchor={align} fontSize="10" fill="#64748b">{s.name}</text>
+                  )}
+                  <text x={lx} y={ly + (nameParts.length > 1 ? 17 : 11)} textAnchor={align} fontSize="12" fontWeight="bold" fill="#db2777">{s.avg_score}</text>
                 </g>
               );
             })}

@@ -166,7 +166,7 @@ function NavItem({ item, p }: { item: { to: string; label: string; icon: typeof 
               isActive ? "scale-110" : ""
             }`}
           />
-          <span className="truncate">{item.label}</span>
+          <span className="min-w-0 line-clamp-2">{item.label}</span>
           {isActive && (
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60">
               <ChevronRight size={12} />
@@ -338,7 +338,7 @@ export default function Layout() {
                   .join("")}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-extrabold text-ink tracking-tight">
+                <div className="line-clamp-2 text-sm font-extrabold text-ink tracking-tight">
                   {user.full_name}
                 </div>
                 <div
@@ -351,7 +351,7 @@ export default function Layout() {
               <button
                 onClick={handleLogout}
                 title="Đăng xuất"
-                className="rounded-lg p-1.5 text-muted transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 hover:shadow-sm"
+                className="rounded-lg p-1.5 text-muted transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 hover:shadow-sm shrink-0"
                 aria-label="Đăng xuất"
               >
                 <LogOut size={16} strokeWidth={2.5} />
@@ -412,8 +412,8 @@ export default function Layout() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-ink hover:bg-canvas-soft"
             >
-              <Home size={14} />
-              <span className="truncate">Về trang chủ</span>
+              <Home size={14} className="shrink-0" />
+              <span className="min-w-0 line-clamp-2">Về trang chủ</span>
             </NavLink>
             <div className="grid grid-cols-2 gap-2 mt-2">
               {activePortal.items.map((item) => (
@@ -428,8 +428,8 @@ export default function Layout() {
                   }
                   style={({ isActive }) => (isActive ? { background: activePortal.nav } : undefined)}
                 >
-                  <item.icon size={14} />
-                  <span className="truncate">{item.label}</span>
+                  <item.icon size={14} className="shrink-0" />
+                  <span className="min-w-0 line-clamp-2 text-center leading-tight">{item.label}</span>
                 </NavLink>
               ))}
             </div>
@@ -475,7 +475,7 @@ export default function Layout() {
             className="relative flex min-w-[4.25rem] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
           >
             <Home size={20} strokeWidth={2} />
-            <span className="max-w-[4.5rem] truncate">Trang chủ</span>
+            <span className="max-w-[4.5rem] line-clamp-2 text-center leading-tight">Trang chủ</span>
           </NavLink>
           {activePortal.items.map((item) => (
             <NavLink
@@ -495,7 +495,7 @@ export default function Layout() {
               }
             >
               <item.icon size={20} strokeWidth={2} />
-              <span className="max-w-[4.5rem] truncate">{item.label}</span>
+              <span className="max-w-[4.5rem] line-clamp-2 text-center leading-tight">{item.label}</span>
             </NavLink>
           ))}
         </div>

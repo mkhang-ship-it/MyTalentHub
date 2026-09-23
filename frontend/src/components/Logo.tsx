@@ -37,7 +37,7 @@ export function LogoWordmark({ compact = false }: { compact?: boolean }) {
         FTalentHub
       </div>
       <div
-        className="leading-tight text-muted whitespace-nowrap"
+        className="leading-tight text-muted hidden sm:block"
         style={{ fontSize: compact ? 8 : 10 }}
       >
         Discover Talent · Develop Skills · Create Future

@@ -68,16 +68,16 @@ export default function Classes() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center relative z-10">
-                <div className="group">
-                  <div className="text-2xl font-extrabold text-ink transition-transform duration-200 group-hover:scale-110">{classes.length}</div>
+                <div className="group min-w-0">
+                  <div className="text-2xl sm:text-xl font-extrabold text-ink transition-transform duration-200 group-hover:scale-110 truncate">{classes.length}</div>
                   <div className="text-[10px] text-muted font-medium mt-0.5">Lớp</div>
                 </div>
-                <div className="group">
-                  <div className="text-2xl font-extrabold text-ink transition-transform duration-200 group-hover:scale-110">{students}</div>
+                <div className="group min-w-0">
+                  <div className="text-2xl sm:text-xl font-extrabold text-ink transition-transform duration-200 group-hover:scale-110 truncate">{students}</div>
                   <div className="text-[10px] text-muted font-medium mt-0.5">Học sinh</div>
                 </div>
-                <div className="group">
-                  <div className={`text-2xl font-extrabold transition-transform duration-200 group-hover:scale-110 ${style.text}`}>{avg}</div>
+                <div className="group min-w-0">
+                  <div className={`text-2xl sm:text-xl font-extrabold transition-transform duration-200 group-hover:scale-110 ${style.text} truncate`}>{avg}</div>
                   <div className="text-[10px] text-muted font-medium mt-0.5">Điểm TB</div>
                 </div>
               </div>

@@ -70,13 +70,13 @@ export default function Students() {
                 setParams(next, { replace: true });
               }}
               placeholder="Tìm theo tên / lớp..."
-              className="text-sm outline-none w-44 focus:ring-2 focus:ring-portal/20 transition-colors"
+              className="text-sm outline-none w-32 sm:w-44 focus:ring-2 focus:ring-portal/20 transition-colors"
             />
           </div>
         }
       />
 
-      <Card reveal revealDelay={1} className="overflow-hidden p-0">
+      <Card reveal revealDelay={1} className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-muted-light text-xs uppercase tracking-wider border-b border-line bg-canvas-soft/60">

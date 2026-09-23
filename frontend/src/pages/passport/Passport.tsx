@@ -117,7 +117,7 @@ export default function Passport() {
               <QrCode size={14} /> Mã định danh Talent Passport
             </div>
             {/* QR mock */}
-            <div className="mx-auto w-36 h-36 bg-white rounded-xl p-2.5 grid grid-cols-5 gap-1">
+            <div className="mx-auto w-full max-w-36 h-36 sm:w-36 sm:h-36 bg-white rounded-xl p-2.5 grid grid-cols-5 gap-1">
               {Array.from({ length: 25 }).map((_, i) => {
                 // mã giả lập vị trí module QR
                 const corners = [0, 4, 20, 24, 2, 22];
@@ -141,7 +141,7 @@ export default function Passport() {
               <Target size={18} className="text-portal" />
               <h2 className="font-semibold text-ink">Giới thiệu & Sở thích</h2>
             </div>
-            <p className="text-sm text-muted">{s.bio ?? "Chưa cập nhật giới thiệu."}</p>
+            <p className="text-sm text-muted line-clamp-3">{s.bio ?? "Chưa cập nhật giới thiệu."}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {(s.interests ?? "").split(", ").filter(Boolean).map((t, i) => (
                 <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-portal-soft text-portal-dark">

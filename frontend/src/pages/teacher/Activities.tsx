@@ -122,7 +122,7 @@ export default function Activities() {
         </Card>
       )}
 
-      <Card reveal revealDelay={2} className="overflow-hidden !p-0">
+      <Card reveal revealDelay={2} className="overflow-x-auto !p-0">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-muted-light text-xs uppercase tracking-wider border-b border-line bg-canvas-soft/60">

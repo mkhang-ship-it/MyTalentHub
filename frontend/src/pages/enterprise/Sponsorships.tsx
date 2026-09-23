@@ -354,7 +354,7 @@ export default function Sponsorships() {
           <div className="text-[11px] font-semibold uppercase tracking-widest text-white/75">
             Tổng đã tài trợ
           </div>
-          <div className="text-2xl font-extrabold tabular-nums">
+          <div className="text-2xl sm:text-xl md:text-2xl font-extrabold tabular-nums leading-tight">
             {(total / 1_000_000).toFixed(0)} triệu VNĐ
           </div>
           <div className="text-xs text-white/80">

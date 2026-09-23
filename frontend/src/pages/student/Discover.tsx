@@ -54,7 +54,7 @@ export default function Discover() {
   const [assessments, setAssessments] = useState<{ test_type: string; result: string; date: string }[] | null>(null);
 
   const loadAssessments = () => {
-    get<{ test_type: string; result: string; date: string }[]>("student/assessments")
+    get<{ test_type: string; result: string; date: string }[]>("/student/assessments")
       .then(setAssessments)
       .catch(() => {});
   };
@@ -64,7 +64,7 @@ export default function Discover() {
   const startTest = async (key: string) => {
     setError(""); setResult(null); setSaved(false);
     try {
-      const q = await get<Question[]>(`student/assessments/questions?test_type=${key}`);
+      const q = await get<Question[]>(`/student/assessments/questions?test_type=${key}`);
       setQuestions(q);
       setActiveTest(key);
       setQIdx(0);
@@ -86,12 +86,12 @@ export default function Discover() {
     setBusy(true);
     try {
       const ans = answers.map((a) => (a === -1 ? 0 : a));
-      const res = await post<ComputeResult>("student/assessments/compute", {
+      const res = await post<ComputeResult>("/student/assessments/compute", {
         test_type: activeTest, answers: ans,
       });
       setResult(res);
       // Lưu kết quả
-      await post("student/assessments", {
+      await post("/student/assessments", {
         test_type: activeTest,
         result: JSON.stringify(res.result),
       });

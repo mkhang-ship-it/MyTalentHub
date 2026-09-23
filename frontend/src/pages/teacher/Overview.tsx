@@ -46,7 +46,7 @@ export default function Overview() {
         <div className="relative px-6 py-5">
           <p className="text-sm text-white/80">Xin chào</p>
           <h2 className="text-2xl font-extrabold text-white">
-            {data.full_name} 👩‍🏫
+            {data.full_name}
           </h2>
           <p className="text-sm text-white/80 mt-1">
             Hôm nay có {data.activity_count} sân chơi đang mở và {data.eval_count} bài

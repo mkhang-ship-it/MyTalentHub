@@ -437,7 +437,7 @@ export default function Layout() {
         </div>
 
         {/* Desktop main padding */}
-        <div className="relative min-w-0 p-5 sm:p-6 lg:p-8">
+        <div className="relative min-w-0 p-5 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           {/* Background decoration */}
           <div
             aria-hidden

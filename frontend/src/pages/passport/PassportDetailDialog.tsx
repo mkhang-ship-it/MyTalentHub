@@ -32,6 +32,44 @@ function qrModules(seed = 0): boolean[] {
   });
 }
 
+/** Mặt sau thẻ — hiện khi xoay qua 180°, thiết kế riêng (thẻ vật lý kiểu xác thực). */
+function PassportCardBack({ data }: { data: Passport }) {
+  const modules = qrModules(data.qr_code.length);
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#1B2A5E] via-[#284B8C] to-[#1B2A5E] p-6 shadow-[0_24px_60px_rgb(30_27_46/0.35)]">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-portal to-orange-400 text-sm font-extrabold text-white shadow">
+          F
+        </div>
+        <div>
+          <p className="text-sm font-bold leading-tight text-white">FTalentHub</p>
+          <p className="text-[10px] text-white/60">Hồ sơ năng lực số</p>
+        </div>
+      </div>
+
+      {/* Trung tâm: tiêu đề + QR + mã */}
+      <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <p className="text-base font-extrabold tracking-wide text-white">Talent Passport</p>
+        <div className="grid h-28 w-28 grid-cols-5 gap-px rounded-lg bg-white p-1.5 ring-1 ring-white/40 shadow-inner">
+          {modules.map((filled, i) => (
+            <div key={i} className={filled ? "rounded-[1px] bg-ink" : "bg-transparent"} />
+          ))}
+        </div>
+        <p className="break-all font-mono text-xs font-semibold text-white/90">{data.qr_code}</p>
+        <p className="max-w-[260px] text-[11px] leading-snug text-white/70">
+          Quét mã để xác thực hồ sơ — khi xin học bổng, thực tập hoặc tuyển dụng.
+        </p>
+      </div>
+
+      {/* Chân thẻ */}
+      <div className="mt-4 border-t border-white/15 pt-3 text-center text-[10px] text-white/60">
+        Xác thực bởi trường THPT FTI Cần Thơ · Cập nhật {data.updated_at}
+      </div>
+    </div>
+  );
+}
+
 export function PassportDetailDialog({ data, open, onClose }: PassportDetailDialogProps) {
   const s = data.student;
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -85,8 +123,8 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
     const dx = e.clientX - drag.current.startX;
     const dy = e.clientY - drag.current.startY;
     setRot({
-      x: clamp(drag.current.startRx - dy * 0.4, -35, 35),
-      y: clamp(drag.current.startRy + dx * 0.4, -35, 35),
+      x: clamp(drag.current.startRx - dy * 0.4, -90, 90),
+      y: drag.current.startRy + dx * 0.4,
     });
   };
   const handlePointerEnd = () => {
@@ -105,7 +143,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
       role="dialog"
       aria-modal="true"
       aria-label={`Talent Passport của ${s.full_name}`}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6"
     >
       {/* Backdrop làm mờ phần xung quanh */}
       <div className="absolute inset-0 bg-ink/75 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
@@ -118,6 +156,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
               <div
                 className="touch-none select-none"
                 style={{
+                  position: "relative",
                   transform: reduced ? undefined : `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
                   transformStyle: "preserve-3d",
                   transition: drag.current.active ? "none" : "transform 200ms ease-out",
@@ -128,7 +167,18 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
                 onPointerUp={handlePointerEnd}
                 onPointerCancel={handlePointerEnd}
               >
-                <PassportHoloCard data={data} size="dialog" />
+                {/* Mặt trước */}
+                <div className="[backface-visibility:hidden]" style={{ transformStyle: "preserve-3d" }}>
+                  <PassportHoloCard data={data} size="dialog" />
+                </div>
+                {/* Mặt sau — hiện khi lật 180° */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 [backface-visibility:hidden]"
+                  style={{ transform: "rotateY(180deg)", transformStyle: "preserve-3d" }}
+                >
+                  <PassportCardBack data={data} />
+                </div>
                 {!reduced && (
                   <div
                     aria-hidden="true"
@@ -154,7 +204,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
                 >
                   <RotateCcw size={13} aria-hidden="true" /> Đặt lại góc
                 </button>
-                <p className="text-xs text-muted-light">Kéo chuột trên thẻ để xoay.</p>
+                <p className="text-xs text-muted-light">Kéo để xoay 360° — lật thẻ để xem mặt sau.</p>
               </>
             ) : (
               <p className="text-xs text-muted-light">Thẻ hiển thị tĩnh (chế độ giảm chuyển động).</p>

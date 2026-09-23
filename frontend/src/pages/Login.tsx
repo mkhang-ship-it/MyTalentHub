@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   KeyRound,
   Mail,
@@ -29,7 +29,23 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("demo123");
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState("");
+
+  // Prefill email từ ?role=... an toàn, không phá auth flow
+  const roleFromQuery = searchParams.get("role");
+  const validRoles = ["student", "teacher", "school", "enterprise"] as const;
+  const prefillAccount = typeof roleFromQuery === "string" && (validRoles as readonly string[]).includes(roleFromQuery)
+    ? DEMO_ACCOUNTS.find((a) => a.role === (roleFromQuery as AuthUser["role"]))
+    : null;
+
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefillAccount && !prefilledRef.current && email === "") {
+      setEmail(prefillAccount.email);
+      prefilledRef.current = true;
+    }
+  }, [prefillAccount, email]);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
@@ -71,6 +87,11 @@ export default function Login() {
         {/* Card */}
         <div className="rounded-2xl border border-line bg-surface p-7 shadow-lift">
           <h2 className="text-lg font-bold text-ink">Đăng nhập</h2>
+          {prefillAccount && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold mt-1.5" style={{ backgroundColor: prefillAccount ? "#F9EEF7" : undefined, color: prefillAccount ? "#A1458F" : undefined }}>
+              Vai trò: {prefillAccount.label}
+            </span>
+          )}
           <p className="mb-5 mt-0.5 text-sm text-muted">
             Hệ sinh thái tài năng đa lĩnh vực dành cho học sinh
           </p>

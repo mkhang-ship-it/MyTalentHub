@@ -61,7 +61,7 @@ export default function Checkin() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Thẻ QR gradient (slide 14) */}
-        <div className="rounded-2xl hero-gradient p-6 text-white shadow-lg">
+        <div className="rounded-2xl hero-gradient p-6 text-white shadow-lg interactive reveal-up transition-responsive" style={{ animationDelay: "0.05s" }}>
           <div className="flex flex-col items-center text-center">
             <h2 className="font-bold text-lg">Check-in trải nghiệm</h2>
             <p className="mt-1 text-sm text-white/85 max-w-sm">
@@ -98,20 +98,20 @@ export default function Checkin() {
               value={qr}
               onChange={(e) => setQr(e.target.value)}
               placeholder="Nhập mã QR (demo: bỏ trống rồi bấm)"
-              className="mt-4 w-full max-w-xs text-sm px-3 py-2.5 rounded-xl border-0 bg-white text-ink outline-none focus:ring-2 focus:ring-white"
+              className="mt-4 w-full max-w-xs text-sm px-3 py-2.5 rounded-xl border-0 bg-white text-ink outline-none focus:ring-2 focus:ring-white transition-responsive"
               autoComplete="off"
             />
             <button
               onClick={doCheckin}
               disabled={busy}
-              className="mt-3 max-w-xs w-full text-sm py-2.5 rounded-full font-semibold bg-white text-ink hover:bg-white/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-3 max-w-xs w-full text-sm py-2.5 rounded-full font-semibold bg-white text-ink hover:bg-white/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-responsive hover-glow"
               aria-busy={busy}
             >
               <ScanLine size={16} aria-hidden="true" />
               {busy ? "Đang xác nhận..." : "Mở camera scan"}
             </button>
             {result && (
-              <div className="mt-3 max-w-xs w-full rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold flex items-center justify-center gap-2" role="status" aria-live="polite">
+              <div className="mt-3 max-w-xs w-full rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold flex items-center justify-center gap-2 reveal-up transition-responsive" role="status" aria-live="polite" style={{ animationDelay: "0.1s" }}>
                 <CheckCircle2 size={16} aria-hidden="true" />
                 {result.message} · +{result.hours}h
               </div>
@@ -137,11 +137,12 @@ export default function Checkin() {
                 <p className="mt-1 text-xs text-muted-light">Quét QR tại hoạt động đầu tiên để bắt đầu tích lũy giờ.</p>
               </div>
             ) : (
-              <ul className="space-y-2 max-h-96 overflow-y-auto" role="list" aria-label="Danh sách check-in">
+              <ul className="space-y-2 max-h-96 overflow-y-auto stagger-children" role="list" aria-label="Danh sách check-in">
                 {history.map((h) => (
                   <li
                     key={h.id}
-                    className="flex items-center gap-3 text-sm rounded-xl border border-line px-3 py-2.5"
+                    className="flex items-center gap-3 text-sm rounded-xl border border-line px-3 py-2.5 interactive hover-lift transition-responsive reveal-up"
+                    style={{ animationDelay: `${0.05 * (history?.indexOf(h) ?? 0)}s` }}
                   >
                     <span className="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 text-white flex items-center justify-center" aria-hidden="true">
                       <History size={15} />
@@ -159,7 +160,7 @@ export default function Checkin() {
             )}
           </Card>
 
-          <Card>
+          <Card interactive reveal revealDelay={0.1} className="transition-responsive">
             <h3 className="font-semibold text-ink mb-2">Cách hoạt động</h3>
             <ol className="space-y-2 text-sm text-muted list-decimal list-inside">
               <li>Giáo viên hiển thị mã QR trên màn hình tại buổi sinh hoạt.</li>

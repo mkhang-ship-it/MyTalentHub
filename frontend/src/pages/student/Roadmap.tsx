@@ -27,13 +27,13 @@ export default function Roadmap() {
       />
 
       {data.ai_analysis && (
-        <div className="rounded-2xl hero-gradient p-5 text-white mb-6 shadow-lg">
+        <Card interactive reveal revealDelay={0.1} className="rounded-2xl hero-gradient p-5 text-white mb-6 shadow-lg transition-responsive">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={18} />
             <h2 className="font-semibold">AI phân tích năng lực của bạn</h2>
           </div>
           <p className="text-sm text-white/90 leading-relaxed">{data.ai_analysis}</p>
-        </div>
+        </Card>
       )}
 
       <h2 className="text-lg font-semibold text-ink mb-4">Lộ trình 3 tháng tiếp theo</h2>
@@ -49,8 +49,8 @@ export default function Roadmap() {
             </Card>
           )}
           {data.roadmap.map((r, i) => (
-            <Card key={i} className="relative pl-14">
-              <div className="absolute left-[10px] top-5 h-6 w-6 rounded-full bg-white border-2 border-portal flex items-center justify-center">
+            <Card key={i} interactive reveal revealDelay={0.05 * (i + 1)} className="relative pl-14 transition-responsive hover-lift">
+              <div className="absolute left-[10px] top-5 h-6 w-6 rounded-full bg-white border-2 border-portal flex items-center justify-center transition-responsive shadow-sm hover:shadow-md">
                 <CheckCircle2 size={14} className="text-portal" />
               </div>
               <div className="text-xs text-portal font-semibold uppercase tracking-wide">{r.title}</div>

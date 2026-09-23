@@ -1,4 +1,4 @@
-import { Award, BarChart3, PieChart, Trophy, Users } from "lucide-react";
+import { BarChart3, PieChart, Trophy, Users } from "lucide-react";
 import { Card, PageHeader } from "../../components/ui";
 
 const KPIS = [
@@ -44,15 +44,36 @@ export default function Statistics() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes barGrow {
+          from { height: 0; opacity: 0; }
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       <PageHeader
         title="Thống kê"
         subtitle="Tổng quan năng lực toàn trường — dành cho ban giám hiệu (slide 18)."
       />
 
       {/* KPI (slide 18) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.05s both" }}>
         {KPIS.map((k) => (
-          <Card key={k.label}>
+          <Card key={k.label} className="hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
             <div className="flex items-center gap-3">
               <span className={`h-12 w-12 shrink-0 rounded-full ${k.chip} text-white flex items-center justify-center shadow`}>
                 <k.icon size={22} />
@@ -79,6 +100,7 @@ export default function Statistics() {
                 background: `conic-gradient(${gradient})`,
                 mask: "radial-gradient(circle, transparent 55%, black 56%)",
                 WebkitMask: "radial-gradient(circle, transparent 55%, black 56%)",
+                animation: "scaleIn 0.8s ease-out 0.2s both",
               }}
             />
             <div className="flex-1 space-y-2.5">
@@ -103,11 +125,11 @@ export default function Statistics() {
                 <div className="flex items-end gap-1 h-36">
                   <div
                     className="w-4 rounded-t bg-orange-500"
-                    style={{ height: `${Math.round((b.dk / maxBar) * 100)}%` }}
+                    style={{ height: `${Math.round((b.dk / maxBar) * 100)}%`, animation: "barGrow 0.7s ease-out both" }}
                   />
                   <div
                     className="w-4 rounded-t bg-pink-500"
-                    style={{ height: `${Math.round((b.ht / maxBar) * 100)}%` }}
+                    style={{ height: `${Math.round((b.ht / maxBar) * 100)}%`, animation: "barGrow 0.7s ease-out 0.15s both" }}
                   />
                 </div>
                 <span className="text-xs text-muted font-medium">{b.m}</span>
@@ -126,11 +148,11 @@ export default function Statistics() {
       </div>
 
       {/* Top khoa/khối (slide 18) */}
-      <div className="mt-6">
+      <div className="mt-6" style={{ animation: "fadeUp 0.7s ease-out 0.3s both" }}>
         <h2 className="font-bold text-ink mb-3">Top khoa / khối nổi bật</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {TOPS.map((t) => (
-            <Card key={t.name}>
+            <Card key={t.name} className="hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
               <div className="flex items-center gap-3">
                 <span className={`h-11 w-11 shrink-0 rounded-xl ${t.chip} text-white flex items-center justify-center font-bold`}>
                   {t.name.includes("Kỹ thuật") ? "</>" : "★"}

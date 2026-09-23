@@ -49,7 +49,7 @@ export default function Profile() {
       <PageHeader title="Hồ sơ năng lực" subtitle="Quản lý thông tin cá nhân, theo dõi năng lực, thành tích, chứng chỉ và dự án (slide 11)." />
 
       {/* Header card với cover gradient (slide 11) */}
-      <Card className="overflow-hidden !p-0 mb-6">
+      <Card interactive reveal revealDelay={0.05} className="overflow-hidden !p-0 mb-6 transition-responsive">
         <div className="h-24 hero-gradient" />
         <div className="px-6 pb-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -74,7 +74,7 @@ export default function Profile() {
             </div>
           </div>
           {/* Stats cam (slide 11) */}
-          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-line pt-4">
+          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-line pt-4 stagger-children">
             <div>
               <div className="text-2xl font-extrabold text-orange-500">{data.talent_score}</div>
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Điểm năng lực</div>
@@ -105,14 +105,14 @@ export default function Profile() {
               <p className="mt-1 text-xs text-muted-light">Hoàn thành bài test hoặc nhận đánh giá từ GV để thấy kỹ năng ở đây.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4" role="list" aria-label="Danh sách kỹ năng">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 stagger-children" role="list" aria-label="Danh sách kỹ năng">
               {data.skills.map((s, i) => (
                 <div key={s.code} role="listitem">
                   <div className="flex justify-between text-sm mb-1.5">
                     <span className="font-medium text-ink">{s.name}</span>
                     <span className="text-muted tabular-nums">{s.level * 10}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-canvas-soft overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, s.level * 10)} aria-valuemin={0} aria-valuemax={100} aria-label={`${s.name}: ${s.level * 10} phần trăm`}>
+                  <div className="h-2 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-105" role="progressbar" aria-valuenow={Math.min(100, s.level * 10)} aria-valuemin={0} aria-valuemax={100} aria-label={`${s.name}: ${s.level * 10} phần trăm`}>
                     <div
                       className={`h-full rounded-full ${SKILL_BARS[i % SKILL_BARS.length]}`}
                       style={{ width: `${Math.min(100, s.level * 10)}%` }}
@@ -178,7 +178,7 @@ export default function Profile() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {data.projects.map((p) => (
-                <div key={p.id} className="rounded-xl border border-line p-4 flex items-start justify-between gap-3">
+                <div key={p.id} className="rounded-xl border border-line p-4 flex items-start justify-between gap-3 interactive hover-lift transition-responsive">
                   <div>
                     <div className="text-sm font-semibold text-ink">{p.title}</div>
                     <div className="text-xs text-muted mt-1 capitalize">
@@ -211,7 +211,7 @@ export default function Profile() {
               <p className="mt-1 text-xs text-muted-light">Đánh giá từ GV/HLV sẽ hiện ở đây khi có.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-children">
               {evals.map((ev) => (
                 <div key={ev.id} className="rounded-xl border border-line p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -229,9 +229,9 @@ export default function Profile() {
                             {c.score}/{c.max}
                           </span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-canvas-soft overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-95">
                           <div
-                            className="h-full rounded-full hero-gradient"
+                            className="h-full rounded-full hero-gradient transition-all duration-300 ease-out"
                             style={{ width: `${Math.min(100, (c.score / c.max) * 100)}%` }}
                           />
                         </div>

@@ -82,7 +82,7 @@ export default function Activities() {
               onClick={() => setField(f)}
               aria-pressed={field === f}
               aria-label={f === "" ? "Tất cả lĩnh vực" : `Lĩnh vực ${FIELD_NAMES[f]}`}
-              className={`text-xs px-3.5 py-1.5 rounded-full font-semibold border transition-colors ${
+              className={`text-xs px-3.5 py-1.5 rounded-full font-semibold border transition-responsive ${
                 field === f
                   ? "bg-ink text-white border-ink"
                   : "bg-white text-muted border-line hover:border-portal"
@@ -107,12 +107,12 @@ export default function Activities() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {data.map((a) => {
           const taken = Math.max(0, a.capacity - a.slots_left);
           const pct = a.capacity > 0 ? Math.round((taken / a.capacity) * 100) : 0;
           return (
-            <div key={a.id} className="rounded-2xl border border-line bg-white overflow-hidden shadow-soft">
+            <div key={a.id} className="rounded-2xl border border-line bg-white overflow-hidden shadow-soft interactive hover-lift transition-responsive">
               {/* Banner màu theo lĩnh vực (slide 13) */}
               <div className={`${fieldBanner(a.field)} px-4 pt-3 pb-8`}>
                 <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/25 text-white font-medium">
@@ -135,8 +135,8 @@ export default function Activities() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 h-1.5 rounded-full bg-canvas-soft overflow-hidden">
-                  <div className="h-full rounded-full hero-gradient" style={{ width: `${pct}%` }} />
+                <div className="mt-2 h-1.5 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-95">
+                  <div className="h-full rounded-full hero-gradient transition-all duration-300 ease-out" style={{ width: `${pct}%` }} />
                 </div>
                 <button
                   onClick={() => register(a.id)}
@@ -152,7 +152,7 @@ export default function Activities() {
       </div>
 
       {/* Banner tham gia (slide 13) */}
-      <Card className="mt-6">
+      <Card interactive reveal revealDelay={0.15} className="mt-6 transition-responsive">
         <div className="flex items-center gap-4">
           <span className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center">
             <CalendarDays size={22} />

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Filter, Search, ChevronLeft, ChevronRight, Mail, CheckCircle2 } from "lucide-react";
+import { Filter, Search, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { get, post } from "../../api/client";
+import DataNetwork, { type DataNode, type DataLink } from "../../components/three/DataNetwork";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
 interface Talent {
@@ -108,12 +109,30 @@ export default function Talents() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       <PageHeader
         title="Tìm kiếm nhân tài"
         subtitle="Tra cứu hồ sơ học sinh theo tên, lớp, khối, lĩnh vực, điểm năng lực — để tuyển thực tập hoặc tài trợ tài năng (slide 29)."
       />
 
-      <Card className="mb-5">
+      <div style={{ animation: "fadeUp 0.6s ease-out both" }}>
+        <Card className="mb-5 hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
         <div className="flex items-center gap-2 text-xs text-muted-light mb-3 uppercase tracking-wider">
           <Filter size={13} aria-hidden="true" /> <span>Bộ lọc</span>
         </div>
@@ -206,8 +225,9 @@ export default function Talents() {
           </div>
         </div>
       </Card>
+      </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
         <p className="text-sm text-muted" aria-live="polite">
           {data.total} hồ sơ phù hợp · Trang {data.page} / {data.total_pages}
         </p>
@@ -227,7 +247,7 @@ export default function Talents() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" style={{ animation: "fadeUp 0.6s ease-out 0.15s both" }}>
         <table className="w-full text-sm tabular-nums" role="grid">
           <thead>
             <tr className="text-left text-xs text-muted-light uppercase tracking-wider border-b border-line">
@@ -243,13 +263,14 @@ export default function Talents() {
           <tbody>
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-6 text-center text-muted" role="status">
-                  Không tìm thấy hồ sơ phù hợp với bộ lọc.
+                <td colSpan={7} className="py-8 text-center text-muted rounded-xl border border-dashed border-line-strong bg-canvas-soft/60" role="status">
+                  <p>Không tìm thấy hồ sơ phù hợp với bộ lọc.</p>
+                  <p className="text-xs mt-1">Thử điều chỉnh từ khóa hoặc bỏ bớt bộ lọc.</p>
                 </td>
               </tr>
             )}
             {data.items.map((t) => (
-              <tr key={t.id} className="border-b border-line/50 hover:bg-canvas-soft/50 transition-colors duration-150">
+              <tr key={t.id} className="border-b border-line/50 hover:bg-portal-soft/20 hover:-translate-y-0.5 transition-all duration-150 ease-out">
                 <td className="py-3 pr-4 font-medium text-ink">{t.full_name}</td>
                 <td className="py-3 pr-4 text-muted">{t.class_name}</td>
                 <td className="py-3 pr-4 text-muted">Khối {t.grade}</td>
@@ -305,13 +326,13 @@ export default function Talents() {
       </div>
 
       {data.total_pages > 1 && (
-        <nav aria-label="Phân trang kết quả tìm kiếm" className="mt-6">
+        <nav aria-label="Phân trang kết quả tìm kiếm" className="mt-6" style={{ animation: "fadeUp 0.7s ease-out 0.25s both" }}>
           <div className="flex items-center justify-center gap-1" role="navigation" aria-live="polite">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={data.page === 1}
-              className="p-2 rounded-lg border border-line text-muted-light hover:bg-canvas-soft disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              className="p-2 rounded-lg border border-line text-muted-light hover:bg-canvas-soft hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-all duration-150"
               aria-label="Trang trước"
               aria-disabled={data.page === 1}
             >
@@ -325,10 +346,10 @@ export default function Talents() {
                   key={i}
                   type="button"
                   onClick={() => setPage(p as number)}
-                  className={`w-9 h-9 rounded-lg font-medium transition ${
+                  className={`w-9 h-9 rounded-lg font-medium transition hover:-translate-y-0.5 hover:shadow-sm ${
                     data.page === p
                       ? "bg-portal text-white"
-                      : "border border-line hover:bg-canvas-soft"
+                      : "border border-line hover:bg-canvas-soft hover:-translate-y-0.5 hover:shadow-sm"
                   } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2`}
                   aria-label={`Trang ${p}`}
                   aria-current={data.page === p ? "page" : undefined}
@@ -341,7 +362,7 @@ export default function Talents() {
               type="button"
               onClick={() => setPage((p) => Math.min(data.total_pages, p + 1))}
               disabled={data.page === data.total_pages}
-              className="p-2 rounded-lg border border-line text-muted-light hover:bg-canvas-soft disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              className="p-2 rounded-lg border border-line text-muted-light hover:bg-canvas-soft hover:-translate-y-0.5 hover:shadow-sm disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-all duration-150"
               aria-label="Trang sau"
               aria-disabled={data.page === data.total_pages}
             >
@@ -350,6 +371,34 @@ export default function Talents() {
           </div>
         </nav>
       )}
+      <section className="mt-6" aria-label="Mạng dữ liệu nhân tài — kỹ năng — dự án" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
+        <DataNetwork
+          mode="enterprise"
+          ariaLabel="Liên kết nhân tài, kỹ năng và dự án dựa trên dữ liệu tìm kiếm"
+          nodes={[
+            ...[...new Map(
+              data.items.slice(0, 12).map((t) => [
+                `talent-${t.id}`,
+                { id: `talent-${t.id}`, label: t.full_name.length > 14 ? t.full_name.slice(0, 12) + "…" : t.full_name, group: "talent", size: 2, color: "#C44296" },
+              ])
+            ).values()].map((n) => n as DataNode),
+            ...[...new Map(
+              Array.from(new Set(data.items.flatMap((t) => t.top_skills.slice(0, 3)))).map((skill) => [
+                `skill-${String(skill)}`,
+                { id: `skill-${String(skill)}`, label: String(skill), group: "skill", size: 1, color: "#F97316" },
+              ])
+            ).values()].map((n) => n as DataNode),
+            { id: "project-main", label: "Tuyển thực tập", group: "project", size: 3, color: "#EC4899" },
+          ].filter(Boolean) as DataNode[]}
+          links={[
+            ...data.items.slice(0, 12).flatMap((t) =>
+              t.top_skills.slice(0, 3).map((skill) => ({ source: `talent-${t.id}`, target: `skill-${String(skill)}`, value: t.talent_score / 20 } as DataLink))
+            ),
+            ...data.items.slice(0, 8).map((t) => ({ source: `talent-${t.id}`, target: "project-main", value: t.talent_score / 20 } as DataLink)),
+          ]}
+          height={260}
+        />
+      </section>
     </div>
   );
 }

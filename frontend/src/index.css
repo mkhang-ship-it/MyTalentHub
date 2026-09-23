@@ -33,6 +33,20 @@
   --radius-xl: 1.25rem;
   --shadow-soft: 0 1px 3px rgb(51 50 77 / 0.06), 0 1px 2px rgb(51 50 77 / 0.04);
   --shadow-lift: 0 10px 30px rgb(51 50 77 / 0.1);
+
+  /* semantic bổ sung — Attio + Awwwards style */
+  --surface-elevated: #ffffff;
+  --surface-subtle: #fcfbfa;
+  --ink-primary: #1e1b2e;
+  --ink-secondary: #4b4a66;
+  --radius-card: 1.25rem;
+  --radius-pill: 2rem;
+  --shadow-card: 0 4px 6px -1px rgb(51 50 77 / 0.06), 0 2px 4px -2px rgb(51 50 77 / 0.06);
+  --shadow-card-hover: 0 20px 40px rgb(51 50 77 / 0.10), 0 8px 16px rgb(51 50 77 / 0.06);
+  --shadow-glow-portal: 0 0 0 3px color-mix(in srgb, var(--portal) 22%, transparent);
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 400ms ease;
 }
 
 html {
@@ -60,8 +74,12 @@ body {
   .card-surface {
     background-color: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 1rem;
-    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+  }
+  .card-surface:hover {
+    box-shadow: var(--shadow-card-hover);
   }
   .btn-primary {
     display: inline-flex;
@@ -75,10 +93,13 @@ body {
     font-weight: 600;
     color: #fff;
     background: var(--cta-gradient, var(--portal));
-    transition: filter 160ms ease;
+    transition: filter var(--transition-fast), box-shadow var(--transition-base), transform var(--transition-fast);
+    will-change: filter, box-shadow;
   }
   .btn-primary:hover {
     filter: brightness(1.08);
+    box-shadow: var(--shadow-glow-portal);
+    transform: translateY(-1px);
   }
   .btn-secondary {
     display: inline-flex;
@@ -93,10 +114,13 @@ body {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--ink);
-    transition: background-color 160ms ease;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-base), transform var(--transition-fast);
   }
   .btn-secondary:hover {
     background: var(--canvas-soft);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
   }
   .input-control {
     height: 2.75rem;
@@ -140,4 +164,123 @@ body {
   .skillbar-d {
     background: linear-gradient(90deg, #F43F5E 0%, #8B5CF6 100%);
   }
+  /* Responsive-safe input transition */
+  .input-control {
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  }
+}
+
+/* ── Motion primitives (CSS-only, Safari/Chrome/Cốc Cốc safe, reduced-motion aware) ── */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes count-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.page-transition {
+  animation: page-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.reveal-up {
+  animation: reveal-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reveal-fade {
+  animation: reveal-fade 0.45s ease-out both;
+}
+.reveal-scale {
+  animation: reveal-scale 0.5s ease-out both;
+}
+
+/* Stagger */
+.stagger-children > * {
+  opacity: 0;
+  animation: reveal-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.24s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.30s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.36s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.42s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.48s; }
+
+/* Hover primitives */
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  will-change: transform, box-shadow;
+}
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-base);
+}
+.hover-glow:hover {
+  box-shadow: var(--shadow-glow-portal);
+}
+
+.hover-scale {
+  transition: transform var(--transition-fast);
+  will-change: transform;
+}
+.hover-scale:hover {
+  transform: scale(1.04);
+}
+
+/* Animated number support */
+.animated-number {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  transition: opacity var(--transition-fast);
+}
+
+/* Reduced motion safety */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .reveal-up,
+  .reveal-fade,
+  .reveal-scale,
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition-duration: 0ms !important;
+  }
+  .hover-lift:hover,
+  .hover-glow:hover,
+  .hover-scale:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .animated-number {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Responsive-safe transition wrapper */
+.transition-responsive {
+  transition-property: transform, opacity, box-shadow, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: var(--transition-base);
 }

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
+import { PassportHoloCard } from "../../components/three/PassportHoloCard";
 
 interface Passport {
   qr_code: string;
@@ -63,16 +64,28 @@ export default function Passport() {
     data.skills.length > 0 ? (data.skills.reduce((sum, k) => sum + k.level, 0) / data.skills.length) : 0;
 
   return (
+    <>
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .anim-fade-up { animation: fadeUp 0.6s ease-out both; }
+        .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .reveal.reveal-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) { .anim-fade-up { animation: fadeIn 0.15s ease both; } .reveal { transition: opacity 0.15s ease; } }
+      `}</style>
     <div>
       <PageHeader
+        reveal
         title="Talent Passport"
         subtitle="Hồ sơ năng lực số của học sinh — mọi dữ liệu cá nhân, thành tích và hoạt động trải nghiệm tích hợp một nơi (slide 32)."
       />
 
+      <PassportHoloCard data={data} className="mb-6" />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Cột trái - thông tin cá nhân + QR */}
         <div className="space-y-4">
-          <Card className="text-center">
+          <Card reveal revealDelay={1} className="text-center">
             <div className="mx-auto h-24 w-24 rounded-full hero-gradient text-white flex items-center justify-center text-3xl font-bold shadow-lg">
               {s.full_name.charAt(0)}
             </div>
@@ -99,7 +112,7 @@ export default function Passport() {
             </div>
           </Card>
 
-          <Card className="hero-gradient text-white text-center">
+          <Card reveal revealDelay={2} className="hero-gradient text-white text-center">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-light mb-3">
               <QrCode size={14} /> Mã định danh Talent Passport
             </div>
@@ -123,7 +136,7 @@ export default function Passport() {
 
         {/* Cột giữa + phải - nội dung chi tiết */}
         <div className="lg:col-span-2 space-y-4">
-          <Card>
+          <Card reveal revealDelay={3} className="shadow-soft hover:shadow-lift transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-2 mb-3">
               <Target size={18} className="text-portal" />
               <h2 className="font-semibold text-ink">Giới thiệu & Sở thích</h2>
@@ -138,7 +151,7 @@ export default function Passport() {
             </div>
           </Card>
 
-          <Card>
+          <Card reveal revealDelay={3} className="shadow-soft hover:shadow-lift transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb size={18} className="text-portal" />
               <h2 className="font-semibold text-ink">Kỹ năng năng lực</h2>
@@ -153,7 +166,7 @@ export default function Passport() {
                   </div>
                   <div className="h-2 rounded-full bg-canvas-soft overflow-hidden">
                     <div
-                      className="h-full rounded-full hero-gradient"
+                      className="h-full rounded-full hero-gradient transition-all duration-500"
                       style={{ width: `${Math.min(100, k.level * 10)}%` }}
                     />
                   </div>
@@ -163,7 +176,7 @@ export default function Passport() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            <Card reveal revealDelay={4}>
               <div className="flex items-center gap-2 mb-3">
                 <FileCheck2 size={18} className="text-portal-dark" />
                 <h2 className="font-semibold text-ink">Chứng chỉ & Giấy khen</h2>
@@ -183,7 +196,7 @@ export default function Passport() {
               </div>
             </Card>
 
-            <Card>
+            <Card reveal revealDelay={4}>
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase size={18} className="text-portal" />
                 <h2 className="font-semibold text-ink">Dự án cá nhân</h2>
@@ -205,14 +218,14 @@ export default function Passport() {
             </Card>
           </div>
 
-          <Card>
+          <Card reveal revealDelay={5}>
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays size={18} className="text-portal" />
               <h2 className="font-semibold text-ink">Hoạt động trải nghiệm</h2>
             </div>
             <div className="space-y-2.5">
               {data.activities.map((a, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3">
+                <div key={i} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3 hover:bg-canvas-soft/80 transition-colors duration-150">
                   <div>
                     <div className="text-sm font-medium text-ink">{a.title}</div>
                     <div className="text-xs text-muted-light capitalize">
@@ -236,5 +249,6 @@ export default function Passport() {
         FTalentHub — Hồ sơ năng lực số, xác thực bởi trường THPT FTI Cần Thơ
       </div>
     </div>
+    </>
   );
 }

@@ -40,8 +40,21 @@ export default function Overview() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       {/* Hero chào mừng (slide 28) */}
-      <div className="relative rounded-2xl overflow-hidden mb-6 hero-gradient">
+      <div className="relative rounded-2xl overflow-hidden mb-6 hero-gradient" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <div className="relative px-6 py-5">
           <p className="text-sm text-white/80" id="welcome-greeting">Xin chào</p>
           <h1 className="text-2xl font-extrabold text-white" id="welcome-title">
@@ -71,7 +84,7 @@ export default function Overview() {
         <h2 id="kpi-heading" className="sr-only">
           Chỉ số quan trọng
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
           <StatCard
             label="Hồ sơ phù hợp"
             value={data.matching_profiles}
@@ -104,7 +117,7 @@ export default function Overview() {
       </section>
 
       <section aria-labelledby="recent-posts-heading">
-        <Card>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <div className="flex items-center justify-between mb-4">
             <h2 id="recent-posts-heading" className="font-semibold text-ink">
               Tin tuyển dụng gần đây
@@ -112,11 +125,14 @@ export default function Overview() {
             <span className="text-xs text-muted-light">Xem thêm trong "Tuyển thực tập"</span>
           </div>
           {data.recent_posts.length === 0 ? (
-            <p className="text-sm text-muted" role="status">Chưa có tin tuyển dụng nào.</p>
+            <div className="rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm text-muted" role="status">
+              <p>Chưa có tin tuyển dụng nào.</p>
+              <Link to="/enterprise/internships" className="inline-block mt-3 text-sm text-portal font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">Đăng tin tuyển dụng →</Link>
+            </div>
           ) : (
             <ul className="space-y-3" role="list">
               {data.recent_posts.map((p) => (
-                <li key={p.id} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3">
+                <li key={p.id} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150 ease-out">
                   <div>
                     <div className="font-medium text-ink text-sm">{p.title}</div>
                     <div className="text-xs text-muted-light mt-0.5">
@@ -138,8 +154,8 @@ export default function Overview() {
         </Card>
       </section>
 
-      <section aria-labelledby="top-talents-heading" className="mt-6">
-        <Card>
+      <section aria-labelledby="top-talents-heading" className="mt-6" style={{ animation: "fadeUp 0.7s ease-out 0.2s both" }}>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <div className="flex items-center justify-between mb-4">
             <h2 id="top-talents-heading" className="font-semibold text-ink flex items-center gap-2">
               <Star size={16} className="text-portal" aria-hidden="true" /> Nhân tài nổi bật
@@ -152,11 +168,14 @@ export default function Overview() {
             </Link>
           </div>
           {top.length === 0 ? (
-            <p className="text-sm text-muted" role="status">Chưa có hồ sơ điểm cao (≥ 80).</p>
+            <div className="rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm text-muted" role="status">
+              <p>Chưa có hồ sơ điểm cao (≥ 80).</p>
+              <Link to="/enterprise/talents" className="inline-block mt-3 text-sm text-portal font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">Tìm nhân tài →</Link>
+            </div>
           ) : (
             <ul className="space-y-3" role="list">
               {top.map((t) => (
-                <li key={t.id} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3">
+                <li key={t.id} className="flex items-center justify-between rounded-xl border border-line bg-canvas-soft/50 px-4 py-3 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150 ease-out">
                   <div>
                     <div className="font-medium text-ink text-sm">{t.full_name}</div>
                     <div className="text-xs text-muted-light mt-0.5">

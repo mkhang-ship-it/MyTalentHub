@@ -1,3 +1,5 @@
+/* global require, console */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 let content = fs.readFileSync('/tmp/FT/talenthub/frontend/src/pages/school/Overview.tsx', 'utf8');
 

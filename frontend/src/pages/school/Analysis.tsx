@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, Trophy, AlertCircle, CheckCircle } from "lucide-react";
+import { BarChart3, Trophy } from "lucide-react";
+import DataNetwork from "../../components/three/DataNetwork";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
-
-interface Toast {
-  id: number;
-  type: "success" | "error";
-  message: string;
-}
 
 interface Analysis {
   skill_map: { name: string; code: string; avg_score: number }[];
@@ -35,13 +30,6 @@ function polar(i: number, n: number, r: number): [number, number] {
 export default function Analysis() {
   const [data, setData] = useState<Analysis | null>(null);
   const [error, setError] = useState("");
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const showToast = (type: "success" | "error", message: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  };
 
   useEffect(() => {
     get<Analysis>("/school/analysis").then(setData).catch((e) => setError(String((e as Error).message || e)));
@@ -61,32 +49,29 @@ export default function Analysis() {
 
   return (
     <div>
-      {/* Toast notifications */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-slide-in ${
-              t.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
-            }`}
-          >
-            {t.type === "success" ? (
-              <CheckCircle size={18} className="shrink-0" />
-            ) : (
-              <AlertCircle size={18} className="shrink-0" />
-            )}
-            <span>{t.message}</span>
-          </div>
-        ))}
-      </div>
-
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes drawRadar {
+          from { stroke-dashoffset: 200; opacity: 0; }
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       <PageHeader
         title="Phân tích năng lực học sinh"
         subtitle="So sánh năng khiếu theo khối, lớp và các nhóm ngành (slide 25)."
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" style={{ animation: "fadeUp 0.6s ease-out both" }}>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 size={18} className="text-portal" />
             <h2 className="font-semibold text-ink">Bản đồ năng khiếu toàn trường</h2>
@@ -126,12 +111,20 @@ export default function Analysis() {
                 </g>
               );
             })}
-            <polygon points={valuePts} fill="rgba(236, 72, 153, 0.25)" stroke="#ec4899" strokeWidth="2" />
+            <polygon
+              points={valuePts}
+              fill="rgba(236, 72, 153, 0.25)"
+              stroke="#ec4899"
+              strokeWidth="2"
+              strokeDasharray="200"
+              strokeDashoffset="200"
+              style={{ animation: "drawRadar 1.2s ease-out 0.3s both" }}
+            />
           </svg>
           <p className="text-xs text-muted-light text-center mt-1">Điểm trung bình thang 100 từ dữ liệu kỹ năng học sinh.</p>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <h2 className="font-semibold text-ink mb-4">Bảng xếp hạng khối</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm tabular-nums">
@@ -145,7 +138,7 @@ export default function Analysis() {
               </thead>
               <tbody>
                 {data.grade_ranking.map((g, i) => (
-                  <tr key={g.grade} className="border-b border-line">
+                  <tr key={g.grade} className="border-b border-line hover:bg-portal-soft/20 transition-colors duration-150 ease-out">
                     <td className="px-4 py-3">
                       <span
                         className={`h-6 w-6 rounded-full inline-flex items-center justify-center text-xs font-bold ${
@@ -170,14 +163,14 @@ export default function Analysis() {
             </table>
           </div>
           <div className="mt-4 text-right">
-            <Link to="/school/classes" className="text-sm text-portal hover:underline">
+            <Link to="/school/classes" className="text-sm text-portal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">
               Xem chi tiết bảng xếp hạng →
             </Link>
           </div>
         </Card>
       </div>
 
-      <Card>
+      <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
         <div className="flex items-center gap-2 mb-4">
           <Trophy size={18} className="text-portal-dark" />
           <h2 className="font-semibold text-ink">Top học sinh nổi bật</h2>
@@ -197,7 +190,7 @@ export default function Analysis() {
             </thead>
             <tbody>
               {data.top_students.map((s, i) => (
-                <tr key={s.id} className="border-b border-line">
+                <tr key={s.id} className="border-b border-line hover:bg-portal-soft/20 transition-colors duration-150 ease-out">
                   <td className="px-4 py-3">
                     <span className="text-xs font-bold text-muted-light w-4" aria-label={`Hạng ${i + 1}`}>{i + 1}</span>
                   </td>
@@ -213,7 +206,7 @@ export default function Analysis() {
                   <td className="px-4 py-3 text-center font-bold text-portal-dark">{s.talent_score}</td>
                   <td className="px-4 py-3 text-center">{s.hours}h</td>
                   <td className="px-4 py-3 text-right">
-                    <Link to={`/passport/${s.id}`} className="text-xs text-portal hover:underline">
+                    <Link to={`/passport/${s.id}`} className="text-xs text-portal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">
                       Xem passport →
                     </Link>
                   </td>
@@ -223,6 +216,20 @@ export default function Analysis() {
           </table>
         </div>
       </Card>
+      <section className="mt-6" aria-label="Mạng dữ liệu lớp — kỹ năng">
+        <DataNetwork
+          mode="school"
+          ariaLabel="Liên kết lớp và kỹ năng dựa trên dữ liệu phân tích năng lực"
+          nodes={[
+            ...data.grade_ranking.map((g) => ({ id: `grade-${g.grade}`, label: `Khối ${g.grade}`, group: "grade", size: 2, color: "#8B5CF6" })),
+            ...data.skill_map.map((s) => ({ id: s.code, label: s.name, group: "skill", size: 1 + Math.round(s.avg_score / 20), color: "#F97316" })),
+          ]}
+          links={data.grade_ranking.flatMap((g) =>
+            data.skill_map.map((s) => ({ source: `grade-${g.grade}`, target: s.code, value: Math.round(s.avg_score / 10) }))
+          )}
+          height={260}
+        />
+      </section>
     </div>
   );
 }

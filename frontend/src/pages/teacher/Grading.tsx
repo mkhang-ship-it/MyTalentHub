@@ -87,8 +87,18 @@ export default function Grading() {
   };
 
   return (
+    <>
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .anim-fade-up { animation: fadeUp 0.6s ease-out both; }
+        .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .reveal.reveal-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) { .anim-fade-up { animation: fadeIn 0.15s ease both; } .reveal { transition: opacity 0.15s ease; } }
+      `}</style>
     <div>
       <PageHeader
+        reveal
         title="Chấm điểm"
         subtitle={`${students?.length ?? 0} bài đang chờ — hãy hoàn tất chấm điểm (slide 22).`}
       />
@@ -118,7 +128,7 @@ export default function Grading() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Hàng chờ (slide 22) */}
-          <Card>
+          <Card reveal revealDelay={1}>
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-3">
               Hàng chờ
             </div>
@@ -146,7 +156,7 @@ export default function Grading() {
           </Card>
 
           {/* Đang chấm (slide 22) */}
-          <Card className="lg:col-span-2">
+          <Card reveal revealDelay={2} className="lg:col-span-2">
             {selected ? (
               <>
                 <div className="flex items-center justify-between mb-1">
@@ -179,7 +189,7 @@ export default function Grading() {
                         max={c.max}
                         value={sc[c.key]}
                         onChange={(e) => setScore(c.key, Number(e.target.value))}
-                        className="w-full accent-orange-500"
+                        className={`w-full accent-orange-500 transition-colors duration-150`}
                       />
                     </div>
                   ))}
@@ -194,20 +204,20 @@ export default function Grading() {
                     }
                     placeholder="Ghi nhận tiến bộ, góp ý cải thiện..."
                     rows={3}
-                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-line outline-none focus:border-portal resize-y"
+                    className="w-full text-sm px-3 py-2.5 rounded-xl border border-line outline-none focus:border-portal focus:ring-2 focus:ring-portal/20 resize-y transition-colors"
                   />
                 </div>
 
                 <div className="mt-4 flex justify-end gap-2">
                   <button
                     onClick={() => setComment({ ...comment, [selected.registration_id]: "" })}
-                    className="text-sm px-4 py-2 rounded-full border border-line font-semibold text-ink hover:bg-canvas-soft"
+                    className="text-sm px-4 py-2 rounded-full border border-line font-semibold text-ink hover:bg-canvas-soft transition-colors"
                   >
                     Lưu nháp
                   </button>
                   <button
                     onClick={() => submit(selected)}
-                    className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold"
+                    className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold hover:brightness-105 transition"
                   >
                     ✓ Gửi đánh giá
                   </button>
@@ -220,5 +230,6 @@ export default function Grading() {
         </div>
       )}
     </div>
+    </>
   );
 }

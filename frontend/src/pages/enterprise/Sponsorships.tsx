@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
-import { HandCoins, Rocket, Filter, X, Edit, Trash2, DollarSign, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
+import { HandCoins, Rocket, Filter, X, Edit, Trash2, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
@@ -67,7 +67,7 @@ export default function Sponsorships() {
 
   // Virtualization state
   const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(600);
+  const [containerHeight] = useState(600);
   const projectListRef = useRef<HTMLDivElement>(null);
 
   const showToast = (type: "success" | "error", message: string) => {
@@ -264,6 +264,23 @@ export default function Sponsorships() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-label="Thông báo">
         {toasts.map((t) => (
@@ -329,7 +346,7 @@ export default function Sponsorships() {
       />
 
       {/* Banner tổng (slide 31) */}
-      <div className="rounded-2xl hero-gradient p-5 text-white shadow-lg mb-6 flex items-center gap-4" role="region" aria-label="Tổng quan tài trợ">
+      <div className="rounded-2xl hero-gradient p-5 text-white shadow-lg mb-6 flex items-center gap-4 hover:shadow-[0_12px_40px_rgb(51_50_77/0.15)] transition-shadow duration-300 ease-out" role="region" aria-label="Tổng quan tài trợ" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <span className="h-12 w-12 shrink-0 rounded-full bg-white/20 flex items-center justify-center" aria-hidden="true">
           <HandCoins size={22} />
         </span>
@@ -350,7 +367,7 @@ export default function Sponsorships() {
       <section aria-labelledby="projects-heading" className="mb-6">
         <h2 id="projects-heading" className="sr-only">Danh sách dự án kêu gọi tài trợ</h2>
         
-        <div className="flex flex-wrap gap-3 mb-4" role="search" aria-label="Bộ lọc dự án">
+        <div className="flex flex-wrap gap-3 mb-4" role="search" aria-label="Bộ lọc dự án" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
           <div className="relative">
             <label htmlFor="filter-field" className="sr-only">Lọc theo lĩnh vực</label>
             <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -410,7 +427,6 @@ export default function Sponsorships() {
           >
             <div style={{ height: visibleProjects.totalHeight, position: "relative" }}>
               {visibleProjects.items.map((p, index) => {
-                const actualIndex = visibleProjects.startIndex + index;
                 const pct = Math.min(100, Math.round((p.sponsored_total / maxFunded) * 100));
                 return (
                   <article
@@ -424,7 +440,7 @@ export default function Sponsorships() {
                     }}
                     role="listitem"
                   >
-                    <Card>
+                    <Card className="hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h3 className="font-bold text-ink">{p.title}</h3>
@@ -442,8 +458,8 @@ export default function Sponsorships() {
                         </span>
                         <span className="font-bold text-emerald-600 tabular-nums">{pct}%</span>
                       </div>
-                      <div className="mt-1.5 h-2 rounded-full bg-canvas-soft overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Tiến độ tài trợ ${pct}%`}>
-                        <div className="h-full rounded-full hero-gradient" style={{ width: `${pct}%` }} />
+                      <div className="mt-1.5 h-2 rounded-full bg-canvas-soft overflow-hidden shadow-inner" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Tiến độ tài trợ ${pct}%`}>
+                        <div className="h-full rounded-full hero-gradient transition-all duration-700 ease-out hover:brightness-110" style={{ width: `${pct}%`, animation: "scaleIn 0.8s ease-out both" }} />
                       </div>
                       <button
                         type="button"
@@ -452,7 +468,7 @@ export default function Sponsorships() {
                           setEditingSponsorship(null);
                           sponsorFormRef.current?.scrollIntoView({ behavior: "smooth" });
                         }}
-                        className="mt-3 w-full text-sm py-2 rounded-full cta-gradient text-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                        className="mt-3 w-full text-sm py-2 rounded-full cta-gradient text-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 hover:brightness-105 transition-all duration-150"
                       >
                         Tài trợ ngay
                       </button>
@@ -465,8 +481,8 @@ export default function Sponsorships() {
         )}
       </section>
 
-      <section aria-labelledby="sponsor-form-heading" id="sponsor-form" ref={sponsorFormRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="lg:col-span-3">
+      <section aria-labelledby="sponsor-form-heading" id="sponsor-form" ref={sponsorFormRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
+        <Card className="lg:col-span-3 hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <div className="flex items-center gap-2 mb-3">
             <Rocket size={18} className="text-portal" aria-hidden="true" />
             <h2 id="sponsor-form-heading" className="font-semibold text-ink">{editingSponsorship ? "Chỉnh sửa tài trợ" : "Tài trợ dự án mới"}</h2>
@@ -568,7 +584,10 @@ export default function Sponsorships() {
         <Card>
           <h2 id="history-heading" className="font-semibold text-ink mb-3">Lịch sử tài trợ</h2>
           {data.length === 0 ? (
-            <p className="text-sm text-muted" role="status">Chưa có tài trợ nào.</p>
+            <div className="rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-10 text-center text-sm text-muted" role="status">
+              <p>Chưa có tài trợ nào.</p>
+              <p className="text-xs mt-1">Chọn dự án và bấm "Tài trợ ngay" để bắt đầu.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm tabular-nums" role="grid">
@@ -585,7 +604,7 @@ export default function Sponsorships() {
                 </thead>
                 <tbody>
                   {data.map((d) => (
-                    <tr key={d.sponsorship_id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
+                    <tr key={d.sponsorship_id} className="border-b border-line hover:bg-portal-soft/20 hover:-translate-y-0.5 transition-all duration-150 ease-out">
                       <td className="py-2.5 font-medium text-ink">{d.project_title}</td>
                       <td className="py-2.5 text-muted capitalize">{d.field.replace("_", " ")}</td>
                       <td className="py-2.5 text-right font-semibold text-ink tabular-nums">
@@ -634,11 +653,4 @@ export default function Sponsorships() {
       </section>
     </div>
   );
-}
-
-// Get selected project for confirm dialog
-function selectedProject() {
-  // This is a workaround since we can't access `selected` from outside the component
-  // The actual selected project is computed in the component body
-  return null;
 }

@@ -185,6 +185,23 @@ export default function Internships() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-label="Thông báo">
         {toasts.map((t) => (
@@ -205,7 +222,7 @@ export default function Internships() {
         ))}
       </div>
 
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">Tuyển thực tập sinh</h1>
           <p className="mt-1 text-sm text-muted">
@@ -226,7 +243,8 @@ export default function Internships() {
       </header>
 
       {showForm && (
-        <Card className="mb-6 border-portal-soft">
+        <div style={{ animation: "fadeUp 0.7s ease-out 0.1s both" }}>
+          <Card className="mb-6 border-portal-soft hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <h2 className="font-semibold text-ink mb-3" id="form-title">{editingPost ? "Chỉnh sửa tin tuyển thực tập" : "Tin tuyển thực tập mới"}</h2>
           <form onSubmit={(e) => { e.preventDefault(); create(); }} className="grid grid-cols-1 md:grid-cols-2 gap-3" aria-labelledby="form-title">
             <div>
@@ -330,6 +348,7 @@ export default function Internships() {
             </div>
           </form>
         </Card>
+        </div>
       )}
 
       {/* Modal xem ứng viên */}
@@ -340,7 +359,10 @@ export default function Internships() {
           aria-modal="true"
           aria-labelledby="applicants-modal-title"
         >
-          <div className="w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-2xl bg-white shadow-xl">
+          <div
+          className="w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-2xl bg-white shadow-xl scaleIn"
+          style={{ animation: "scaleIn 0.25s ease-out both" }}
+        >
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <h3 id="applicants-modal-title" className="font-semibold text-ink">Ứng viên: {selectedPost.title}</h3>
               <button
@@ -354,12 +376,12 @@ export default function Internships() {
             </div>
             <div className="p-5 overflow-y-auto max-h-[60vh]">
               {applicants.length === 0 ? (
-                <p className="text-sm text-muted text-center py-8" role="status">Chưa có ứng viên nào.</p>
+                <p className="text-sm text-muted text-center py-8 rounded-xl border border-dashed border-line-strong bg-canvas-soft/40" role="status">Chưa có ứng viên nào.</p>
               ) : (
                 <ul className="space-y-4" role="list" aria-label="Danh sách ứng viên">
                   {applicants.map((a) => (
                     <li key={a.application_id}>
-                      <Card className="bg-canvas-soft/50">
+                      <Card className="bg-canvas-soft/50 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150 ease-out">
                         <div className="flex items-start gap-4">
                           <div className="w-12 h-12 shrink-0 rounded-xl bg-portal-soft flex items-center justify-center overflow-hidden" aria-hidden="true">
                             {a.avatar_url ? (
@@ -418,11 +440,11 @@ export default function Internships() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {data.length === 0 && (
             <Card className="lg:col-span-2">
-              <p className="text-sm text-muted text-center py-6" role="status">Chưa có tin tuyển dụng — bấm "Đăng tin mới".</p>
+              <p className="text-sm text-muted text-center py-8 rounded-xl border border-dashed border-line-strong bg-canvas-soft/40" role="status">Chưa có tin tuyển dụng — bấm "Đăng tin mới".</p>
             </Card>
           )}
           {data.map((p) => (
-            <article key={p.id} className="card-group">
+            <article key={p.id} className="card-group hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
               <Card>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold text-ink">{p.title}</h3>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { get, post } from "../../api/client";
-import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
+import { Card, ErrorBox, PageHeader } from "../../components/ui";
 
 interface Question {
   id: number;
@@ -26,7 +26,6 @@ const TESTS: { key: string; name: string; desc: string; chip: string; icon: stri
   { key: "mi", name: "Multiple Intelligence", desc: "8 dạng trí thông minh", chip: "bg-gradient-to-br from-amber-400 to-orange-600", icon: "⭐" },
 ];
 
-const LIKERT = ["Hoàn toàn không đúng", "Không đúng", "Không chắc", "Đúng", "Hoàn toàn đúng"];
 const POLE_LABEL: Record<string, string> = {
   "Kỹ thuật": "Kỹ thuật", "Nghệ thuật": "Nghệ thuật", "Xã hội": "Xã hội",
   "Doanh nghiệp": "Doanh nghiệp", "Tự nhiên": "Tự nhiên", "Học thuật": "Học thuật",
@@ -86,7 +85,6 @@ export default function Discover() {
   const submitTest = async () => {
     setBusy(true);
     try {
-      const payload = { test_type: activeTest, answers };
       const ans = answers.map((a) => (a === -1 ? 0 : a));
       const res = await post<ComputeResult>("student/assessments/compute", {
         test_type: activeTest, answers: ans,
@@ -112,12 +110,12 @@ export default function Discover() {
         <PageHeader title="Khám phá năng khiếu" subtitle="Bộ test khoa học giúp bạn hiểu chính mình hơn (slide 12)." />
         <section aria-labelledby="tests-heading">
           <h2 id="tests-heading" className="sr-only">Chọn bài test năng khiếu</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" role="list">
-            {TESTS.map((t) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger-children" role="list">
+            {TESTS.map((t, idx) => {
               const done = assessments?.some((a) => a.test_type === t.key);
               return (
-                <article key={t.key} className="text-center" role="listitem">
-                  <Card className="h-full">
+                <article key={t.key} className="text-center reveal-up" role="listitem" style={{ animationDelay: `${0.06 * (idx + 1)}s` }}>
+                  <Card interactive reveal revealDelay={0.05}>
                     <div className={`mx-auto h-14 w-14 rounded-2xl ${t.chip} text-white flex items-center justify-center text-2xl shadow`} aria-hidden="true">{t.icon}</div>
                     <h3 className="mt-2 font-bold text-ink">{t.name}</h3>
                     <div className="text-xs text-muted mt-1">{t.desc}</div>
@@ -170,8 +168,8 @@ export default function Discover() {
           <span>{qIdx + 1}/{questions.length}</span>
           <span>{progress}%</span>
         </div>
-        <div className="h-2 rounded-full bg-canvas-soft overflow-hidden">
-          <div className="h-full rounded-full hero-gradient" style={{ width: `${progress}%` }} />
+        <div className="h-2 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-105">
+          <div className="h-full rounded-full hero-gradient" style={{ width: `${progress}%`, transition: "width 300ms ease-out" }} />
         </div>
       </div>
 
@@ -190,8 +188,8 @@ export default function Discover() {
                 onClick={() => {
                   const a = [...answers]; a[qIdx] = i; setAnswers(a);
                 }}
-                className={`w-full text-left rounded-xl px-4 py-3 text-sm border transition ${
-                  answers[qIdx] === i ? "cta-gradient text-white border-transparent shadow" : "border-line bg-white hover:bg-canvas-soft text-ink"
+                className={`w-full text-left rounded-xl px-4 py-3 text-sm border transition-responsive ${
+                  answers[qIdx] === i ? "cta-gradient text-white border-transparent shadow hover:shadow-lg" : "border-line bg-white hover:bg-canvas-soft text-ink hover:border-portal/40"
                 }`}
               >
                 {opt}
@@ -203,15 +201,15 @@ export default function Discover() {
 
       {/* Nút điều hướng */}
       <div className="flex justify-between" role="group" aria-label="Điều hướng bài test">
-        <button onClick={goPrev} disabled={qIdx === 0} className="text-sm px-4 py-2 rounded-full border border-line font-semibold text-ink hover:bg-canvas-soft disabled:opacity-40" aria-label="Câu trước">
+        <button onClick={goPrev} disabled={qIdx === 0} className="text-sm px-4 py-2 rounded-full border border-line font-semibold text-ink hover:bg-canvas-soft disabled:opacity-40 transition-responsive" aria-label="Câu trước">
           ← Quay lại
         </button>
         {qIdx < questions.length - 1 ? (
-          <button onClick={goNext} disabled={answers[qIdx] === -1} className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold disabled:opacity-40" aria-label="Câu tiếp theo">
+          <button onClick={goNext} disabled={answers[qIdx] === -1} className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold disabled:opacity-40 transition-responsive hover:shadow-lg" aria-label="Câu tiếp theo">
             Tiếp theo →
           </button>
         ) : (
-          <button onClick={goNext} disabled={answers[qIdx] === -1 || busy} className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold disabled:opacity-40" aria-label={busy ? "Đang tính kết quả" : "Xem kết quả"}>
+          <button onClick={goNext} disabled={answers[qIdx] === -1 || busy} className="text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold disabled:opacity-40 transition-responsive hover:shadow-lg" aria-label={busy ? "Đang tính kết quả" : "Xem kết quả"}>
             {busy ? "Đang tính..." : "Xem kết quả ✓"}
           </button>
         )}
@@ -219,7 +217,7 @@ export default function Discover() {
 
       {/* Kết quả */}
       {result && (
-        <Card className="mt-6 hero-gradient text-white">
+        <Card interactive reveal revealDelay={0.1} className="mt-6 hero-gradient text-white transition-responsive">
           <div className="text-center">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-white/75">Kết quả</div>
             <h2 className="text-2xl font-extrabold mt-1">{result.label}</h2>

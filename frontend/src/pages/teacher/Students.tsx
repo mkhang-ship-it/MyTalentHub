@@ -44,8 +44,18 @@ export default function Students() {
   );
 
   return (
+    <>
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .anim-fade-up { animation: fadeUp 0.6s ease-out both; }
+        .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .reveal.reveal-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) { .anim-fade-up { animation: fadeIn 0.15s ease both; } .reveal { transition: opacity 0.15s ease; } }
+      `}</style>
     <div>
       <PageHeader
+        reveal
         title="Học viên của tôi"
         subtitle={`${data.total} học viên đang theo dõi các sân chơi bạn phụ trách (slide 23).`}
         actions={
@@ -60,13 +70,13 @@ export default function Students() {
                 setParams(next, { replace: true });
               }}
               placeholder="Tìm theo tên / lớp..."
-              className="text-sm outline-none w-44"
+              className="text-sm outline-none w-44 focus:ring-2 focus:ring-portal/20 transition-colors"
             />
           </div>
         }
       />
 
-      <Card className="overflow-hidden p-0">
+      <Card reveal revealDelay={1} className="overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-muted-light text-xs uppercase tracking-wider border-b border-line bg-canvas-soft/60">
@@ -86,7 +96,7 @@ export default function Students() {
               </tr>
             )}
             {filtered.map((s) => (
-              <tr key={s.student_id} className="border-b border-line hover:bg-canvas-soft/60">
+              <tr key={s.student_id} className="border-b border-line hover:bg-canvas-soft/60 transition-colors duration-150">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
@@ -111,5 +121,6 @@ export default function Students() {
         </table>
       </Card>
     </div>
+    </>
   );
 }

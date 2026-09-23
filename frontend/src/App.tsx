@@ -1,7 +1,9 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
-import { AuthProvider, roleHome, useAuth } from "./auth/AuthContext";
+import { PageTransition } from "./components/motion";
+import { AuthProvider, useAuth, roleHome } from "./auth/AuthContext";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentProfile from "./pages/student/Profile";
@@ -42,27 +44,36 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function IndexRedirect() {
+function RoleBoundary({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  return <Navigate to={roleHome(user?.role)} replace />;
+  const location = useLocation();
+  const section = location.pathname.split("/")[1];
+  const roleSections = ["student", "teacher", "school", "enterprise"];
+
+  if (user && roleSections.includes(section) && section !== user.role) {
+    return <Navigate to={roleHome(user.role)} replace />;
+  }
+
+  return <>{children}</>;
 }
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
 
         <Route
           path="/"
           element={
             <RequireAuth>
-              <Layout />
+              <RoleBoundary>
+                <Layout />
+              </RoleBoundary>
             </RequireAuth>
           }
         >
-          <Route index element={<IndexRedirect />} />
-
           {/* HỌC SINH */}
           <Route path="student" element={<StudentDashboard />} />
           <Route path="student/profile" element={<StudentProfile />} />

@@ -51,16 +51,16 @@ export default function Badges() {
         subtitle={`Đã mở khóa ${unlocked}/${data.length} huy hiệu — tích lũy giờ trải nghiệm để thăng cấp (slide 17).`}
       />
 
-      <div className="rounded-2xl border border-line bg-white p-5 mb-6" role="progressbar" aria-valuenow={(unlocked / Math.max(data.length, 1)) * 100} aria-valuemin={0} aria-valuemax={100} aria-label={`Tiến trình tổng: ${unlocked} trên ${data.length} huy hiệu`}>
+      <div className="rounded-2xl border border-line bg-white p-5 mb-6 interactive reveal-up transition-responsive" role="progressbar" aria-valuenow={(unlocked / Math.max(data.length, 1)) * 100} aria-valuemin={0} aria-valuemax={100} aria-label={`Tiến trình tổng: ${unlocked} trên ${data.length} huy hiệu`}>
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted">Tiến trình tổng</span>
           <span className="font-semibold text-ink tabular-nums">
             {unlocked}/{data.length} huy hiệu
           </span>
         </div>
-        <div className="h-3 rounded-full bg-canvas-soft overflow-hidden">
+        <div className="h-3 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-95">
           <div
-            className="h-full rounded-full hero-gradient"
+            className="h-full rounded-full hero-gradient transition-all duration-500 ease-out"
             style={{ width: `${(unlocked / Math.max(data.length, 1)) * 100}%` }}
           />
         </div>
@@ -71,8 +71,9 @@ export default function Badges() {
           b.unlocked ? (
             <article
               key={b.code}
-              className="relative rounded-2xl hero-gradient p-5 text-white shadow-lg flex items-center gap-4"
+              className="relative rounded-2xl hero-gradient p-5 text-white shadow-lg flex items-center gap-4 interactive hover-lift reveal-up transition-responsive"
               aria-labelledby={`badge-${b.code}-name`}
+              style={{ animationDelay: `${0.05 * (data.indexOf(b) + 1)}s` }}
             >
               <div className="h-16 w-16 shrink-0 rounded-2xl bg-white/20 flex items-center justify-center" aria-hidden="true">
                 <Award size={30} aria-hidden="true" />
@@ -86,8 +87,8 @@ export default function Badges() {
               </span>
             </article>
           ) : (
-            <article key={b.code} className="relative" aria-labelledby={`badge-locked-${b.code}-name`}>
-              <Card>
+            <article key={b.code} className="relative reveal-up" aria-labelledby={`badge-locked-${b.code}-name`} style={{ animationDelay: `${0.05 * (data.indexOf(b) + 1)}s` }}>
+              <Card interactive reveal revealDelay={0.05}>
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 shrink-0 rounded-2xl bg-canvas-soft text-muted flex items-center justify-center" aria-hidden="true">
                     <Award size={30} aria-hidden="true" />
@@ -107,9 +108,9 @@ export default function Badges() {
                       {b.current_hours}/{b.min_hours}h
                     </span>
                   </div>
-                  <div className="h-2 rounded-full bg-canvas-soft overflow-hidden" role="progressbar" aria-valuenow={b.progress_pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Huy hiệu ${b.name}: ${b.progress_pct} phần trăm, ${b.current_hours} trên ${b.min_hours} giờ`}>
+                  <div className="h-2 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-95" role="progressbar" aria-valuenow={b.progress_pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Huy hiệu ${b.name}: ${b.progress_pct} phần trăm, ${b.current_hours} trên ${b.min_hours} giờ`}>
                     <div
-                      className="h-full rounded-full hero-gradient"
+                      className="h-full rounded-full hero-gradient transition-all duration-500 ease-out"
                       style={{ width: `${b.progress_pct}%` }}
                     />
                   </div>

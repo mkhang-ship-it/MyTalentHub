@@ -50,8 +50,18 @@ export default function Activities() {
   if (!data) return <Loading />;
 
   return (
+    <>
+      <style>{`
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .anim-fade-up { animation: fadeUp 0.7s ease-out both; }
+        .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .reveal.reveal-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) { .anim-fade-up { animation: fadeIn 0.2s ease both; } .reveal { transition: opacity 0.2s ease; } }
+      `}</style>
     <div>
       <PageHeader
+        reveal
         title="Sân chơi của tôi"
         subtitle="Tạo, mở đăng ký và quản lý các hoạt động bạn phụ trách (slide 21)."
         actions={
@@ -65,20 +75,20 @@ export default function Activities() {
       />
 
       {showForm && (
-        <Card className="mb-6 border-line">
+        <Card reveal revealDelay={1} className="mb-6 border-line">
           <h3 className="font-semibold text-ink mb-3">Sân chơi mới</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Tên sân chơi *"
-              className="px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal"
+              className="px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal focus:ring-2 focus:ring-portal/20 transition-colors"
             />
             <div className="flex gap-3">
               <select
                 value={form.field}
                 onChange={(e) => setForm({ ...form, field: e.target.value })}
-                className="flex-1 px-3 py-2 rounded-xl border border-line text-sm bg-white"
+                className="flex-1 px-3 py-2 rounded-xl border border-line text-sm bg-white focus:border-portal focus:ring-2 focus:ring-portal/20 transition-colors"
               >
                 {FIELDS.map((f) => (
                   <option key={f} value={f}>
@@ -91,20 +101,20 @@ export default function Activities() {
                 value={form.capacity}
                 onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })}
                 placeholder="Sức chứa"
-                className="w-24 px-3 py-2 rounded-xl border border-line text-sm outline-none"
+                className="w-24 px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal focus:ring-2 focus:ring-portal/20 transition-colors"
               />
             </div>
             <input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Mô tả ngắn"
-              className="md:col-span-2 px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal"
+              className="md:col-span-2 px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal focus:ring-2 focus:ring-portal/20 transition-colors"
             />
             <div className="md:col-span-2 flex gap-2">
-              <button onClick={create} className="text-sm px-4 py-2 rounded-xl bg-portal text-white font-medium">
+              <button onClick={create} className="text-sm px-4 py-2 rounded-xl bg-portal text-white font-medium hover:brightness-105 transition">
                 Lưu
               </button>
-              <button onClick={() => setShowForm(false)} className="text-sm px-4 py-2 rounded-xl bg-canvas-soft text-muted">
+              <button onClick={() => setShowForm(false)} className="text-sm px-4 py-2 rounded-xl bg-canvas-soft text-muted hover:bg-canvas-soft/80 transition">
                 Hủy
               </button>
             </div>
@@ -112,7 +122,7 @@ export default function Activities() {
         </Card>
       )}
 
-      <Card className="overflow-hidden !p-0">
+      <Card reveal revealDelay={2} className="overflow-hidden !p-0">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-muted-light text-xs uppercase tracking-wider border-b border-line bg-canvas-soft/60">
@@ -132,8 +142,8 @@ export default function Activities() {
               </tr>
             )}
             {data.map((a, i) => (
-              <tr key={a.id} className="border-b border-line hover:bg-canvas-soft/50">
-                <td className="px-5 py-3.5">
+              <tr key={a.id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
+                <td className="px-5 py-3.5 text-sm transition-colors">
                   <div className="flex items-center gap-3">
                     <span className={`h-9 w-9 shrink-0 rounded-full ${FIELD_ICONS[i % FIELD_ICONS.length]} text-white flex items-center justify-center`}>
                       <Users size={16} />
@@ -141,23 +151,23 @@ export default function Activities() {
                     <span className="font-semibold text-ink">{a.title}</span>
                   </div>
                 </td>
-                <td className="px-5 py-3.5">
+                <td className="px-5 py-3.5 text-sm transition-colors">
                   <span className="text-xs px-2.5 py-1 rounded-full bg-canvas-soft text-muted font-medium capitalize">
                     {a.field.replace("_", " ")}
                   </span>
                 </td>
-                <td className="px-5 py-3.5">
+                <td className="px-5 py-3.5 text-sm transition-colors">
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                     <Clock size={13} /> {a.start_date ?? "Sắp mở"}
                   </span>
                 </td>
-                <td className="px-5 py-3.5">
+                <td className="px-5 py-3.5 text-sm transition-colors">
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                     <Users size={13} /> {a.registered_count}/{a.capacity}
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-right">
-                  <button className="text-muted hover:text-ink" title="Tùy chọn">
+                <td className="px-5 py-3.5 text-sm text-right transition-colors">
+                  <button className="text-muted hover:text-ink focus:outline-none focus:ring-2 focus:ring-portal/20 rounded-lg p-1 transition-colors" title="Tùy chọn">
                     <MoreHorizontal size={18} />
                   </button>
                 </td>
@@ -167,12 +177,13 @@ export default function Activities() {
         </table>
       </Card>
 
-      <Card className="mt-4">
+      <Card reveal revealDelay={3} className="mt-4">
         <div className="text-xs text-muted">Đang phụ trách</div>
         <div className="text-lg font-extrabold text-ink">
           {data.length} sân chơi · {data.reduce((s, a) => s + a.registered_count, 0)} học viên
         </div>
       </Card>
     </div>
+    </>
   );
 }

@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import { Activity, CalendarDays, School, Users, Trophy, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Activity, CalendarDays, School, Users, Trophy, TrendingUp } from "lucide-react";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, StatCard } from "../../components/ui";
-
-interface Toast {
-  id: number;
-  type: "success" | "error";
-  message: string;
-}
 
 interface Overview {
   total_students: number;
@@ -51,13 +45,6 @@ export default function Overview() {
   const [data, setData] = useState<Overview | null>(null);
   const [topClasses, setTopClasses] = useState<TopClass[]>([]);
   const [error, setError] = useState("");
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const showToast = (type: "success" | "error", message: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  };
 
   useEffect(() => {
     get<Overview>("/school/overview").then(setData).catch((e) => setError(String((e as Error).message || e)));
@@ -87,8 +74,29 @@ export default function Overview() {
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes barGrow {
+          from { height: 0; opacity: 0; }
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
       {/* Hero chào mừng (slide 24) */}
-      <div className="relative rounded-2xl overflow-hidden mb-6 hero-gradient">
+      <div className="relative rounded-2xl overflow-hidden mb-6 hero-gradient" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <div className="relative px-6 py-5">
           <p className="text-sm text-white/80">Ban giám hiệu</p>
           <h2 className="text-2xl font-extrabold text-white">
@@ -108,20 +116,20 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.6s ease-out 0.1s both" }}>
         <StatCard label="Học sinh hoạt động" value={data.total_students} delta={data.trends.students_delta} icon={<Users size={18} />} color="text-portal" />
         <StatCard label="Hoạt động/tháng" value={data.activities_per_month} delta={data.trends.hours_delta} icon={<CalendarDays size={18} />} color="text-portal" />
         <StatCard label="Tỷ lệ tham gia" value={`${data.participation_pct}%`} delta={data.trends.participation_delta} icon={<Activity size={18} />} color="text-portal" />
         <StatCard label="Tỷ lệ hoàn thành" value={`${data.completion_pct}%`} delta={data.trends.completion_delta} icon={<School size={18} />} color="text-portal" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <h2 className="font-semibold text-ink mb-4">Phân bố năng khiếu</h2>
           <div className="flex items-center gap-6">
             <div
               className="h-36 w-36 shrink-0 rounded-full"
-              style={{ background: `conic-gradient(${gradient})`, mask: "radial-gradient(circle, transparent 52%, black 53%)", WebkitMask: "radial-gradient(circle, transparent 52%, black 53%)" }}
+              style={{ background: `conic-gradient(${gradient})`, mask: "radial-gradient(circle, transparent 52%, black 53%)", WebkitMask: "radial-gradient(circle, transparent 52%, black 53%)", animation: "scaleIn 0.8s ease-out 0.2s both" }}
               role="img"
               aria-label={`Biểu đồ donut phân bố năng khiếu: ${shares.map(s => `${FIELD_LABELS[s.field] ?? s.field} ${s.pct}%`).join(", ")}`}
               tabIndex={0}
@@ -142,7 +150,7 @@ export default function Overview() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <h2 className="font-semibold text-ink mb-1">Tham gia & hoàn thành — 6 tháng</h2>
           <div className="flex items-center gap-4 text-xs text-muted mb-4" role="legend" aria-label="Chú thích biểu đồ">
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-orange-500" aria-hidden="true" /> Đăng ký</span>
@@ -159,13 +167,13 @@ export default function Overview() {
                 <div className="flex items-end gap-1 h-32" role="group" aria-label={`Tháng ${m.month}: ${m.registrations} đăng ký, ${m.completions} hoàn thành`}>
                   <div
                     className="w-4 rounded-t bg-orange-500"
-                    style={{ height: `${Math.max(3, (m.registrations / maxMonthly) * 100)}%` }}
+                    style={{ height: `${Math.max(3, (m.registrations / maxMonthly) * 100)}%`, animation: "barGrow 0.7s ease-out both" }}
                     aria-label={`${m.registrations} đăng ký`}
                     role="img"
                   />
                   <div
                     className="w-4 rounded-t bg-pink-500"
-                    style={{ height: `${Math.max(3, (m.completions / maxMonthly) * 100)}%` }}
+                    style={{ height: `${Math.max(3, (m.completions / maxMonthly) * 100)}%`, animation: "barGrow 0.7s ease-out 0.15s both" }}
                     aria-label={`${m.completions} hoàn thành`}
                     role="img"
                   />
@@ -183,7 +191,7 @@ export default function Overview() {
 
       {/* Top 3 khoa/khối */}
       {topClasses.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-6 hover:shadow-[0_8px_30px_rgb(51_50_77/0.05)] transition-shadow duration-200 ease-out">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={18} className="text-portal" />
             <h2 className="font-semibold text-ink">Top 3 khối/lớp xuất sắc</h2>
@@ -191,7 +199,7 @@ export default function Overview() {
           </div>
           <div className="space-y-3">
             {topClasses.slice(0, 3).map((c, i) => (
-              <div key={c.name} className="flex items-center gap-4 rounded-xl border border-line bg-canvas-soft/50 px-4 py-3">
+              <div key={c.name} className="flex items-center gap-4 rounded-xl border border-line bg-canvas-soft/50 px-4 py-3 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150 ease-out">
                 <div
                   className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold ${
                     i === 0 ? "bg-amber-500 text-white" : i === 1 ? "bg-gray-400 text-white" : "bg-amber-700 text-white"
@@ -213,7 +221,7 @@ export default function Overview() {
             ))}
           </div>
           <div className="mt-4 text-right">
-            <a href="/school/classes" className="text-sm text-portal hover:underline">
+            <a href="/school/classes" className="text-sm text-portal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">
               Xem chi tiết bảng xếp hạng →
             </a>
           </div>

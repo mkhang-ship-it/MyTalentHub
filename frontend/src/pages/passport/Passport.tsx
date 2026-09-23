@@ -1,54 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  Award,
   Briefcase,
   CalendarDays,
   FileCheck2,
   IdCard,
-  Lightbulb,
-  QrCode,
-  Star,
   Target,
 } from "lucide-react";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 import { PassportHoloCard } from "../../components/three/PassportHoloCard";
-
-interface Passport {
-  qr_code: string;
-  updated_at: string;
-  student: {
-    id: number;
-    full_name: string;
-    class_name: string;
-    grade: number;
-    avatar_url: string | null;
-    bio: string | null;
-    interests: string | null;
-    talent_score: number;
-    experience_hours: number;
-  };
-  certificates: { title: string; issuer: string; issued_at: string | null }[];
-  projects: { title: string; field: string; status: string; description: string | null }[];
-  activities: { title: string; field: string; hours: number; role: string | null }[];
-  skills: { name: string; level: number }[];
-  badges: { code: string; name: string; icon: string; color: string }[];
-}
-
-const FIELD_NAMES: Record<string, string> = {
-  ky_thuat: "Kỹ thuật",
-  nghe_thuat: "Nghệ thuật",
-  kinh_doanh: "Kinh doanh",
-  the_thao: "Thể thao",
-  hoc_thuat: "Học thuật",
-  sang_tao: "Sáng tạo",
-};
+import { PassportDetailDialog } from "./PassportDetailDialog";
+import { FIELD_NAMES, type Passport } from "./shared";
 
 export default function Passport() {
   const { studentId } = useParams();
   const [data, setData] = useState<Passport | null>(null);
   const [error, setError] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     get<Passport>(`/passport/${studentId ?? 1}`)
@@ -60,8 +29,6 @@ export default function Passport() {
   if (!data) return <Loading />;
 
   const s = data.student;
-  const avgLevel =
-    data.skills.length > 0 ? (data.skills.reduce((sum, k) => sum + k.level, 0) / data.skills.length) : 0;
 
   return (
     <>
@@ -77,64 +44,16 @@ export default function Passport() {
       <PageHeader
         reveal
         title="Talent Passport"
-        subtitle="Hồ sơ năng lực số của học sinh — mọi dữ liệu cá nhân, thành tích và hoạt động trải nghiệm tích hợp một nơi (slide 32)."
+        subtitle="Hồ sơ năng lực số của học sinh — dữ liệu cá nhân, thành tích và hoạt động trải nghiệm tập trung một nơi."
       />
 
-      <PassportHoloCard data={data} className="mb-6" />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cột trái - thông tin cá nhân + QR */}
+        {/* Cột trái - thẻ hologram tương tác */}
         <div className="space-y-4">
-          <Card reveal revealDelay={1} className="text-center">
-            <div className="mx-auto h-24 w-24 rounded-full hero-gradient text-white flex items-center justify-center text-3xl font-bold shadow-lg">
-              {s.full_name.charAt(0)}
-            </div>
-            <h2 className="mt-3 text-xl font-bold text-ink">{s.full_name}</h2>
-            <p className="text-sm text-muted">
-              Lớp {s.class_name} · Khối {s.grade}
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-portal-soft p-2">
-                <Star size={14} className="mx-auto text-portal" />
-                <div className="text-lg font-bold text-portal-dark">{s.talent_score}</div>
-                <div className="text-[10px] text-muted">Điểm năng lực</div>
-              </div>
-              <div className="rounded-xl bg-portal-soft p-2">
-                <CalendarDays size={14} className="mx-auto text-portal" />
-                <div className="text-lg font-bold text-portal">{s.experience_hours}h</div>
-                <div className="text-[10px] text-muted">Trải nghiệm</div>
-              </div>
-              <div className="rounded-xl bg-portal-soft p-2">
-                <Award size={14} className="mx-auto text-portal" />
-                <div className="text-lg font-bold text-portal">{data.badges.length}</div>
-                <div className="text-[10px] text-muted">Huy hiệu</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card reveal revealDelay={2} className="hero-gradient text-white text-center">
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-light mb-3">
-              <QrCode size={14} /> Mã định danh Talent Passport
-            </div>
-            {/* QR mock */}
-            <div className="mx-auto w-full max-w-36 h-36 sm:w-36 sm:h-36 bg-white rounded-xl p-2.5 grid grid-cols-5 gap-1">
-              {Array.from({ length: 25 }).map((_, i) => {
-                // mã giả lập vị trí module QR
-                const corners = [0, 4, 20, 24, 2, 22];
-                const randomish = (i * 7 + s.id * 13) % 3 !== 0;
-                const filled = corners.includes(i) || randomish;
-                return <div key={i} className={filled ? "bg-ink rounded-[2px]" : "bg-transparent"} />;
-              })}
-            </div>
-            <div className="mt-3 text-sm font-mono text-muted-light">{data.qr_code}</div>
-            <div className="text-[11px] text-muted-light">Cập nhật: {data.updated_at}</div>
-            <div className="mt-3 text-[11px] text-muted-light">
-              Quét mã để xác thực hồ sơ — khi xin học bổng, thực tập hoặc tuyển dụng.
-            </div>
-          </Card>
+          <PassportHoloCard data={data} onRequestOpen={() => setDetailOpen(true)} />
         </div>
 
-        {/* Cột giữa + phải - nội dung chi tiết */}
+        {/* Cột phải - nội dung chi tiết */}
         <div className="lg:col-span-2 space-y-4">
           <Card reveal revealDelay={3} className="shadow-soft hover:shadow-lift transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-2 mb-3">
@@ -147,30 +66,6 @@ export default function Passport() {
                 <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-portal-soft text-portal-dark">
                   {t}
                 </span>
-              ))}
-            </div>
-          </Card>
-
-          <Card reveal revealDelay={3} className="shadow-soft hover:shadow-lift transition-all duration-300 hover:-translate-y-0.5">
-            <div className="flex items-center gap-2 mb-3">
-              <Lightbulb size={18} className="text-portal" />
-              <h2 className="font-semibold text-ink">Kỹ năng năng lực</h2>
-              <span className="ml-auto text-xs text-muted-light">TB: {avgLevel.toFixed(1)}/10</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-              {data.skills.map((k) => (
-                <div key={k.name}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-ink-soft">{k.name}</span>
-                    <span className="text-muted-light">{k.level}/10</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-canvas-soft overflow-hidden">
-                    <div
-                      className="h-full rounded-full hero-gradient transition-all duration-500"
-                      style={{ width: `${Math.min(100, k.level * 10)}%` }}
-                    />
-                  </div>
-                </div>
               ))}
             </div>
           </Card>
@@ -248,6 +143,10 @@ export default function Passport() {
         <IdCard size={13} />
         FTalentHub — Hồ sơ năng lực số, xác thực bởi trường THPT FTI Cần Thơ
       </div>
+
+      {detailOpen && (
+        <PassportDetailDialog data={data} open onClose={() => setDetailOpen(false)} />
+      )}
     </div>
     </>
   );

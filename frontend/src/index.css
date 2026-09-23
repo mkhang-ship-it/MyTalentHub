@@ -254,6 +254,16 @@ body {
   transition: opacity var(--transition-fast);
 }
 
+/* Passport floating card — lơ lửng nhẹ khi idle */
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.card-float {
+  animation: card-float 6.5s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* Reduced motion safety */
 @media (prefers-reduced-motion: reduce) {
   .page-transition,
@@ -265,6 +275,9 @@ body {
     opacity: 1 !important;
     transform: none !important;
     transition-duration: 0ms !important;
+  }
+  .card-float {
+    animation: none !important;
   }
   .hover-lift:hover,
   .hover-glow:hover,

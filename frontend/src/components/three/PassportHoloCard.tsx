@@ -133,13 +133,14 @@ export function PassportHoloCard({ data, className = "" }: PassportHoloCardProps
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: 360, minHeight: 320 }}>
       <SceneCanvas
-        className="absolute inset-0"
+        className="absolute inset-0 z-0 opacity-60"
         config={{ sceneId: "passport-holo-scene", dprCap: 1.5, failIfMajorPerformanceCaveat: true, prefersReducedMotion: true }}
         buildScene={buildScene}
-        fallback={<PassportFallback data={data} />}
-        ariaLabel="Holographic Talent Passport"
-        decorative={false}
+        decorative
       />
+      <div className="absolute inset-0 z-10">
+        <PassportFallback data={data} />
+      </div>
     </div>
   );
 }

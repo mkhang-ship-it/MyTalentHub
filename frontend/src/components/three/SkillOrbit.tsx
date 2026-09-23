@@ -36,26 +36,45 @@ function createOrbitScene(three: typeof import("three"), data: SkillOrbitData): 
       roughness: 0.28,
       metalness: 0.12,
       emissive: new Color(0x1b2a5e),
-      emissiveIntensity: 0.25,
+      emissiveIntensity: 0.4,
     })
   );
   root.add(center);
 
   const orbitRadius = 1.15 + Math.min(0.5, (data.experience_hours ?? 0) / 300);
   const ring = new Mesh(
-    new RingGeometry(orbitRadius + 0.12, orbitRadius + 0.2, 64),
-    new MeshBasicMaterial({ color: 0x284b8c, transparent: true, opacity: 0.18, side: DoubleSide })
+    new RingGeometry(orbitRadius + 0.12, orbitRadius + 0.22, 64),
+    new MeshBasicMaterial({ color: 0x284b8c, transparent: true, opacity: 0.45, side: DoubleSide })
   );
   root.add(ring);
+
+  const glowRing = new Mesh(
+    new RingGeometry(orbitRadius + 0.62, orbitRadius + 0.66, 64),
+    new MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.16, side: DoubleSide })
+  );
+  root.add(glowRing);
+
+  const accentRing = new Mesh(
+    new RingGeometry(orbitRadius - 0.03, orbitRadius + 0.03, 64),
+    new MeshBasicMaterial({ color: 0xc44296, transparent: true, opacity: 0.25, side: DoubleSide })
+  );
+  root.add(accentRing);
 
   const skills = data.skills.slice(0, 8);
   skills.forEach((skill, index) => {
     const level = Math.max(0, Math.min(10, skill.level));
     const angle = (Math.PI * 2 * index) / Math.max(1, skills.length) - Math.PI / 2;
     const radius = orbitRadius + (level / 10) * 0.42;
+    const hue = 0.82 - (level / 10) * 0.12;
     const node = new Mesh(
-      new SphereGeometry(0.075 + (level / 10) * 0.11, 14, 14),
-      new MeshStandardMaterial({ color: new Color().setHSL(0.82 - (level / 10) * 0.12, 0.72, 0.55), roughness: 0.25, metalness: 0.08 })
+      new SphereGeometry(0.1 + (level / 10) * 0.13, 16, 16),
+      new MeshStandardMaterial({
+        color: new Color().setHSL(hue, 0.72, 0.55),
+        emissive: new Color().setHSL(hue, 0.85, 0.45),
+        emissiveIntensity: 0.4,
+        roughness: 0.25,
+        metalness: 0.08,
+      })
     );
     node.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
     root.add(node);
@@ -64,8 +83,8 @@ function createOrbitScene(three: typeof import("three"), data: SkillOrbitData): 
   data.badges?.filter((badge) => badge.unlocked).slice(0, 4).forEach((badge, index, unlocked) => {
     const angle = (Math.PI * 2 * index) / Math.max(1, unlocked.length) + Math.PI / 4;
     const marker = new Mesh(
-      new BoxGeometry(0.14, 0.14, 0.035),
-      new MeshStandardMaterial({ color: new Color(badge.color || 0xf97316), emissive: new Color(badge.color || 0xf97316), emissiveIntensity: 0.18 })
+      new BoxGeometry(0.18, 0.18, 0.045),
+      new MeshStandardMaterial({ color: new Color(badge.color || 0xf97316), emissive: new Color(badge.color || 0xf97316), emissiveIntensity: 0.45 })
     );
     marker.position.set(Math.cos(angle) * 1.9, 0.2, Math.sin(angle) * 1.9);
     marker.rotation.y = angle;
@@ -97,7 +116,8 @@ function SkillOrbitFallback({ data }: { data?: SkillOrbitData }) {
   }
 
   return (
-    <div role="img" aria-label={`Skill Orbit với ${skills.length} kỹ năng`} className="flex h-full items-center justify-center p-4">
+    <div role="img" aria-label={`Skill Orbit với ${skills.length} kỹ năng`} className="relative flex h-full items-center justify-center p-4">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[250px] w-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50 shadow-[0_12px_40px_rgb(51_50_77/0.12)] backdrop-blur-sm" />
       <div className="relative h-[220px] w-[220px]">
         <div className="absolute inset-0 rounded-full border border-dashed border-portal/30" />
         <div className="absolute inset-7 rounded-full border border-line-strong/60" />
@@ -133,13 +153,14 @@ export function SkillOrbit({ data, className = "" }: SkillOrbitProps) {
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: 320, minHeight: 280 }}>
       <SceneCanvas
-        className="absolute inset-0"
+        className="absolute inset-0 z-0 opacity-70"
         config={{ sceneId: "skill-orbit-scene", dprCap: 1.5, failIfMajorPerformanceCaveat: true, prefersReducedMotion: true }}
         buildScene={buildScene}
-        fallback={<SkillOrbitFallback data={data} />}
-        ariaLabel="Skill Orbit 3D visualization"
-        decorative={false}
+        decorative
       />
+      <div className="absolute inset-0 z-10">
+        <SkillOrbitFallback data={data} />
+      </div>
     </div>
   );
 }

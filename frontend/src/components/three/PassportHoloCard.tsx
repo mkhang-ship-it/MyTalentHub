@@ -219,7 +219,7 @@ export function PassportHoloCard({ data, className = "", size = "thumb", onReque
   return (
     <div className={className} style={{ position: "relative", width: "100%", minHeight: dialog ? 460 : 400, display: "flex", flexDirection: "column" }}>
       <div
-        className={interactive ? "group flex flex-1 cursor-pointer flex-col rounded-2xl select-none touch-manipulation outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2" : undefined}
+        className={interactive ? "group flex flex-1 cursor-pointer flex-col rounded-2xl select-none touch-manipulation outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2" : "flex flex-1 flex-col"}
         style={{ position: "relative", transformStyle: "preserve-3d", willChange: "transform" }}
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}

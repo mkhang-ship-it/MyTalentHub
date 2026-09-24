@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import { PageTransition } from "./components/motion";
-import { AuthProvider, useAuth, roleHome } from "./auth/AuthContext";
+import { AuthProvider, useAuth } from "./auth/AuthContext";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Landing from "./pages/Landing";
 
 import StudentDashboard from "./pages/student/Dashboard";
@@ -13,16 +14,19 @@ import StudentCheckin from "./pages/student/Checkin";
 import StudentBadges from "./pages/student/Badges";
 import StudentRoadmap from "./pages/student/Roadmap";
 import StudentStatistics from "./pages/student/Statistics";
+import StudentEvaluations from "./pages/student/Evaluations";
 
 import TeacherOverview from "./pages/teacher/Overview";
 import TeacherActivities from "./pages/teacher/Activities";
 import TeacherGrading from "./pages/teacher/Grading";
 import TeacherStudents from "./pages/teacher/Students";
+import TeacherClasses from "./pages/teacher/Classes";
 
 import SchoolOverview from "./pages/school/Overview";
 import SchoolAnalysis from "./pages/school/Analysis";
 import SchoolReports from "./pages/school/Reports";
 import SchoolClasses from "./pages/school/Classes";
+import SchoolSettings from "./pages/school/Settings";
 
 import EnterpriseOverview from "./pages/enterprise/Overview";
 import EnterpriseTalents from "./pages/enterprise/Talents";
@@ -45,15 +49,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function RoleBoundary({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const location = useLocation();
-  const section = location.pathname.split("/")[1];
-  const roleSections = ["student", "teacher", "school", "enterprise"];
-
-  if (user && roleSections.includes(section) && section !== user.role) {
-    return <Navigate to={roleHome(user.role)} replace />;
-  }
-
+  // Cho phép người đã đăng nhập truy cập mọi cổng (student|teacher|school|enterprise)
+  // ở chế độ trải nghiệm. Giữ RequireAuth; /passport/:studentId vẫn hoạt động.
   return <>{children}</>;
 }
 
@@ -63,6 +60,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
 
         <Route
           path="/"
@@ -83,18 +81,21 @@ export default function App() {
           <Route path="student/badges" element={<StudentBadges />} />
           <Route path="student/roadmap" element={<StudentRoadmap />} />
           <Route path="student/statistics" element={<StudentStatistics />} />
+          <Route path="student/evaluations" element={<StudentEvaluations />} />
 
           {/* GIÁO VIÊN */}
           <Route path="teacher" element={<TeacherOverview />} />
           <Route path="teacher/activities" element={<TeacherActivities />} />
           <Route path="teacher/grading" element={<TeacherGrading />} />
           <Route path="teacher/students" element={<TeacherStudents />} />
+          <Route path="teacher/classes" element={<TeacherClasses />} />
 
           {/* NHÀ TRƯỜNG */}
           <Route path="school" element={<SchoolOverview />} />
           <Route path="school/analysis" element={<SchoolAnalysis />} />
           <Route path="school/reports" element={<SchoolReports />} />
           <Route path="school/classes" element={<SchoolClasses />} />
+          <Route path="school/settings" element={<SchoolSettings />} />
 
           {/* DOANH NGHIỆP */}
           <Route path="enterprise" element={<EnterpriseOverview />} />

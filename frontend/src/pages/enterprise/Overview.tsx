@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Briefcase, HandCoins, Search, Star, Users } from "lucide-react";
 import { get } from "../../api/client";
-import { Card, ErrorBox, Loading, StatCard } from "../../components/ui";
+import { Badge, Card, ErrorBox, Loading, StatCard } from "../../components/ui";
 
 interface Overview {
   company_name: string;
@@ -57,9 +57,12 @@ export default function Overview() {
       <div className="relative rounded-2xl overflow-hidden mb-6 hero-gradient" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <div className="relative px-6 py-5">
           <p className="text-sm text-white/80" id="welcome-greeting">Xin chào</p>
-          <h1 className="text-2xl font-extrabold text-white" id="welcome-title">
-            {data.company_name} <span aria-hidden="true">🏢</span>
-          </h1>
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-extrabold text-white" id="welcome-title">
+              {data.company_name} <span aria-hidden="true">🏢</span>
+            </h1>
+            <Badge tone="amber">Gói Premium</Badge>
+          </div>
           <p className="text-sm text-white/80 mt-1" aria-live="polite">
             Hôm nay có {data.matching_profiles} hồ sơ mới phù hợp với nhu cầu của bạn.
           </p>

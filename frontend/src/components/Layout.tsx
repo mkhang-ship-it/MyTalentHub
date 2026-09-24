@@ -25,6 +25,8 @@ import {
   ChevronRight,
   Star,
   Home,
+  Settings,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth, roleLabel } from "../auth/AuthContext";
 import { LogoMark, LogoWordmark } from "./Logo";
@@ -60,6 +62,7 @@ const PORTALS: PortalDef[] = [
       { to: "/student/discover", label: "Khám phá năng khiếu", icon: Compass },
       { to: "/student/activities", label: "Hoạt động", icon: CalendarDays },
       { to: "/student/checkin", label: "Check-in QR", icon: QrCode },
+      { to: "/student/evaluations", label: "Đánh giá", icon: ClipboardCheck },
       { to: "/student/badges", label: "Huy hiệu", icon: Award },
       { to: "/student/roadmap", label: "AI gợi ý", icon: Sparkles },
       { to: "/student/statistics", label: "Thống kê", icon: TrendingUp },
@@ -81,6 +84,7 @@ const PORTALS: PortalDef[] = [
       { to: "/teacher/activities", label: "Sân chơi của tôi", icon: BookOpen },
       { to: "/teacher/grading", label: "Chấm điểm", icon: ClipboardCheck },
       { to: "/teacher/students", label: "Học viên", icon: Users },
+      { to: "/teacher/classes", label: "Quản lý lớp", icon: School },
     ],
   },
   {
@@ -98,6 +102,7 @@ const PORTALS: PortalDef[] = [
       { to: "/school/analysis", label: "Phân tích năng lực", icon: BarChart3 },
       { to: "/school/reports", label: "Báo cáo", icon: FileText },
       { to: "/school/classes", label: "Lớp & Khối", icon: School },
+      { to: "/school/settings", label: "Cài đặt", icon: Settings },
     ],
   },
   {
@@ -185,9 +190,14 @@ export default function Layout() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
   const section = pathname.split("/")[1] || "student";
-  const activePortal = PORTALS.find((p) => p.key === user?.role) || PORTALS[0];
+  // Xác định portal theo section đang xem (student|teacher|school|enterprise)
+  // Fallback về portal của user khi section không thuộc 4 cổng (ví dụ /passport/:id)
+  const sectionPortal = PORTALS.find((p) => p.key === section);
+  const fallbackPortal = user ? PORTALS.find((p) => p.key === user.role) : PORTALS[0];
+  const activePortal = sectionPortal || fallbackPortal || PORTALS[0];
   const portal = activePortal;
   const tone: Tone =
     section === "passport"
@@ -216,6 +226,7 @@ export default function Layout() {
       if (window.innerWidth >= 1024) {
         setDrawerOpen(false);
         setMobileMenuOpen(false);
+        setRoleSwitcherOpen(false);
       }
     }
     window.addEventListener("resize", onResize, { passive: true });
@@ -228,6 +239,17 @@ export default function Layout() {
   }
 
   const isOwn = user ? portal.key === user.role : false;
+
+  // Xử lý chuyển cổng
+  const switchPortal = (key: string) => {
+    const target = PORTALS.find((p) => p.key === key);
+    if (target) {
+      navigate(target.items[0]?.to || `/${key}`);
+      setRoleSwitcherOpen(false);
+      setDrawerOpen(false);
+      setMobileMenuOpen(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-canvas font-sans">
@@ -270,18 +292,59 @@ export default function Layout() {
           </NavLink>
         </div>
 
-        {/* Active role state badge */}
+        {/* Active role state badge + Role switcher */}
         <div className="px-4 pt-3">
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm transition-all duration-300 hover:shadow-md"
-            style={{
-              backgroundColor: tone.accentSoft,
-              color: tone.accentDark,
-              border: `1px solid ${tone.accentSoft}`,
-            }}
-          >
-            <Star size={12} strokeWidth={2.5} />
-            {isOwn ? "Cổng đang hoạt động" : "Trải nghiệm cổng"}
+          <div className="relative">
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
+              style={{
+                backgroundColor: tone.accentSoft,
+                color: tone.accentDark,
+                border: `1px solid ${tone.accentSoft}`,
+              }}
+              onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
+            >
+              <Star size={12} strokeWidth={2.5} />
+              {isOwn ? "Cổng đang hoạt động" : "Trải nghiệm cổng"}
+              <ChevronDown size={12} className={roleSwitcherOpen ? "rotate-180" : ""} />
+            </div>
+            {/* Role switcher dropdown - Desktop sidebar */}
+            {roleSwitcherOpen && (
+              <div
+                className="absolute top-full left-0 right-0 mt-1.5 z-50 rounded-xl border border-line bg-surface shadow-lg overflow-hidden"
+                role="menu"
+                aria-label="Chuyển cổng"
+              >
+                {PORTALS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => switchPortal(p.key)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors ${
+                      p.key === portal.key
+                        ? "text-white"
+                        : "text-ink hover:bg-canvas-soft"
+                    }`}
+                    style={{
+                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
+                    }}
+                    role="menuitem"
+                  >
+                    <p.icon size={16} strokeWidth={2.2} />
+                    <span className="truncate">{p.label}</span>
+                    {p.key === portal.key && (
+                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                        Cổng đang hoạt động
+                      </span>
+                    )}
+                    {p.key === user?.role && p.key !== portal.key && (
+                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Trải nghiệm cổng
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-1.5 text-[10px] font-medium text-muted">
             {roleLabel(user?.role)} · {portal.label}
@@ -376,8 +439,8 @@ export default function Layout() {
             <LogoMark size={30} />
             <LogoWordmark compact />
           </div>
-          {/* Home link + Role button - Mobile header (grouped on right) */}
-          <div className="ml-auto flex items-center gap-2">
+          {/* Home link + Role switcher - Mobile header (grouped on right) */}
+          <div className="ml-auto flex items-center gap-2 relative">
             <NavLink
               to="/"
               className="rounded-xl p-2 text-ink hover:bg-canvas-soft transition-colors duration-200"
@@ -386,13 +449,54 @@ export default function Layout() {
             >
               <Home size={20} strokeWidth={2} />
             </NavLink>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-xl bg-canvas-soft px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-ink shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
-              style={{ color: tone.accentDark }}
-            >
-              {portal.label}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
+                className="rounded-xl bg-canvas-soft px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-ink shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 flex items-center gap-1"
+                style={{ color: tone.accentDark }}
+                aria-label="Chuyển cổng"
+              >
+                {portal.label}
+                <ChevronDown size={12} className={roleSwitcherOpen ? "rotate-180" : ""} />
+              </button>
+              {/* Role switcher dropdown - Mobile header */}
+              {roleSwitcherOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 z-50 rounded-xl border border-line bg-surface shadow-lg overflow-hidden w-48"
+                  role="menu"
+                  aria-label="Chuyển cổng"
+                >
+                  {PORTALS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => switchPortal(p.key)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                        p.key === portal.key
+                          ? "text-white"
+                          : "text-ink hover:bg-canvas-soft"
+                      }`}
+                      style={{
+                        backgroundColor: p.key === portal.key ? p.accent : "transparent",
+                      }}
+                      role="menuitem"
+                    >
+                      <p.icon size={16} strokeWidth={2.2} />
+                      <span className="truncate">{p.label}</span>
+                      {p.key === portal.key && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                          Cổng đang hoạt động
+                        </span>
+                      )}
+                      {p.key === user?.role && p.key !== portal.key && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          Trải nghiệm cổng
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -432,6 +536,42 @@ export default function Layout() {
                   <span className="min-w-0 line-clamp-2 text-center leading-tight">{item.label}</span>
                 </NavLink>
               ))}
+            </div>
+            {/* Role switcher - Mobile quick-nav dropdown */}
+            <div className="mt-3 pt-3 border-t border-line">
+              <div className="text-[10px] font-extrabold uppercase tracking-widest text-muted mb-2 px-1">
+                Chuyển cổng
+              </div>
+              <div className="space-y-1.5">
+                {PORTALS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => switchPortal(p.key)}
+                    className={`w-full flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                      p.key === portal.key
+                        ? "text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                        : "text-ink hover:bg-canvas-soft"
+                    }`}
+                    style={{
+                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
+                    }}
+                    role="menuitem"
+                  >
+                    <p.icon size={14} className="shrink-0" />
+                    <span className="min-w-0 line-clamp-2 text-center leading-tight flex-1">{p.label}</span>
+                    {p.key === portal.key && (
+                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                        Cổng đang hoạt động
+                      </span>
+                    )}
+                    {p.key === user?.role && p.key !== portal.key && (
+                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Trải nghiệm cổng
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -498,6 +638,54 @@ export default function Layout() {
               <span className="max-w-[4.5rem] line-clamp-2 text-center leading-tight">{item.label}</span>
             </NavLink>
           ))}
+          {/* Role switcher - Mobile bottom navigation */}
+          <div className="relative">
+            <button
+              onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
+              className="relative flex min-w-[4.25rem] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
+              aria-label="Chuyển cổng"
+            >
+              <Users size={20} strokeWidth={2} />
+              <span className="max-w-[4.5rem] line-clamp-2 text-center leading-tight">{portal.label}</span>
+              <ChevronDown size={10} className={roleSwitcherOpen ? "rotate-180" : ""} />
+            </button>
+            {roleSwitcherOpen && (
+              <div
+                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 rounded-xl border border-line bg-surface shadow-lg overflow-hidden w-40"
+                role="menu"
+                aria-label="Chuyển cổng"
+              >
+                {PORTALS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => switchPortal(p.key)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold transition-colors ${
+                      p.key === portal.key
+                        ? "text-white"
+                        : "text-ink hover:bg-canvas-soft"
+                    }`}
+                    style={{
+                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
+                    }}
+                    role="menuitem"
+                  >
+                    <p.icon size={14} strokeWidth={2.2} />
+                    <span className="truncate">{p.label}</span>
+                    {p.key === portal.key && (
+                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                        Cổng đang hoạt động
+                      </span>
+                    )}
+                    {p.key === user?.role && p.key !== portal.key && (
+                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Trải nghiệm cổng
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

@@ -212,6 +212,15 @@ class ClassStudentOut(BaseModel):
     class_name: str
 
 
+# ---------------- teacher me
+class TeacherMeOut(BaseModel):
+    id: int
+    full_name: str
+    subject: str
+    education_level: str
+    allowed_grades: list[int]
+
+
 # ---------------- enterprise
 class InternshipPostIn(BaseModel):
     title: str

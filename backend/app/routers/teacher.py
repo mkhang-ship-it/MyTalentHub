@@ -25,6 +25,7 @@ from ..schemas import (
     ClassStudentOut,
     EvaluationIn,
     EvaluationOut,
+    TeacherMeOut,
 )
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
@@ -63,22 +64,41 @@ def _get_teacher_from_token(authorization: str | None, db: Session) -> Teacher:
     return teacher
 
 
+def _grade_range(level: str) -> tuple[int, ...]:
+    """Trả về tuple các khối hợp lệ theo cấp học."""
+    lvl = (level or "THPT").upper()
+    if lvl == "THCS":
+        return (6, 7, 8, 9)
+    if lvl == "THPT":
+        return (10, 11, 12)
+    if lvl == "CDDH":
+        return (1, 2, 3, 4, 5, 6, 7, 8)
+    return (10, 11, 12)  # mặc định THPT
+
+
 def _validate_grade_for_teacher(teacher: Teacher, grade: int) -> None:
     """Kiểm tra khối có nằm trong phạm vi cấp học của giáo viên."""
     level = (teacher.education_level or "THPT").upper()
-    if level == "THCS":
-        valid_grades = (6, 7, 8, 9)
-    elif level == "THPT":
-        valid_grades = (10, 11, 12)
-    elif level == "CDDH":
-        valid_grades = (1, 2, 3, 4, 5, 6, 7, 8)
-    else:
-        valid_grades = (10, 11, 12)  # mặc định THPT
+    valid_grades = _grade_range(level)
     if grade not in valid_grades:
         raise HTTPException(
             422,
             f"Khối {grade} không thuộc cấp học {level} của bạn (phạm vi: {', '.join(map(str, valid_grades))})",
         )
+
+
+@router.get("/me", response_model=TeacherMeOut)
+def me(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Thông tin giáo viên đang đăng nhập + danh sách khối được phép tạo."""
+    teacher = _get_teacher_from_token(authorization, db)
+    level = (teacher.education_level or "THPT").upper()
+    return {
+        "id": teacher.id,
+        "full_name": teacher.user.full_name,
+        "subject": teacher.subject,
+        "education_level": level,
+        "allowed_grades": list(_grade_range(level)),
+    }
 
 
 @router.get("/classes", response_model=list[ClassOut])
@@ -88,7 +108,7 @@ def list_classes(authorization: str = Header(default=None), db: Session = Depend
     classes = db.query(ClassGroup).filter(ClassGroup.homeroom_teacher_id == teacher.id).all()
     out = []
     for c in classes:
-        student_count = db.query(Student).filter(Student.class_name == c.name).count()
+        student_count = db.query(Student).filter(Student.class_name == c.name, Student.grade == c.grade).count()
         out.append(
             ClassOut(
                 id=c.id,
@@ -107,12 +127,16 @@ def create_class(payload: ClassIn, authorization: str = Header(default=None), db
     teacher = _get_teacher_from_token(authorization, db)
     _validate_grade_for_teacher(teacher, payload.grade)
 
-    # Kiểm tra trùng tên lớp
-    existing = db.query(ClassGroup).filter(ClassGroup.name == payload.name.strip()).first()
-    if existing:
-        raise HTTPException(409, f"Lớp '{payload.name}' đã tồn tại")
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(422, "Tên lớp không được để trống")
 
-    cg = ClassGroup(name=payload.name.strip(), grade=payload.grade, homeroom_teacher_id=teacher.id)
+    # Kiểm tra trùng tên lớp
+    existing = db.query(ClassGroup).filter(ClassGroup.name == name).first()
+    if existing:
+        raise HTTPException(409, f"Lớp '{name}' đã tồn tại")
+
+    cg = ClassGroup(name=name, grade=payload.grade, homeroom_teacher_id=teacher.id)
     db.add(cg)
     db.flush()
     # Gán quan hệ TeacherClassAssignment
@@ -144,8 +168,12 @@ def update_class(
         raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
 
     old_name = cg.name
+    old_grade = cg.grade
     new_name = payload.name.strip() if payload.name else cg.name
     new_grade = payload.grade if payload.grade is not None else cg.grade
+
+    if not new_name:
+        raise HTTPException(422, "Tên lớp không được để trống")
 
     if new_name != old_name:
         # Kiểm tra trùng tên với lớp khác
@@ -156,8 +184,8 @@ def update_class(
     if new_grade != cg.grade:
         _validate_grade_for_teacher(teacher, new_grade)
 
-    # Đồng bộ học sinh
-    students = db.query(Student).filter(Student.class_name == old_name).all()
+    # Đồng bộ học sinh: chỉ những HS khớp cả tên LÀM khối cũ
+    students = db.query(Student).filter(Student.class_name == old_name, Student.grade == old_grade).all()
     for s in students:
         s.class_name = new_name
         s.grade = new_grade
@@ -167,7 +195,7 @@ def update_class(
     db.commit()
     db.refresh(cg)
 
-    student_count = db.query(Student).filter(Student.class_name == cg.name).count()
+    student_count = db.query(Student).filter(Student.class_name == cg.name, Student.grade == cg.grade).count()
     return ClassOut(
         id=cg.id,
         name=cg.name,
@@ -189,7 +217,7 @@ def delete_class(class_id: int, authorization: str = Header(default=None), db: S
     if not cg:
         raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
 
-    student_count = db.query(Student).filter(Student.class_name == cg.name).count()
+    student_count = db.query(Student).filter(Student.class_name == cg.name, Student.grade == cg.grade).count()
     if student_count > 0:
         raise HTTPException(409, f"Lớp còn {student_count} học sinh, vui lòng bỏ lớp học sinh trước.")
 
@@ -215,7 +243,7 @@ def list_class_students(class_id: int, authorization: str = Header(default=None)
     students = (
         db.query(Student)
         .options(selectinload(Student.user))
-        .filter(Student.class_name == cg.name)
+        .filter(Student.class_name == cg.name, Student.grade == cg.grade)
         .all()
     )
     return [
@@ -243,7 +271,7 @@ def remove_student_from_class(
     if not cg:
         raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
 
-    student = db.query(Student).filter(Student.id == student_id, Student.class_name == cg.name).first()
+    student = db.query(Student).filter(Student.id == student_id, Student.class_name == cg.name, Student.grade == cg.grade).first()
     if not student:
         raise HTTPException(409, "Học sinh không thuộc lớp này")
 
@@ -362,9 +390,26 @@ def activity_students(activity_id: int, db: Session = Depends(get_db)):
     ]
 
 
+RUBRIC_LIMITS = (
+    ("chuyen_mon", 40.0),
+    ("sang_tao", 20.0),
+    ("lam_viec_nhom", 20.0),
+    ("ky_luat", 20.0),
+)
+
+
+def _validate_rubric(payload: "EvaluationIn") -> None:
+    """Chặn điểm vượt trần rubric 40/20/20/20 hoặc âm (tránh làm hỏng mọi bảng tổng hợp)."""
+    for field, cap in RUBRIC_LIMITS:
+        value = getattr(payload, field)
+        if value < 0 or value > cap:
+            raise HTTPException(422, f"{field} phải nằm trong 0–{cap:g} (rubric 40/20/20/20)")
+
+
 @router.post("/evaluations", response_model=EvaluationOut)
 def submit_evaluation(payload: EvaluationIn, teacher_id: int | None = None, db: Session = Depends(get_db)):
     """Chấm điểm rubric (Chuyên môn 40 / Sáng tạo 20 / Làm việc nhóm 20 / Kỷ luật 20)."""
+    _validate_rubric(payload)
     t = _get_teacher(db, teacher_id)
     e = Evaluation(
         activity_id=payload.activity_id,

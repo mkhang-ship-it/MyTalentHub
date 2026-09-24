@@ -24,11 +24,10 @@ interface ClassStudent {
   class_name: string;
 }
 
-const GRADE_OPTIONS_THPT = [
-  { value: 10, label: "Khối 10" },
-  { value: 11, label: "Khối 11" },
-  { value: 12, label: "Khối 12" },
-];
+interface TeacherMe {
+  education_level: string;
+  allowed_grades: number[];
+}
 
 export default function Classes() {
   const [data, setData] = useState<ClassItem[] | null>(null);
@@ -42,11 +41,32 @@ export default function Classes() {
   const [showStudents, setShowStudents] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [me, setMe] = useState<TeacherMe | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  };
+
+  // Load teacher me info for allowed grades
+  useEffect(() => {
+    get<TeacherMe>("/teacher/me")
+      .then((res) => {
+        setMe(res);
+        setMeLoading(false);
+      })
+      .catch(() => {
+        setMeLoading(false);
+        // Don't set error here, let individual API calls handle 401/403
+      });
+  }, []);
+
+  // Helper to extract status from error message
+  const getErrorStatus = (message: string): number => {
+    const match = message.match(/API .* → (\d+):/);
+    return match ? parseInt(match[1], 10) : 0;
   };
 
   const validateForm = () => {
@@ -62,7 +82,25 @@ export default function Classes() {
   };
 
   const load = useCallback(() => {
-    get<ClassItem[]>("/teacher/classes").then(setData).catch((e) => setError(String((e as Error).message || e)));
+    get<ClassItem[]>("/teacher/classes")
+      .then(setData)
+      .catch((e) => {
+        const msg = String((e as Error).message || e);
+        const status = getErrorStatus(msg);
+        if (status === 401) {
+          setError("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
+        } else if (status === 403) {
+          // 403 mềm: vẫn set error để isAuthError bật banner + không kẹt <Loading />,
+          // nhưng isSoft403 chặn ErrorBox trắng trang.
+          setError(msg);
+          showToast("error", "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.");
+        } else if (status >= 500) {
+          setError(msg);
+        } else {
+          // For other errors (409, 422), we'll handle them in individual actions
+          setError(msg);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -156,8 +194,12 @@ export default function Classes() {
     }
   };
 
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Loading />;
+  // 403 "mềm" - không show ErrorBox, chỉ toast (đã show ở load). Render trang rỗng nhưng vẫn có UI.
+  const isSoft403 = error && getErrorStatus(error) === 403;
+  const isAuthError = error && (getErrorStatus(error) === 401 || getErrorStatus(error) === 403);
+
+  if (error && !isSoft403) return <ErrorBox message={error} />;
+  if (!data && !isAuthError) return <Loading />;
 
   return (
     <div>
@@ -198,11 +240,22 @@ export default function Classes() {
         ))}
       </div>
 
+      {isAuthError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2" role="alert">
+          <AlertCircle size={18} aria-hidden="true" />
+          <span>
+            {getErrorStatus(error) === 401
+              ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+              : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."}
+          </span>
+        </div>
+      )}
+
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3" style={{ animation: "fadeUp 0.6s ease-out both" }}>
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">Quản lý lớp chủ nhiệm</h1>
           <p className="mt-1 text-sm text-muted">
-            {data.length} lớp · {data.reduce((s, c) => s + c.student_count, 0)} học sinh
+            {data?.length ?? 0} lớp · {data?.reduce((s, c) => s + c.student_count, 0) ?? 0} học sinh
           </p>
         </div>
         <button
@@ -253,14 +306,26 @@ export default function Classes() {
                 aria-required="true"
                 aria-invalid={fieldErrors.grade ? "true" : "false"}
                 aria-describedby={fieldErrors.grade ? "grade-error" : undefined}
+                disabled={meLoading}
               >
-                {GRADE_OPTIONS_THPT.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {meLoading ? (
+                  <option value="">Đang tải...</option>
+                ) : me ? (
+                  me.allowed_grades.map((g) => (
+                    <option key={g} value={g}>
+                      Khối {g}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Không có quyền truy cập</option>
+                )}
               </select>
               {fieldErrors.grade && <p id="grade-error" className="mt-1 text-sm text-red-600" role="alert">{fieldErrors.grade}</p>}
+              {me && editingClass && !me.allowed_grades.includes(editingClass.grade) && (
+                <p className="mt-1 text-xs text-amber-600" role="alert">
+                  ⚠ Khối {editingClass.grade} không nằm trong phạm vi cấp học {me.education_level} của bạn. Lưu vẫn được (backend sẽ validate).
+                </p>
+              )}
             </div>
             <div className="md:col-span-2 flex gap-2">
               <button
@@ -357,15 +422,17 @@ export default function Classes() {
               </tr>
             </thead>
             <tbody>
-              {data.length === 0 && (
+              {!data || data.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-5 py-8 text-center text-muted">
-                    Chưa có lớp chủ nhiệm nào — bấm "Thêm lớp mới" để bắt đầu.
+                    {isAuthError
+                      ? "Không thể tải danh sách lớp. Vui lòng đăng nhập bằng tài khoản giáo viên."
+                      : "Chưa có lớp chủ nhiệm nào — bấm \"Thêm lớp mới\" để bắt đầu."}
                   </td>
                 </tr>
-              )}
-              {data.map((c) => (
-                <tr key={c.id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
+              ) : (
+                data.map((c) => (
+                  <tr key={c.id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
                   <td className="px-5 py-3.5 text-sm transition-colors">
                     <span className="font-semibold text-ink">{c.name}</span>
                   </td>
@@ -408,7 +475,7 @@ export default function Classes() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </Card>

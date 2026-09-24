@@ -64,6 +64,12 @@ export default function Activities() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   };
 
+  // Helper to extract status from error message
+  const getErrorStatus = (message: string): number => {
+    const match = message.match(/API .* → (\d+):/);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.title.trim()) {
@@ -77,7 +83,21 @@ export default function Activities() {
   };
 
   const load = useCallback(() => {
-    get<Activity[]>("/teacher/activities").then(setData).catch((e) => setError(String((e as Error).message || e)));
+    get<Activity[]>("/teacher/activities")
+      .then(setData)
+      .catch((e) => {
+        const msg = String((e as Error).message || e);
+        const status = getErrorStatus(msg);
+        if (status === 401) {
+          setError("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
+        } else if (status === 403) {
+          showToast("error", "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.");
+        } else if (status >= 500) {
+          setError(msg);
+        } else {
+          setError(msg);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -160,8 +180,11 @@ export default function Activities() {
     }
   };
 
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Loading />;
+  const isSoft403 = error && getErrorStatus(error) === 403;
+  const isAuthError = error && (getErrorStatus(error) === 401 || getErrorStatus(error) === 403);
+
+  if (error && !isSoft403) return <ErrorBox message={error} />;
+  if (!data && !isAuthError) return <Loading />;
 
   return (
     <div>
@@ -210,6 +233,17 @@ export default function Activities() {
           </div>
         ))}
       </div>
+
+      {isAuthError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2" role="alert">
+          <AlertCircle size={18} aria-hidden="true" />
+          <span>
+            {getErrorStatus(error) === 401
+              ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+              : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."}
+          </span>
+        </div>
+      )}
 
       <PageHeader
         reveal
@@ -319,15 +353,17 @@ export default function Activities() {
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 && (
+            {!data || data.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-center text-muted">
-                  Chưa có sân chơi nào — bấm "Tạo sân chơi mới" để bắt đầu.
+                  {isAuthError
+                    ? "Không thể tải danh sách sân chơi. Vui lòng đăng nhập bằng tài khoản giáo viên."
+                    : "Chưa có sân chơi nào — bấm \"Tạo sân chơi mới\" để bắt đầu."}
                 </td>
               </tr>
-            )}
-            {data.map((a, i) => (
-              <tr key={a.id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
+            ) : (
+              data.map((a, i) => (
+                <tr key={a.id} className="border-b border-line hover:bg-canvas-soft/50 transition-colors duration-150">
                 <td className="px-5 py-3.5 text-sm transition-colors">
                   <div className="flex items-center gap-3">
                     <span className={`h-9 w-9 shrink-0 rounded-full ${FIELD_ICONS[i % FIELD_ICONS.length]} text-white flex items-center justify-center`}>
@@ -401,7 +437,7 @@ export default function Activities() {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </Card>
@@ -409,7 +445,7 @@ export default function Activities() {
       <Card reveal revealDelay={3} className="mt-4">
         <div className="text-xs text-muted">Đang phụ trách</div>
         <div className="text-lg font-extrabold text-ink">
-          {data.length} sân chơi · {data.reduce((s, a) => s + a.registered_count, 0)} học viên
+          {data?.length ?? 0} sân chơi · {data?.reduce((s, a) => s + a.registered_count, 0) ?? 0} học viên
         </div>
       </Card>
     </div>

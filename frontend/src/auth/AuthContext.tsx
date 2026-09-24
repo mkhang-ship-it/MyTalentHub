@@ -14,7 +14,23 @@ export type AuthUser = {
   email: string;
   avatar_url?: string | null;
   profile_id?: number | null;
-  detail?: { class_name?: string; grade?: number; subject?: string } | null;
+  detail?: { class_name?: string; grade?: number; subject?: string; school_name?: string; education_level?: string } | null;
+};
+
+export type RegisterData = {
+  full_name: string;
+  email: string;
+  password: string;
+  role: "student" | "teacher" | "school" | "enterprise";
+  class_name?: string;
+  grade?: number;
+  education_level?: string; // student: THCS | THPT | CDDH
+  subject?: string;
+  education_level_teacher?: string; // teacher: THCS | THPT | CDDH
+  school_name?: string;
+  education_level_school?: string; // school: THCS | THPT | CDDH
+  company_name?: string;
+  industry?: string;
 };
 
 type LoginResponse = { token: string; user: AuthUser };
@@ -23,6 +39,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   initializing: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  register: (data: RegisterData) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
@@ -80,6 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   }
 
+  async function register(data: RegisterData): Promise<AuthUser> {
+    const res = await postJson<LoginResponse>("/auth/register", data);
+    setToken(res.token);
+    setUser(res.user);
+    return res.user;
+  }
+
   async function logout(): Promise<void> {
     const token = getToken();
     if (token) {
@@ -94,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, initializing, login, logout }}>
+    <AuthContext.Provider value={{ user, initializing, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

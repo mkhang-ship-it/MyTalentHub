@@ -4,10 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from starlette.routing import Mount
 
-from .database import Base, engine
+from .database import Base, engine, _run_migrations
 from .routers import auth, enterprise, passport, school, student, teacher
 from .ai.router import router as ai_router
 
+_run_migrations()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="FTalentHub API", version="1.0.0")

@@ -58,6 +58,7 @@ class Student(Base):
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     class_name: Mapped[str] = mapped_column(String(40), index=True)  # "10A1"
     grade: Mapped[int] = mapped_column(Integer, index=True)  # 10 | 11 | 12
+    education_level: Mapped[str] = mapped_column(String(16), default="THPT")  # THCS | THPT | CDDH
     talent_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0-100
     experience_hours: Mapped[float] = mapped_column(Float, default=0.0)
     interests: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -72,6 +73,7 @@ class Teacher(Base):
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     subject: Mapped[str] = mapped_column(String(80), default="")
     is_homeroom: Mapped[bool] = mapped_column(Boolean, default=False)
+    education_level: Mapped[str] = mapped_column(String(16), default="THPT")  # THCS | THPT | CDDH
 
     user: Mapped["User"] = relationship(lazy="joined")
 
@@ -81,6 +83,7 @@ class School(Base):
 
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     school_name: Mapped[str] = mapped_column(String(160), default="")
+    education_level: Mapped[str] = mapped_column(String(16), default="THPT")  # THCS | THPT | CDDH
     user: Mapped["User"] = relationship(lazy="joined")
 
 

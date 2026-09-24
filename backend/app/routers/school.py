@@ -13,7 +13,14 @@ from ..models import (
     AuthToken,
     Badge,
     ClassGroup,
+    Coach,
     Evaluation,
+    FIELD_ACADEMIC,
+    FIELD_ART,
+    FIELD_BUSINESS,
+    FIELD_CREATIVE,
+    FIELD_SPORT,
+    FIELD_TECH,
     ROLE_SCHOOL,
     ROLE_STUDENT,
     ROLE_TEACHER,
@@ -21,6 +28,8 @@ from ..models import (
     Student,
     StudentBadge,
     StudentSkill,
+    StudyGroup,
+    StudyGroupMember,
     Teacher,
     TeacherClassAssignment,
     User,
@@ -194,7 +203,8 @@ def reports(
         rows = [
             {
                 "id": s.id,
-                "full_name": s.user.full_name,
+                # Hồ sơ mồ côi (thiếu dòng users) không được làm sập cả báo cáo.
+                "full_name": s.user.full_name if s.user else "—",
                 "class_name": s.class_name,
                 "grade": s.grade,
                 "talent_score": s.talent_score,
@@ -416,7 +426,14 @@ def list_teachers(authorization: str = Header(default=None), db: Session = Depen
     }
     all_assigned_ids = assigned_teacher_ids | assigned_from_tca
 
-    teachers = db.query(Teacher).all()
+    # Chỉ liệt kê GIÁO VIÊN thật. Tài khoản huấn luyện viên có dòng `teachers` ẩn
+    # để khớp FK Activity/Evaluation, nên phải lọc theo User.role.
+    teachers = (
+        db.query(Teacher)
+        .join(User, User.id == Teacher.id)
+        .filter(User.role == ROLE_TEACHER)
+        .all()
+    )
     return [
         {
             "id": t.id,
@@ -587,3 +604,243 @@ def delete_class_group(
     db.delete(cg)
     db.commit()
     return {"ok": True}
+
+
+# =========================== STUDY GROUPS (G3 — GỘP NHÓM) ===========================
+
+@router.get("/coaches")
+def list_coaches(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách huấn luyện viên cho dropdown: id, full_name, specialty, group_count."""
+    _require_school(authorization, db)
+    coaches = db.query(Coach).join(User, Coach.id == User.id).all()
+    result = []
+    for c in coaches:
+        group_count = db.query(StudyGroup).filter(StudyGroup.coach_id == c.id).count()
+        result.append(
+            {
+                "id": c.id,
+                "full_name": c.user.full_name if c.user else "—",
+                "specialty": c.specialty,
+                "group_count": group_count,
+            }
+        )
+    return result
+
+
+def _compute_group_stats(db: Session, sg: StudyGroup) -> dict:
+    """Tính chỉ số gộp cho một nhóm học tập."""
+    members = db.query(StudyGroupMember).filter(StudyGroupMember.group_id == sg.id).all()
+    student_ids = [m.student_id for m in members]
+    member_count = len(student_ids)
+    
+    if member_count == 0:
+        return {
+            "id": sg.id,
+            "name": sg.name,
+            "field": sg.field,
+            "grade": sg.grade,
+            "coach_id": sg.coach_id,
+            "coach_name": None,
+            "member_count": 0,
+            "avg_talent_score": 0,
+            "total_hours": 0,
+            "avg_experience_hours": 0,
+            "class_names": [],
+        }
+    
+    students = db.query(Student).filter(Student.id.in_(student_ids)).all()
+    
+    talent_scores = [s.talent_score for s in students if s.talent_score is not None]
+    avg_talent_score = round(sum(talent_scores) / len(talent_scores), 1) if talent_scores else 0
+    
+    total_hours = round(sum(s.experience_hours for s in students), 1)
+    avg_experience_hours = round(total_hours / member_count, 1)
+    
+    class_names = sorted(set(s.class_name for s in students if s.class_name))
+    
+    coach_name = None
+    if sg.coach_id:
+        coach = db.query(Coach).join(User, Coach.id == User.id).filter(Coach.id == sg.coach_id).first()
+        if coach and coach.user:
+            coach_name = coach.user.full_name
+    
+    return {
+        "id": sg.id,
+        "name": sg.name,
+        "field": sg.field,
+        "grade": sg.grade,
+        "coach_id": sg.coach_id,
+        "coach_name": coach_name,
+        "member_count": member_count,
+        "avg_talent_score": avg_talent_score,
+        "total_hours": total_hours,
+        "avg_experience_hours": avg_experience_hours,
+        "class_names": class_names,
+        "member_ids": student_ids,
+    }
+
+
+@router.get("/study-groups")
+def list_study_groups(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách nhóm học tập kèm chỉ số gộp."""
+    _require_school(authorization, db)
+    groups = db.query(StudyGroup).order_by(StudyGroup.name).all()
+    return [_compute_group_stats(db, sg) for sg in groups]
+
+
+@router.post("/study-groups")
+def create_study_group(
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Tạo nhóm học tập: {name, field?, grade?, coach_id?}.
+    Tên rỗng → 400. Tên trùng → 409. field sai → 400. grade ngoài 1-12 → 400. coach_id không tồn tại → 400.
+    """
+    _require_school(authorization, db)
+    name = (payload.get("name") or "").strip()
+    field = payload.get("field")
+    grade = payload.get("grade")
+    coach_id = payload.get("coach_id")
+
+    if not name:
+        raise HTTPException(400, "Tên nhóm không được để trống")
+    
+    # Validate field
+    valid_fields = [FIELD_ART, FIELD_SPORT, FIELD_BUSINESS, FIELD_TECH, FIELD_ACADEMIC, FIELD_CREATIVE]
+    if field is not None and field not in valid_fields:
+        raise HTTPException(400, "Lĩnh vực không hợp lệ")
+    
+    # Validate grade
+    if grade is not None and (not isinstance(grade, int) or grade < 1 or grade > 12):
+        raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+    
+    # Validate coach_id
+    if coach_id is not None:
+        coach = db.query(Coach).filter(Coach.id == coach_id).first()
+        if not coach:
+            raise HTTPException(400, "Huấn luyện viên không tồn tại")
+    
+    # Check trùng tên
+    existing = db.query(StudyGroup).filter(StudyGroup.name == name).first()
+    if existing:
+        raise HTTPException(409, f"Nhóm '{name}' đã tồn tại")
+    
+    sg = StudyGroup(name=name, field=field, grade=grade, coach_id=coach_id)
+    db.add(sg)
+    db.commit()
+    
+    return _compute_group_stats(db, sg)
+
+
+@router.put("/study-groups/{group_id}")
+def update_study_group(
+    group_id: int,
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Cập nhật nhóm học tập: {name?, field?, grade?, coach_id?}.
+    Quy tắc validate như POST. Trùng tên với nhóm khác → 409. Không tồn tại → 404.
+    """
+    _require_school(authorization, db)
+    
+    sg = db.query(StudyGroup).filter(StudyGroup.id == group_id).first()
+    if not sg:
+        raise HTTPException(404, "Nhóm học tập không tồn tại")
+    
+    new_name = (payload.get("name") or "").strip() if "name" in payload else sg.name
+    new_field = payload.get("field") if "field" in payload else sg.field
+    new_grade = payload.get("grade") if "grade" in payload else sg.grade
+    new_coach_id = payload.get("coach_id") if "coach_id" in payload else sg.coach_id
+    
+    if not new_name:
+        raise HTTPException(400, "Tên nhóm không được để trống")
+    
+    valid_fields = [FIELD_ART, FIELD_SPORT, FIELD_BUSINESS, FIELD_TECH, FIELD_ACADEMIC, FIELD_CREATIVE]
+    if new_field is not None and new_field not in valid_fields:
+        raise HTTPException(400, "Lĩnh vực không hợp lệ")
+    
+    if new_grade is not None and (not isinstance(new_grade, int) or new_grade < 1 or new_grade > 12):
+        raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+    
+    if new_coach_id is not None:
+        coach = db.query(Coach).filter(Coach.id == new_coach_id).first()
+        if not coach:
+            raise HTTPException(400, "Huấn luyện viên không tồn tại")
+    
+    if new_name != sg.name:
+        existing = db.query(StudyGroup).filter(StudyGroup.name == new_name).first()
+        if existing:
+            raise HTTPException(409, f"Nhóm '{new_name}' đã tồn tại")
+    
+    sg.name = new_name
+    sg.field = new_field
+    sg.grade = new_grade
+    sg.coach_id = new_coach_id
+    
+    db.commit()
+    return _compute_group_stats(db, sg)
+
+
+@router.delete("/study-groups/{group_id}")
+def delete_study_group(
+    group_id: int,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Xoá nhóm học tập + xoá study_group_members của nhóm. Không tồn tại → 404."""
+    _require_school(authorization, db)
+    
+    sg = db.query(StudyGroup).filter(StudyGroup.id == group_id).first()
+    if not sg:
+        raise HTTPException(404, "Nhóm học tập không tồn tại")
+    
+    # Xoá members liên quan
+    db.query(StudyGroupMember).filter(StudyGroupMember.group_id == sg.id).delete()
+    
+    # Xoá group
+    db.delete(sg)
+    db.commit()
+    return {"ok": True}
+
+
+@router.put("/study-groups/{group_id}/members")
+def update_study_group_members(
+    group_id: int,
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Gán danh sách học sinh cho nhóm: {student_ids: [1,2,3]} → thay toàn bộ thành viên.
+    student_id không tồn tại → 400. Trả về số thành viên mới.
+    """
+    _require_school(authorization, db)
+    
+    sg = db.query(StudyGroup).filter(StudyGroup.id == group_id).first()
+    if not sg:
+        raise HTTPException(404, "Nhóm học tập không tồn tại")
+    
+    student_ids = payload.get("student_ids")
+    if not isinstance(student_ids, list):
+        raise HTTPException(400, "student_ids phải là mảng")
+    
+    # Validate all student_ids exist
+    if student_ids:
+        existing_students = db.query(Student.id).filter(Student.id.in_(student_ids)).all()
+        existing_ids = {s[0] for s in existing_students}
+        invalid_ids = set(student_ids) - existing_ids
+        if invalid_ids:
+            raise HTTPException(400, f"Học sinh không tồn tại: {sorted(invalid_ids)}")
+    
+    # Xoá members cũ
+    db.query(StudyGroupMember).filter(StudyGroupMember.group_id == sg.id).delete()
+    
+    # Thêm members mới
+    for sid in student_ids:
+        db.add(StudyGroupMember(group_id=sg.id, student_id=sid))
+    
+    db.commit()
+    
+    member_count = len(student_ids)
+    return {"member_count": member_count, "student_ids": student_ids}

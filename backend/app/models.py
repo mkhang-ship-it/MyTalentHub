@@ -20,9 +20,10 @@ from .database import Base
 # ---------------------------------------------------------------- users
 ROLE_STUDENT = "student"
 ROLE_TEACHER = "teacher"
+ROLE_COACH = "coach"
 ROLE_SCHOOL = "school"
 ROLE_ENTERPRISE = "enterprise"
-ROLES = (ROLE_STUDENT, ROLE_TEACHER, ROLE_SCHOOL, ROLE_ENTERPRISE)
+ROLES = (ROLE_STUDENT, ROLE_TEACHER, ROLE_COACH, ROLE_SCHOOL, ROLE_ENTERPRISE)
 
 
 class AuthToken(Base):
@@ -84,6 +85,27 @@ class School(Base):
     id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     school_name: Mapped[str] = mapped_column(String(160), default="")
     education_level: Mapped[str] = mapped_column(String(16), default="THPT")  # THCS | THPT | CDDH
+    user: Mapped["User"] = relationship(lazy="joined")
+
+
+class Coach(Base):
+    """Huấn luyện viên (slide 8, slide 15).
+
+    Vai trò độc lập: cùng bộ năng lực với giáo viên (tạo sân chơi / chấm điểm /
+    đánh giá) nhưng không quản lý lớp chủ nhiệm.
+
+    Vì `Activity.teacher_id` và `Evaluation.teacher_id` đang trỏ tới `teachers.id`,
+    tài khoản huấn luyện viên cần một dòng `teachers` ẩn (cùng id = users.id) để
+    khai báo/chấm điểm được. Dòng ẩn này KHÔNG mang ý nghĩa GVCN: mọi truy vấn
+    danh sách giáo viên đều phải lọc theo `User.role == "teacher"`.
+    """
+
+    __tablename__ = "coaches"
+
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    specialty: Mapped[str] = mapped_column(String(80), default="")
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     user: Mapped["User"] = relationship(lazy="joined")
 
 
@@ -424,3 +446,33 @@ class TeacherClassAssignment(Base):
     class_group_id: Mapped[int] = mapped_column(
         ForeignKey("class_groups.id"), index=True
     )
+
+
+# ---------------------------------------------------------------- study groups (slide 4)
+class StudyGroup(Base):
+    """Nhóm học tập — slide 4 "Gộp nhóm: cộng số chỉ số".
+
+    Đơn vị tổ chức nhỏ hơn lớp: nhóm học tập / CLB do nhà trường hoặc huấn luyện
+    viên phụ trách, dùng để gộp chỉ số năng lực và giờ trải nghiệm.
+    """
+
+    __tablename__ = "study_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    field: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
+    grade: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    coach_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("coaches.id"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+
+class StudyGroupMember(Base):
+    __tablename__ = "study_group_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("study_groups.id"), index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), index=True)

@@ -29,7 +29,7 @@ class RegisterIn(BaseModel):
     full_name: str
     email: str
     password: str
-    role: str  # student | teacher | school | enterprise
+    role: str  # student | teacher | coach | school | enterprise
     # Student fields
     class_name: Optional[str] = None
     grade: Optional[int] = None
@@ -37,6 +37,10 @@ class RegisterIn(BaseModel):
     # Teacher fields
     subject: Optional[str] = None
     education_level_teacher: Optional[str] = None  # THCS | THPT | CDDH
+    # Coach fields
+    specialty: Optional[str] = None
+    education_level_coach: Optional[str] = None  # THCS | THPT | CDDH
+    bio: Optional[str] = None
     # School fields
     school_name: Optional[str] = None
     education_level_school: Optional[str] = None  # THCS | THPT | CDDH
@@ -51,7 +55,7 @@ class RegisterIn(BaseModel):
             raise ValueError("Email không được để trống")
         if not self.password or len(self.password) < 6:
             raise ValueError("Mật khẩu phải có ít nhất 6 ký tự")
-        if self.role not in ("student", "teacher", "school", "enterprise"):
+        if self.role not in ("student", "teacher", "coach", "school", "enterprise"):
             raise ValueError("Vai trò không hợp lệ")
 
         valid_levels = ("THCS", "THPT", "CDDH")
@@ -77,6 +81,11 @@ class RegisterIn(BaseModel):
             level = self.education_level_teacher or "THPT"
             if level not in valid_levels:
                 raise ValueError("Cấp quản lý không hợp lệ")
+        if self.role == "coach":
+            if not self.specialty or not self.specialty.strip():
+                raise ValueError("Chuyên môn không được để trống")
+            if self.education_level_coach and self.education_level_coach not in valid_levels:
+                raise ValueError("Cấp học không hợp lệ")
         if self.role == "school":
             if not self.school_name or not self.school_name.strip():
                 raise ValueError("Tên trường không được để trống")

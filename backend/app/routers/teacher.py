@@ -47,7 +47,25 @@ def _get_teacher(db: Session, teacher_id: int | None = None) -> Teacher:
 
 
 def _get_teacher_from_token(authorization: str | None, db: Session) -> Teacher:
-    """Lấy giáo viên từ Authorization header (bắt buộc token + role teacher)."""
+    """Lấy giáo viên từ Authorization header (bắt buộc token + role teacher hoặc coach)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    token = authorization.removeprefix("Bearer ").strip()
+    row = (
+        db.query(AuthToken, User, Teacher)
+        .join(User, User.id == AuthToken.user_id)
+        .join(Teacher, Teacher.id == User.id)
+        .filter(AuthToken.token == token, User.role.in_(("teacher", "coach")))
+        .first()
+    )
+    if not row:
+        raise HTTPException(403, "Token không hợp lệ hoặc không phải giáo viên/huấn luyện viên")
+    _auth_token, _user, teacher = row
+    return teacher
+
+
+def _get_teacher_from_token_teacher_only(authorization: str | None, db: Session) -> Teacher:
+    """Lấy giáo viên từ Authorization header (chỉ role teacher, KHÔNG nhận coach)."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Thiếu token")
     token = authorization.removeprefix("Bearer ").strip()
@@ -62,6 +80,20 @@ def _get_teacher_from_token(authorization: str | None, db: Session) -> Teacher:
         raise HTTPException(403, "Token không hợp lệ hoặc không phải giáo viên")
     _auth_token, _user, teacher = row
     return teacher
+
+
+def _resolve_teacher(authorization: str | None, teacher_id: int | None, db: Session) -> Teacher:
+    """
+    Xác định giáo viên cho endpoint 'của tôi':
+    - Nếu teacher_id được truyền → dùng _get_teacher (hành vi cũ)
+    - Nếu có Authorization header → lấy teacher theo token (nhận cả coach)
+    - Nếu không token → fallback _get_teacher(db, None) (demo)
+    """
+    if teacher_id is not None:
+        return _get_teacher(db, teacher_id)
+    if authorization and authorization.startswith("Bearer "):
+        return _get_teacher_from_token(authorization, db)
+    return _get_teacher(db, None)
 
 
 def _grade_range(level: str) -> tuple[int, ...]:
@@ -89,22 +121,25 @@ def _validate_grade_for_teacher(teacher: Teacher, grade: int) -> None:
 
 @router.get("/me", response_model=TeacherMeOut)
 def me(authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Thông tin giáo viên đang đăng nhập + danh sách khối được phép tạo."""
+    """Thông tin giáo viên/huấn luyện viên đang đăng nhập + danh sách khối được phép tạo."""
     teacher = _get_teacher_from_token(authorization, db)
     level = (teacher.education_level or "THPT").upper()
+    user_role = teacher.user.role
     return {
         "id": teacher.id,
         "full_name": teacher.user.full_name,
         "subject": teacher.subject,
         "education_level": level,
         "allowed_grades": list(_grade_range(level)),
+        "role": user_role,
+        "is_coach": user_role == "coach",
     }
 
 
 @router.get("/classes", response_model=list[ClassOut])
 def list_classes(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách lớp chủ nhiệm của tôi."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     classes = db.query(ClassGroup).filter(ClassGroup.homeroom_teacher_id == teacher.id).all()
     out = []
     for c in classes:
@@ -124,7 +159,7 @@ def list_classes(authorization: str = Header(default=None), db: Session = Depend
 @router.post("/classes", response_model=ClassOut)
 def create_class(payload: ClassIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Tạo lớp chủ nhiệm mới."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     _validate_grade_for_teacher(teacher, payload.grade)
 
     name = payload.name.strip()
@@ -158,7 +193,7 @@ def update_class(
     class_id: int, payload: ClassIn, authorization: str = Header(default=None), db: Session = Depends(get_db)
 ):
     """Cập nhật tên/khối lớp chủ nhiệm (đồng bộ Student.class_name + Student.grade)."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     cg = (
         db.query(ClassGroup)
         .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
@@ -208,7 +243,7 @@ def update_class(
 @router.delete("/classes/{class_id}")
 def delete_class(class_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Xoá lớp chủ nhiệm (chỉ khi không còn học sinh)."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     cg = (
         db.query(ClassGroup)
         .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
@@ -231,7 +266,7 @@ def delete_class(class_id: int, authorization: str = Header(default=None), db: S
 @router.get("/classes/{class_id}/students", response_model=list[ClassStudentOut])
 def list_class_students(class_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách học sinh trong lớp chủ nhiệm."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     cg = (
         db.query(ClassGroup)
         .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
@@ -262,7 +297,7 @@ def remove_student_from_class(
     class_id: int, student_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)
 ):
     """Bỏ học sinh khỏi lớp: set class_name = '' (giữ grade)."""
-    teacher = _get_teacher_from_token(authorization, db)
+    teacher = _get_teacher_from_token_teacher_only(authorization, db)
     cg = (
         db.query(ClassGroup)
         .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
@@ -281,9 +316,9 @@ def remove_student_from_class(
 
 
 @router.get("/overview")
-def overview(teacher_id: int | None = None, db: Session = Depends(get_db)):
+def overview(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
     """Tổng quan: số sân chơi, học viên, bài chấm, lớp GVCN (slide 20-21)."""
-    t = _get_teacher(db, teacher_id)
+    t = _resolve_teacher(authorization, teacher_id, db)
     activities = db.query(Activity).filter(Activity.teacher_id == t.id).all()
     activity_ids = [a.id for a in activities]
     learner_count = 0
@@ -321,9 +356,9 @@ def overview(teacher_id: int | None = None, db: Session = Depends(get_db)):
 
 
 @router.get("/activities", response_model=list[ActivityOut])
-def my_activities(teacher_id: int | None = None, db: Session = Depends(get_db)):
+def my_activities(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
     """Sân chơi của tôi (slide 21)."""
-    t = _get_teacher(db, teacher_id)
+    t = _resolve_teacher(authorization, teacher_id, db)
     rows = db.query(Activity).filter(Activity.teacher_id == t.id).all()
     out = []
     for a in rows:
@@ -346,8 +381,8 @@ def my_activities(teacher_id: int | None = None, db: Session = Depends(get_db)):
 
 
 @router.post("/activities", response_model=ActivityOut)
-def create_activity(payload: ActivityIn, teacher_id: int | None = None, db: Session = Depends(get_db)):
-    t = _get_teacher(db, teacher_id)
+def create_activity(payload: ActivityIn, authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
+    t = _resolve_teacher(authorization, teacher_id, db)
     a = Activity(
         title=payload.title,
         field=payload.field,
@@ -407,10 +442,10 @@ def _validate_rubric(payload: "EvaluationIn") -> None:
 
 
 @router.post("/evaluations", response_model=EvaluationOut)
-def submit_evaluation(payload: EvaluationIn, teacher_id: int | None = None, db: Session = Depends(get_db)):
+def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
     """Chấm điểm rubric (Chuyên môn 40 / Sáng tạo 20 / Làm việc nhóm 20 / Kỷ luật 20)."""
     _validate_rubric(payload)
-    t = _get_teacher(db, teacher_id)
+    t = _resolve_teacher(authorization, teacher_id, db)
     e = Evaluation(
         activity_id=payload.activity_id,
         student_id=payload.student_id,
@@ -440,9 +475,9 @@ def submit_evaluation(payload: EvaluationIn, teacher_id: int | None = None, db: 
 
 
 @router.get("/my-students")
-def my_students(teacher_id: int | None = None, db: Session = Depends(get_db)):
+def my_students(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
     """Học viên của tôi (slide 23): tổng theo sân chơi, filter tên/lớp."""
-    t = _get_teacher(db, teacher_id)
+    t = _resolve_teacher(authorization, teacher_id, db)
     activity_ids = [a.id for a in db.query(Activity).filter(Activity.teacher_id == t.id)]
     rows = []
     if activity_ids:

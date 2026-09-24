@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Plus, Users, Edit, Trash2, PauseCircle, CheckCircle, AlertCircle } from "lucide-react";
+import { Clock, Plus, Users, Edit, Trash2, PauseCircle, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
@@ -29,6 +29,44 @@ const FIELD_ICONS = [
   "bg-gradient-to-br from-violet-500 to-purple-700",
   "bg-gradient-to-br from-emerald-500 to-teal-600",
 ];
+
+// G4: Mẫu nhanh sân chơi theo 6 lĩnh vực (slide 7)
+interface ActivityTemplate {
+  title: string;
+  description: string;
+  capacity: number;
+}
+
+const ACTIVITY_TEMPLATES: Record<string, ActivityTemplate[]> = {
+  ky_thuat: [
+    { title: "Maker Space", description: "Không gian sáng tạo, chế tạo mô hình, in 3D, cắt laser", capacity: 30 },
+    { title: "IoT Lab", description: "Lập trình nhúng, cảm biến, điều khiển thiết bị thông minh qua MQTT", capacity: 20 },
+    { title: "Drone Lab", description: "Lắp ráp, lập trình và điều khiển drone tự bay", capacity: 16 },
+    { title: "Smart Farm", description: "Hệ thống nông nghiệp thông minh: tưới tự động, giám sát môi trường", capacity: 25 },
+  ],
+  nghe_thuat: [
+    { title: "Buổi tập Liveshow", description: "Chuẩn bị, sắp xếp ca khúc, phối âm cho buổi diễn trực tiếp", capacity: 40 },
+    { title: "Thu âm tại Studio", description: "Học quy trình thu âm, mix, master bài hát chuyên nghiệp", capacity: 12 },
+    { title: "Livestream & Sáng tạo nội dung", description: "Kỹ năng quay, dựng, phát trực tiếp, xây dựng kênh cá nhân", capacity: 50 },
+  ],
+  kinh_doanh: [
+    { title: "Startup Challenge", description: "Cuộc thi khởi nghiệp: từ ý tưởng đến pitch deck, tìm vốn", capacity: 60 },
+    { title: "Business Fair", description: "Hội chợ doanh nghiệp học sinh: trưng bày, bán sản phẩm, marketing", capacity: 80 },
+    { title: "Marketing Campaign", description: "Thiết kế chiến dịch truyền thông, content, quảng cáo số", capacity: 30 },
+  ],
+  the_thao: [
+    { title: "Giải đấu phong trào", description: "Tổ chức giải đấu bóng đá, cầu lông, bàn, cờ vua theo phong trào", capacity: 100 },
+    { title: "Lớp thể lực & Dinh dưỡng", description: "Tập gym, yoga, cardio kết hợp tư vấn dinh dưỡng khoa học", capacity: 40 },
+  ],
+  hoc_thuat: [
+    { title: "Hội thảo khoa học", description: "Nghiên cứu, trình bày bài báo khoa học, phương pháp nghiên cứu", capacity: 50 },
+    { title: "Câu lạc bộ đọc & Thảo luận", description: "Đọc sách, review, thảo luận tư duy phản biện, viết luận", capacity: 30 },
+  ],
+  sang_tao: [
+    { title: "Cuộc thi ý tưởng", description: "Hackathon, design sprint: giải quyết bài toán thực tế trong 24-48h", capacity: 60 },
+    { title: "Lớp kỹ năng sáng tạo", description: "Design thinking, brainstorming, prototyping, tư duy hệ thống", capacity: 35 },
+  ],
+};
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Đang mở",
@@ -308,6 +346,32 @@ export default function Activities() {
                 inputMode="numeric"
               />
               {fieldErrors.capacity && <p id="capacity-error" className="mt-1 text-sm text-red-600" role="alert">{fieldErrors.capacity}</p>}
+            </div>
+            {/* Mẫu nhanh theo lĩnh vực */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-ink mb-1">Mẫu nhanh (gợi ý)</label>
+              <div className="flex flex-wrap gap-2">
+                {ACTIVITY_TEMPLATES[form.field]?.map((tmpl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      // Chỉ ghi đè 3 trường, KHÔNG reset lỗi validation
+                      setForm((prev) => ({
+                        ...prev,
+                        title: tmpl.title,
+                        description: tmpl.description,
+                        capacity: tmpl.capacity,
+                      }));
+                    }}
+                    className="px-3 py-1.5 rounded-full border border-line text-xs text-ink hover:bg-portal-soft hover:border-portal hover:text-portal transition-colors"
+                    aria-label={`Áp dụng mẫu: ${tmpl.title}`}
+                  >
+                    <Zap size={12} className="inline mr-1" aria-hidden="true" /> {tmpl.title}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted">Bấm để điền tự động tên/mô tả/sức chứa. Chỉ ghi đè 3 trường trên, giữ nguyên các trường khác.</p>
             </div>
             <div className="md:col-span-2">
               <label htmlFor="activity-description" className="block text-sm font-medium text-ink mb-1">Mô tả ngắn</label>

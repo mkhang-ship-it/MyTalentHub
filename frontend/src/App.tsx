@@ -21,6 +21,7 @@ import TeacherActivities from "./pages/teacher/Activities";
 import TeacherGrading from "./pages/teacher/Grading";
 import TeacherStudents from "./pages/teacher/Students";
 import TeacherClasses from "./pages/teacher/Classes";
+import CoachOverview from "./pages/coach/Overview";
 
 import SchoolOverview from "./pages/school/Overview";
 import SchoolAnalysis from "./pages/school/Analysis";
@@ -89,6 +90,12 @@ export default function App() {
           <Route path="teacher/grading" element={<TeacherGrading />} />
           <Route path="teacher/students" element={<TeacherStudents />} />
           <Route path="teacher/classes" element={<TeacherClasses />} />
+
+          {/* HUẤN LUYỆN VIÊN */}
+          <Route path="coach" element={<CoachOverview />} />
+          <Route path="coach/activities" element={<TeacherActivities />} />
+          <Route path="coach/grading" element={<TeacherGrading />} />
+          <Route path="coach/students" element={<TeacherStudents />} />
 
           {/* NHÀ TRƯỜNG */}
           <Route path="school" element={<SchoolOverview />} />

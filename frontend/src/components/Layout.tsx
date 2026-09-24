@@ -27,6 +27,7 @@ import {
   Home,
   Settings,
   ChevronDown,
+  Dumbbell,
 } from "lucide-react";
 import { useAuth, roleLabel } from "../auth/AuthContext";
 import { LogoMark, LogoWordmark } from "./Logo";
@@ -120,6 +121,23 @@ const PORTALS: PortalDef[] = [
       { to: "/enterprise/talents", label: "Tìm nhân tài", icon: Search },
       { to: "/enterprise/internships", label: "Tuyển thực tập", icon: Briefcase },
       { to: "/enterprise/sponsorships", label: "Tài trợ dự án", icon: HandCoins },
+    ],
+  },
+  {
+    key: "coach",
+    label: "Huấn luyện viên",
+    icon: Dumbbell,
+    accent: "#0F766E",
+    accentSoft: "#E6FFFA",
+    accentDark: "#0B4F4A",
+    hero: "linear-gradient(100deg, #0D9488 0%, #14B8A6 55%, #06B6D4 100%)",
+    nav: "linear-gradient(90deg, #0D9488 0%, #14B8A6 100%)",
+    cta: "linear-gradient(90deg, #0F766E 0%, #0D9488 100%)",
+    items: [
+      { to: "/coach", label: "Tổng quan", icon: LayoutDashboard },
+      { to: "/coach/activities", label: "Sân chơi của tôi", icon: BookOpen },
+      { to: "/coach/grading", label: "Chấm điểm", icon: ClipboardCheck },
+      { to: "/coach/students", label: "Học viên", icon: Users },
     ],
   },
 ];
@@ -236,7 +254,16 @@ export default function Layout() {
     navigate("/login", { replace: true });
   }
 
-  const isOwn = user ? portal.key === user.role : false;
+  // Cast role to string to avoid TypeScript comparison issues (coach not in AuthUser["role"] union yet)
+  const userRole: string = (user?.role as string) ?? "";
+  const isOwn = user ? portal.key === userRole : false;
+
+  // Redirect coach from /student to /coach (AuthContext roleHome defaults to /student for unknown roles)
+  useEffect(() => {
+    if (userRole === "coach" && (pathname === "/student" || pathname.startsWith("/student/"))) {
+      navigate("/coach", { replace: true });
+    }
+  }, [userRole, pathname, navigate]);
 
   // Xử lý chuyển cổng
   const switchPortal = (key: string) => {
@@ -313,7 +340,7 @@ export default function Layout() {
                 aria-label="Chuyển cổng"
               >
                 {PORTALS.map((p) => {
-                  const isOwnPortal = p.key === user?.role;
+                  const isOwnPortal = p.key === userRole;
                   const isActivePortal = p.key === portal.key;
                   return (
                     <button
@@ -346,7 +373,7 @@ export default function Layout() {
             )}
           </div>
           <div className="mt-1.5 text-[10px] font-medium text-muted">
-            {roleLabel(user?.role)} · {portal.label}
+            {userRole === "coach" ? "Huấn luyện viên" : roleLabel(user?.role)} · {portal.label}
           </div>
         </div>
 
@@ -581,7 +608,7 @@ export default function Layout() {
                 aria-label="Chuyển cổng"
               >
                 {PORTALS.map((p) => {
-                  const isOwnPortal = p.key === user?.role;
+                  const isOwnPortal = p.key === userRole;
                   const isActivePortal = p.key === portal.key;
                   return (
                     <button

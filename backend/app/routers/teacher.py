@@ -1,19 +1,31 @@
-"""GIÁO VIÊN — tổng quan, sân chơi (CRUD), chấm điểm rubric 40/20/20/20, học viên."""
-from fastapi import APIRouter, Depends, HTTPException
+"""GIÁO VIÊN — tổng quan, sân chơi (CRUD), chấm điểm rubric 40/20/20/20, học viên, quản lý lớp."""
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
 from ..models import (
     Activity,
     ActivityRegistration,
+    AuthToken,
     ClassGroup,
     Evaluation,
     Student,
     StudentBadge,
     Teacher,
+    TeacherClassAssignment,
     User,
 )
-from ..schemas import ActivityIn, ActivityOut, EvaluationIn, EvaluationOut
+from ..schemas import (
+    ActivityIn,
+    ActivityOut,
+    ActivityStatusUpdate,
+    ActivityUpdate,
+    ClassIn,
+    ClassOut,
+    ClassStudentOut,
+    EvaluationIn,
+    EvaluationOut,
+)
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
 
@@ -31,6 +43,213 @@ def _get_teacher(db: Session, teacher_id: int | None = None) -> Teacher:
     if not t:
         raise HTTPException(404, "Không tìm thấy giáo viên")
     return t
+
+
+def _get_teacher_from_token(authorization: str | None, db: Session) -> Teacher:
+    """Lấy giáo viên từ Authorization header (bắt buộc token + role teacher)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    token = authorization.removeprefix("Bearer ").strip()
+    row = (
+        db.query(AuthToken, User, Teacher)
+        .join(User, User.id == AuthToken.user_id)
+        .join(Teacher, Teacher.id == User.id)
+        .filter(AuthToken.token == token, User.role == "teacher")
+        .first()
+    )
+    if not row:
+        raise HTTPException(403, "Token không hợp lệ hoặc không phải giáo viên")
+    _auth_token, _user, teacher = row
+    return teacher
+
+
+def _validate_grade_for_teacher(teacher: Teacher, grade: int) -> None:
+    """Kiểm tra khối có nằm trong phạm vi cấp học của giáo viên."""
+    level = (teacher.education_level or "THPT").upper()
+    if level == "THCS":
+        valid_grades = (6, 7, 8, 9)
+    elif level == "THPT":
+        valid_grades = (10, 11, 12)
+    elif level == "CDDH":
+        valid_grades = (1, 2, 3, 4, 5, 6, 7, 8)
+    else:
+        valid_grades = (10, 11, 12)  # mặc định THPT
+    if grade not in valid_grades:
+        raise HTTPException(
+            422,
+            f"Khối {grade} không thuộc cấp học {level} của bạn (phạm vi: {', '.join(map(str, valid_grades))})",
+        )
+
+
+@router.get("/classes", response_model=list[ClassOut])
+def list_classes(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách lớp chủ nhiệm của tôi."""
+    teacher = _get_teacher_from_token(authorization, db)
+    classes = db.query(ClassGroup).filter(ClassGroup.homeroom_teacher_id == teacher.id).all()
+    out = []
+    for c in classes:
+        student_count = db.query(Student).filter(Student.class_name == c.name).count()
+        out.append(
+            ClassOut(
+                id=c.id,
+                name=c.name,
+                grade=c.grade,
+                homeroom_teacher_name=teacher.user.full_name,
+                student_count=student_count,
+            )
+        )
+    return out
+
+
+@router.post("/classes", response_model=ClassOut)
+def create_class(payload: ClassIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Tạo lớp chủ nhiệm mới."""
+    teacher = _get_teacher_from_token(authorization, db)
+    _validate_grade_for_teacher(teacher, payload.grade)
+
+    # Kiểm tra trùng tên lớp
+    existing = db.query(ClassGroup).filter(ClassGroup.name == payload.name.strip()).first()
+    if existing:
+        raise HTTPException(409, f"Lớp '{payload.name}' đã tồn tại")
+
+    cg = ClassGroup(name=payload.name.strip(), grade=payload.grade, homeroom_teacher_id=teacher.id)
+    db.add(cg)
+    db.flush()
+    # Gán quan hệ TeacherClassAssignment
+    assignment = TeacherClassAssignment(teacher_id=teacher.id, class_group_id=cg.id)
+    db.add(assignment)
+    db.commit()
+    db.refresh(cg)
+    return ClassOut(
+        id=cg.id,
+        name=cg.name,
+        grade=cg.grade,
+        homeroom_teacher_name=teacher.user.full_name,
+        student_count=0,
+    )
+
+
+@router.put("/classes/{class_id}", response_model=ClassOut)
+def update_class(
+    class_id: int, payload: ClassIn, authorization: str = Header(default=None), db: Session = Depends(get_db)
+):
+    """Cập nhật tên/khối lớp chủ nhiệm (đồng bộ Student.class_name + Student.grade)."""
+    teacher = _get_teacher_from_token(authorization, db)
+    cg = (
+        db.query(ClassGroup)
+        .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
+        .first()
+    )
+    if not cg:
+        raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
+
+    old_name = cg.name
+    new_name = payload.name.strip() if payload.name else cg.name
+    new_grade = payload.grade if payload.grade is not None else cg.grade
+
+    if new_name != old_name:
+        # Kiểm tra trùng tên với lớp khác
+        conflict = db.query(ClassGroup).filter(ClassGroup.name == new_name, ClassGroup.id != class_id).first()
+        if conflict:
+            raise HTTPException(409, f"Lớp '{new_name}' đã tồn tại")
+
+    if new_grade != cg.grade:
+        _validate_grade_for_teacher(teacher, new_grade)
+
+    # Đồng bộ học sinh
+    students = db.query(Student).filter(Student.class_name == old_name).all()
+    for s in students:
+        s.class_name = new_name
+        s.grade = new_grade
+
+    cg.name = new_name
+    cg.grade = new_grade
+    db.commit()
+    db.refresh(cg)
+
+    student_count = db.query(Student).filter(Student.class_name == cg.name).count()
+    return ClassOut(
+        id=cg.id,
+        name=cg.name,
+        grade=cg.grade,
+        homeroom_teacher_name=teacher.user.full_name,
+        student_count=student_count,
+    )
+
+
+@router.delete("/classes/{class_id}")
+def delete_class(class_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Xoá lớp chủ nhiệm (chỉ khi không còn học sinh)."""
+    teacher = _get_teacher_from_token(authorization, db)
+    cg = (
+        db.query(ClassGroup)
+        .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
+        .first()
+    )
+    if not cg:
+        raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
+
+    student_count = db.query(Student).filter(Student.class_name == cg.name).count()
+    if student_count > 0:
+        raise HTTPException(409, f"Lớp còn {student_count} học sinh, vui lòng bỏ lớp học sinh trước.")
+
+    # Xoá TeacherClassAssignment trước
+    db.query(TeacherClassAssignment).filter(TeacherClassAssignment.class_group_id == cg.id).delete()
+    db.delete(cg)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/classes/{class_id}/students", response_model=list[ClassStudentOut])
+def list_class_students(class_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách học sinh trong lớp chủ nhiệm."""
+    teacher = _get_teacher_from_token(authorization, db)
+    cg = (
+        db.query(ClassGroup)
+        .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
+        .first()
+    )
+    if not cg:
+        raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
+
+    students = (
+        db.query(Student)
+        .options(selectinload(Student.user))
+        .filter(Student.class_name == cg.name)
+        .all()
+    )
+    return [
+        ClassStudentOut(
+            id=s.id,
+            full_name=s.user.full_name,
+            grade=s.grade,
+            class_name=s.class_name,
+        )
+        for s in students
+    ]
+
+
+@router.post("/classes/{class_id}/students/{student_id}/remove")
+def remove_student_from_class(
+    class_id: int, student_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)
+):
+    """Bỏ học sinh khỏi lớp: set class_name = '' (giữ grade)."""
+    teacher = _get_teacher_from_token(authorization, db)
+    cg = (
+        db.query(ClassGroup)
+        .filter(ClassGroup.id == class_id, ClassGroup.homeroom_teacher_id == teacher.id)
+        .first()
+    )
+    if not cg:
+        raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
+
+    student = db.query(Student).filter(Student.id == student_id, Student.class_name == cg.name).first()
+    if not student:
+        raise HTTPException(409, "Học sinh không thuộc lớp này")
+
+    student.class_name = ""
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/overview")
@@ -54,6 +273,7 @@ def overview(teacher_id: int | None = None, db: Session = Depends(get_db)):
         "id": t.id,
         "full_name": t.user.full_name,
         "subject": t.subject,
+        "education_level": t.education_level,
         "activity_count": len(activities),
         "learner_count": learner_count,
         "eval_count": eval_count,
@@ -205,3 +425,95 @@ def my_students(teacher_id: int | None = None, db: Session = Depends(get_db)):
         "total": len(seen),
         "students": list(seen.values()),
     }
+
+
+# === SÂN CHƠI — CẬP NHẬT / TRẠNG THÁI / XOÁ (bắt buộc token + role teacher) ===
+VALID_STATUSES = ("open", "paused", "closed")
+
+
+def _get_activity_owned(activity_id: int, teacher: Teacher, db: Session) -> Activity:
+    a = db.query(Activity).filter(Activity.id == activity_id, Activity.teacher_id == teacher.id).first()
+    if not a:
+        raise HTTPException(404, "Không tìm thấy sân chơi hoặc bạn không phải người phụ trách")
+    return a
+
+
+@router.put("/activities/{activity_id}", response_model=ActivityOut)
+def update_activity(
+    activity_id: int, payload: ActivityUpdate, authorization: str = Header(default=None), db: Session = Depends(get_db)
+):
+    """Sửa sân chơi của tôi."""
+    teacher = _get_teacher_from_token(authorization, db)
+    a = _get_activity_owned(activity_id, teacher, db)
+
+    if payload.title is not None:
+        a.title = payload.title
+    if payload.field is not None:
+        a.field = payload.field
+    if payload.description is not None:
+        a.description = payload.description
+    if payload.capacity is not None:
+        a.capacity = payload.capacity
+    if payload.start_date is not None:
+        a.start_date = payload.start_date
+    if payload.end_date is not None:
+        a.end_date = payload.end_date
+    if payload.status is not None:
+        if payload.status not in VALID_STATUSES:
+            raise HTTPException(422, f"Trạng thái không hợp lệ. Chỉ chấp nhận: {', '.join(VALID_STATUSES)}")
+        a.status = payload.status
+
+    db.commit()
+    db.refresh(a)
+    cnt = db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == a.id).count()
+    return ActivityOut(
+        id=a.id,
+        title=a.title,
+        field=a.field,
+        description=a.description,
+        capacity=a.capacity,
+        start_date=a.start_date,
+        end_date=a.end_date,
+        teacher_id=a.teacher_id,
+        status=a.status,
+        registered_count=cnt,
+    )
+
+
+@router.put("/activities/{activity_id}/status", response_model=ActivityOut)
+def update_activity_status(
+    activity_id: int, payload: ActivityStatusUpdate, authorization: str = Header(default=None), db: Session = Depends(get_db)
+):
+    """Đổi trạng thái sân chơi (open|paused|closed)."""
+    teacher = _get_teacher_from_token(authorization, db)
+    a = _get_activity_owned(activity_id, teacher, db)
+
+    if payload.status not in VALID_STATUSES:
+        raise HTTPException(422, f"Trạng thái không hợp lệ. Chỉ chấp nhận: {', '.join(VALID_STATUSES)}")
+
+    a.status = payload.status
+    db.commit()
+    db.refresh(a)
+    cnt = db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == a.id).count()
+    return ActivityOut(
+        id=a.id,
+        title=a.title,
+        field=a.field,
+        description=a.description,
+        capacity=a.capacity,
+        start_date=a.start_date,
+        end_date=a.end_date,
+        teacher_id=a.teacher_id,
+        status=a.status,
+        registered_count=cnt,
+    )
+
+
+@router.delete("/activities/{activity_id}")
+def delete_activity(activity_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Xoá sân chơi của tôi."""
+    teacher = _get_teacher_from_token(authorization, db)
+    a = _get_activity_owned(activity_id, teacher, db)
+    db.delete(a)
+    db.commit()
+    return {"ok": True}

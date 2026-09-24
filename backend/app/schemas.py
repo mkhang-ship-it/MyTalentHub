@@ -25,6 +25,69 @@ class LoginIn(BaseModel):
     password: str
 
 
+class RegisterIn(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    role: str  # student | teacher | school | enterprise
+    # Student fields
+    class_name: Optional[str] = None
+    grade: Optional[int] = None
+    education_level: Optional[str] = None  # THCS | THPT | CDDH
+    # Teacher fields
+    subject: Optional[str] = None
+    education_level_teacher: Optional[str] = None  # THCS | THPT | CDDH
+    # School fields
+    school_name: Optional[str] = None
+    education_level_school: Optional[str] = None  # THCS | THPT | CDDH
+    # Enterprise fields
+    company_name: Optional[str] = None
+    industry: Optional[str] = None
+
+    def model_post_init(self, __context):
+        if not self.full_name or not self.full_name.strip():
+            raise ValueError("Họ tên không được để trống")
+        if not self.email or not self.email.strip():
+            raise ValueError("Email không được để trống")
+        if not self.password or len(self.password) < 6:
+            raise ValueError("Mật khẩu phải có ít nhất 6 ký tự")
+        if self.role not in ("student", "teacher", "school", "enterprise"):
+            raise ValueError("Vai trò không hợp lệ")
+
+        valid_levels = ("THCS", "THPT", "CDDH")
+        # Role-specific validation
+        if self.role == "student":
+            if not self.class_name or not self.class_name.strip():
+                raise ValueError("Lớp không được để trống")
+            level = self.education_level or "THPT"
+            if level not in valid_levels:
+                raise ValueError("Cấp học không hợp lệ")
+            if level == "THCS":
+                if not self.grade or self.grade not in (6, 7, 8, 9):
+                    raise ValueError("Khối THCS phải từ 6 đến 9")
+            elif level == "THPT":
+                if not self.grade or self.grade not in (10, 11, 12):
+                    raise ValueError("Khối THPT phải là 10, 11 hoặc 12")
+            else:  # CDDH
+                if not self.grade or not (1 <= self.grade <= 8):
+                    raise ValueError("Khoá phải từ 1 đến 8")
+        if self.role == "teacher":
+            if not self.subject or not self.subject.strip():
+                raise ValueError("Môn dạy không được để trống")
+            level = self.education_level_teacher or "THPT"
+            if level not in valid_levels:
+                raise ValueError("Cấp quản lý không hợp lệ")
+        if self.role == "school":
+            if not self.school_name or not self.school_name.strip():
+                raise ValueError("Tên trường không được để trống")
+            level = self.education_level_school or "THPT"
+            if level not in valid_levels:
+                raise ValueError("Cấp quản lý không hợp lệ")
+        if self.role == "enterprise":
+            if not self.company_name or not self.company_name.strip():
+                raise ValueError("Tên công ty không được để trống")
+
+
 class LoginOut(BaseModel):
     token: str
     user: UserOut
@@ -35,6 +98,7 @@ class StudentOut(ORMModel):
     id: int
     class_name: str
     grade: int
+    education_level: str
     talent_score: float
     experience_hours: float
     interests: Optional[str] = None
@@ -53,6 +117,7 @@ class TeacherOut(ORMModel):
     id: int
     subject: str
     is_homeroom: bool
+    education_level: str
     user: UserOut
 
 
@@ -110,6 +175,41 @@ class ActivityOut(ActivityIn, ORMModel):
     teacher_id: Optional[int] = None
     status: str = "open"
     registered_count: int = 0
+
+
+class ActivityUpdate(BaseModel):
+    title: Optional[str] = None
+    field: Optional[str] = None
+    description: Optional[str] = None
+    capacity: Optional[int] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ActivityStatusUpdate(BaseModel):
+    status: str
+
+
+# ---------------- class group
+class ClassIn(BaseModel):
+    name: str
+    grade: int
+
+
+class ClassOut(BaseModel):
+    id: int
+    name: str
+    grade: int
+    homeroom_teacher_name: str
+    student_count: int
+
+
+class ClassStudentOut(BaseModel):
+    id: int
+    full_name: str
+    grade: int
+    class_name: str
 
 
 # ---------------- enterprise

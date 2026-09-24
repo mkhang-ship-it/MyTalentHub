@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { Award, BookOpen, Briefcase, Star } from "lucide-react";
-import { get } from "../../api/client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Award, BookOpen, Briefcase, Star, Edit, Trash2, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
 interface Profile {
   full_name: string;
   class_name: string;
   grade: number;
+  education_level: string;
   talent_score: number;
   experience_hours: number;
   interests: string | null;
@@ -14,38 +16,135 @@ interface Profile {
   skills: { code: string; name: string; level: number }[];
   badges: { code: string; name: string; icon: string; color: string }[];
   evaluation_count: number;
-  certificates: { title: string; issuer: string; issued_at: string | null }[];
+  certificates: { id: number; title: string; issuer: string; issued_at: string | null }[];
   projects: { id: number; title: string; field: string; status: string; role: string }[];
 }
 
-interface Evaluation {
+interface Certificate {
   id: number;
-  activity: string;
-  reviewer: string;
-  criteria: { name: string; score: number; max: number }[];
-  total: number;
-  xep_loai: string;
-  comment: string | null;
-  date: string;
+  title: string;
+  issuer: string;
+  issued_at: string | null;
+}
+
+interface Toast {
+  id: number;
+  type: "success" | "error";
+  message: string;
 }
 
 const SKILL_BARS = ["skillbar-a", "skillbar-b", "skillbar-c", "skillbar-d"];
 
 export default function Profile() {
   const [data, setData] = useState<Profile | null>(null);
-  const [evals, setEvals] = useState<Evaluation[] | null>(null);
   const [error, setError] = useState("");
+  const [showCertForm, setShowCertForm] = useState(false);
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [certForm, setCertForm] = useState({ title: "", issuer: "", issued_at: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const certFormRef = useRef<HTMLDivElement>(null);
+
+  const showToast = useCallback((type: "success" | "error", message: string) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
+
+  const loadProfile = useCallback(() => {
+    get<Profile>("/student/profile").then(setData).catch((e) => setError(String(e.message || e)));
+  }, []);
 
   useEffect(() => {
-    get<Profile>("/student/profile").then(setData).catch((e) => setError(String(e.message || e)));
-    get<Evaluation[]>("/student/evaluations").then(setEvals).catch(() => setEvals([]));
-  }, []);
+    loadProfile();
+  }, [loadProfile]);
+
+  const validateCertForm = () => {
+    if (!certForm.title.trim()) {
+      showToast("error", "Tên chứng chỉ không được rỗng");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCertSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateCertForm()) return;
+
+    setSubmitting(true);
+    try {
+      if (editingCert) {
+        await put(`/student/certificates/${editingCert.id}`, certForm);
+        showToast("success", "Cập nhật chứng chỉ thành công");
+      } else {
+        await post("/student/certificates", certForm);
+        showToast("success", "Thêm chứng chỉ thành công");
+      }
+      setShowCertForm(false);
+      setEditingCert(null);
+      setCertForm({ title: "", issuer: "", issued_at: "" });
+      loadProfile();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      showToast("error", message.includes("validation") || message.includes("Tên chứng chỉ") ? message : "Có lỗi xảy ra, vui lòng thử lại");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditCert = (cert: Certificate) => {
+    setEditingCert(cert);
+    setCertForm({ title: cert.title, issuer: cert.issuer || "", issued_at: cert.issued_at || "" });
+    setShowCertForm(true);
+    certFormRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleDeleteCert = async (cert: Certificate) => {
+    if (!window.confirm(`Xoá chứng chỉ "${cert.title}"?`)) return;
+    setSubmitting(true);
+    try {
+      await del(`/student/certificates/${cert.id}`);
+      showToast("success", "Xoá chứng chỉ thành công");
+      loadProfile();
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      showToast("error", message.includes("404") ? "Không tìm thấy chứng chỉ" : "Có lỗi xảy ra, vui lòng thử lại");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancelCert = () => {
+    setShowCertForm(false);
+    setEditingCert(null);
+    setCertForm({ title: "", issuer: "", issued_at: "" });
+  };
 
   if (error) return <ErrorBox message={error} />;
   if (!data) return <Loading />;
 
   return (
     <div>
+      {/* Toast notifications */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-label="Thông báo">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            role="alert"
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-slide-in ${
+              t.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
+            }`}
+          >
+            {t.type === "success" ? (
+              <CheckCircle size={18} className="shrink-0" aria-hidden="true" />
+            ) : (
+              <AlertCircle size={18} className="shrink-0" aria-hidden="true" />
+            )}
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
+
       <PageHeader title="Hồ sơ năng lực" subtitle="Quản lý thông tin cá nhân, theo dõi năng lực, thành tích, chứng chỉ và dự án (slide 11)." />
 
       {/* Header card với cover gradient (slide 11) */}
@@ -60,7 +159,7 @@ export default function Profile() {
               <div className="pb-1">
                 <h2 className="text-xl font-extrabold text-ink">{data.full_name}</h2>
                 <p className="text-sm text-muted">
-                  Lớp {data.class_name} · Khối {data.grade}
+                  Lớp {data.class_name} · {data.education_level === "CDDH" ? "Khoá" : "Khối"} {data.grade} · {data.education_level}
                 </p>
               </div>
             </div>
@@ -136,7 +235,88 @@ export default function Profile() {
             <Award size={18} className="text-pink-500" />
             <h2 className="font-semibold text-ink">Chứng chỉ</h2>
           </div>
-          {data.certificates.length === 0 ? (
+          <div ref={certFormRef}>
+            {showCertForm && (
+            <form onSubmit={handleCertSubmit} className="space-y-3 mb-4 p-3 rounded-xl bg-canvas-soft/50 border border-line" aria-label="Form chứng chỉ">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label htmlFor="cert-title" className="block text-sm font-medium text-ink mb-1">
+                    Tên chứng chỉ <span className="text-red-500" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="cert-title"
+                    type="text"
+                    value={certForm.title}
+                    onChange={(e) => setCertForm((prev) => ({ ...prev, title: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                    placeholder="VD: Chứng chỉ Lập trình Python"
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cert-issuer" className="block text-sm font-medium text-ink mb-1">
+                    Tổ chức cấp
+                  </label>
+                  <input
+                    id="cert-issuer"
+                    type="text"
+                    value={certForm.issuer}
+                    onChange={(e) => setCertForm((prev) => ({ ...prev, issuer: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                    placeholder="VD: FTalentHub, Coursera, Google"
+                    autoComplete="off"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cert-issued_at" className="block text-sm font-medium text-ink mb-1">
+                    Ngày cấp
+                  </label>
+                  <input
+                    id="cert-issued_at"
+                    type="date"
+                    value={certForm.issued_at}
+                    onChange={(e) => setCertForm((prev) => ({ ...prev, issued_at: e.target.value }))}
+                    className="px-3 py-2 rounded-xl border border-line text-sm outline-none focus:border-portal w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelCert}
+                  className="px-4 py-2 rounded-xl border border-line text-sm text-muted hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                  disabled={submitting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-xl cta-gradient text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                >
+                  {submitting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                      {editingCert ? "Đang cập nhật..." : "Đang tạo..."}
+                    </>
+                  ) : (
+                    editingCert ? "Cập nhật" : "Thêm chứng chỉ"
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+          {!showCertForm && (
+            <button
+              onClick={() => setShowCertForm(true)}
+              className="mb-4 flex items-center gap-1.5 text-sm px-3 py-2 rounded-full cta-gradient text-white font-semibold hover:brightness-105 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+            >
+              <Plus size={14} aria-hidden="true" /> Thêm chứng chỉ
+            </button>
+          )}
+          {data.certificates.length === 0 && !showCertForm ? (
             <div className="text-center py-8" role="status" aria-live="polite">
               <Award size={32} className="mx-auto text-muted-light" aria-hidden="true" />
               <p className="mt-2 text-sm text-muted">Chưa có chứng chỉ nào.</p>
@@ -144,21 +324,38 @@ export default function Profile() {
             </div>
           ) : (
             <ul className="space-y-3">
-              {data.certificates.map((c, i) => (
-                <li key={i} className="flex items-start gap-3">
+              {data.certificates.map((c) => (
+                <li key={c.id} className="flex items-start gap-3">
                   <span className="h-9 w-9 shrink-0 mt-0.5 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center">
                     <Award size={16} />
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-ink line-clamp-2 leading-snug">{c.title}</div>
                     <div className="text-xs text-muted mt-0.5">
                       {c.issuer}{c.issued_at ? ` · ${c.issued_at}` : ""}
                     </div>
                   </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleEditCert(c)}
+                      className="text-xs px-2 py-1 rounded-lg border border-line text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                      aria-label={`Chỉnh sửa chứng chỉ ${c.title}`}
+                    >
+                      <Edit size={14} aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCert(c)}
+                      className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      aria-label={`Xoá chứng chỉ ${c.title}`}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
+        </div>
         </Card>
       </div>
 
@@ -195,59 +392,22 @@ export default function Profile() {
         </Card>
       </div>
 
-      {/* Đánh giá từ GV/HLV — slide 15 */}
+      {/* Link đến trang Đánh giá riêng */}
       <div className="mt-6">
-        <Card>
-          <div className="flex items-center gap-2 mb-4">
-            <Star size={18} className="text-portal" />
-            <h2 className="font-semibold text-ink">Đánh giá từ giáo viên & huấn luyện viên</h2>
+        <Card className="bg-portal-soft/30 border-portal-soft">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Star size={18} className="text-portal" />
+              <h2 className="font-semibold text-ink">Đánh giá từ giáo viên & huấn luyện viên</h2>
+            </div>
+            <Link
+              to="/student/evaluations"
+              className="text-sm text-portal font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded px-2 py-1"
+            >
+              Xem đánh giá đầy đủ →
+            </Link>
           </div>
-          {!evals ? (
-            <Loading />
-          ) : evals.length === 0 ? (
-            <div className="text-center py-8" role="status" aria-live="polite">
-              <Star size={32} className="mx-auto text-muted-light" aria-hidden="true" />
-              <p className="mt-2 text-sm text-muted">Chưa có đánh giá nào được công bố.</p>
-              <p className="mt-1 text-xs text-muted-light">Đánh giá từ GV/HLV sẽ hiện ở đây khi có.</p>
-            </div>
-          ) : (
-            <div className="space-y-4 stagger-children">
-              {evals.map((ev) => (
-                <div key={ev.id} className="rounded-xl border border-line p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-ink">{ev.activity}</div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-portal-soft text-portal-dark font-medium">
-                      {ev.total}/100 · {ev.xep_loai}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {ev.criteria.map((c) => (
-                      <div key={c.name} className="text-xs">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-muted">{c.name}</span>
-                          <span className="font-medium text-ink">
-                            {c.score}/{c.max}
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-canvas-soft overflow-hidden transition-responsive hover:brightness-95">
-                          <div
-                            className="h-full rounded-full hero-gradient transition-all duration-300 ease-out"
-                            style={{ width: `${Math.min(100, (c.score / c.max) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {ev.comment && (
-                    <p className="mt-3 text-sm text-muted italic">“{ev.comment}”</p>
-                  )}
-                  <div className="mt-2 text-xs text-muted-light">
-                    {ev.reviewer} · {ev.date}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="mt-2 text-sm text-muted">Nhấn để xem chi tiết các tiêu chí Chuyên môn 40 / Sáng tạo 20 / Làm việc nhóm 20 / Kỷ luật 20, nhận xét và người đánh giá.</p>
         </Card>
       </div>
     </div>

@@ -1,6 +1,8 @@
-"""HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI."""
+"""HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI, chứng chỉ."""
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date, datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
@@ -26,6 +28,27 @@ from ..models import (
 from ..schemas import ComputeIn, ComputeOut, QuestionOut
 
 router = APIRouter(prefix="/student", tags=["student"])
+
+
+class CertificateCreate(BaseModel):
+    title: str
+    issuer: str | None = None
+    issued_at: str | None = None
+
+
+class CertificateUpdate(BaseModel):
+    title: str | None = None
+    issuer: str | None = None
+    issued_at: str | None = None
+
+
+def _validate_certificate_title(title: str | None) -> str:
+    if title is None:
+        raise HTTPException(422, "Tên chứng chỉ không được rỗng")
+    stripped = title.strip()
+    if not stripped:
+        raise HTTPException(422, "Tên chứng chỉ không được rỗng")
+    return stripped
 
 
 def _get_student(db: Session, student_id: int) -> Student:
@@ -74,6 +97,7 @@ def _student_payload(s: Student, db: Session) -> dict:
         "full_name": s.user.full_name,
         "class_name": s.class_name,
         "grade": s.grade,
+        "education_level": s.education_level,
         "talent_score": s.talent_score,
         "experience_hours": s.experience_hours,
         "interests": s.interests,
@@ -98,9 +122,81 @@ def _student_payload(s: Student, db: Session) -> dict:
     }
 
 
+# ---------- CHỨNG CHỈ CRUD ----------
+
+@router.post("/certificates", status_code=status.HTTP_201_CREATED)
+def create_certificate(
+    payload: CertificateCreate,
+    student_id: int = 1,
+    db: Session = Depends(get_db),
+):
+    """Tạo chứng chỉ mới cho học sinh."""
+    s = _get_student(db, student_id)
+    title = _validate_certificate_title(payload.title)
+    cert = Certificate(
+        student_id=s.id,
+        title=title,
+        issuer=payload.issuer or "FTalentHub",
+        issued_at=payload.issued_at,
+    )
+    db.add(cert)
+    db.commit()
+    db.refresh(cert)
+    return {
+        "id": cert.id,
+        "title": cert.title,
+        "issuer": cert.issuer,
+        "issued_at": cert.issued_at,
+    }
+
+
+@router.put("/certificates/{cert_id}")
+def update_certificate(
+    cert_id: int,
+    payload: CertificateUpdate,
+    student_id: int = 1,
+    db: Session = Depends(get_db),
+):
+    """Cập nhật chứng chỉ (chỉ của học sinh đó)."""
+    s = _get_student(db, student_id)
+    cert = db.query(Certificate).filter(Certificate.id == cert_id, Certificate.student_id == s.id).first()
+    if not cert:
+        raise HTTPException(404, "Không tìm thấy chứng chỉ")
+    if payload.title is not None:
+        cert.title = _validate_certificate_title(payload.title)
+    if payload.issuer is not None:
+        cert.issuer = payload.issuer
+    if payload.issued_at is not None:
+        cert.issued_at = payload.issued_at
+    db.commit()
+    db.refresh(cert)
+    return {
+        "id": cert.id,
+        "title": cert.title,
+        "issuer": cert.issuer,
+        "issued_at": cert.issued_at,
+    }
+
+
+@router.delete("/certificates/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_certificate(
+    cert_id: int,
+    student_id: int = 1,
+    db: Session = Depends(get_db),
+):
+    """Xoá chứng chỉ (chỉ của học sinh đó)."""
+    s = _get_student(db, student_id)
+    cert = db.query(Certificate).filter(Certificate.id == cert_id, Certificate.student_id == s.id).first()
+    if not cert:
+        raise HTTPException(404, "Không tìm thấy chứng chỉ")
+    db.delete(cert)
+    db.commit()
+    return
+
+
 @router.get("/overview")
 def overview(student_id: int = 1, db: Session = Depends(get_db)):
-    """Dashboard tổng quan + KPI xếp hạng + huy hiệu + lộ trình AI."""
+    """Dashboard tổng quan + KPI xếp hạng + huy hiệu + lộ trình AI + chuỗi ngày liên tiếp."""
     s = _get_student(db, student_id)
     base = _student_payload(s, db)
 
@@ -126,6 +222,25 @@ def overview(student_id: int = 1, db: Session = Depends(get_db)):
         ({"code": b.code, "name": b.name, "min_hours": b.min_hours} for b in badges if s.experience_hours < b.min_hours),
         None,
     )
+
+    # chuỗi ngày check-in liên tiếp (streak)
+    checkin_dates = (
+        db.query(CheckIn.checked_in_at)
+        .join(ActivityRegistration, ActivityRegistration.id == CheckIn.registration_id)
+        .filter(ActivityRegistration.student_id == s.id)
+        .distinct(CheckIn.checked_in_at)
+        .all()
+    )
+    date_set = {c[0].date() for c in checkin_dates}
+    today = date.today()
+    streak = 0
+    check_day = today
+    if today not in date_set:
+        check_day = today - timedelta(days=1)
+    while check_day in date_set:
+        streak += 1
+        check_day -= timedelta(days=1)
+    base["streak"] = streak
 
     # hoạt động tham gia
     regs = (
@@ -416,8 +531,8 @@ def activities(
     student_id: int = 1,
     db: Session = Depends(get_db),
 ):
-    """Danh sách sân chơi theo lĩnh vực (slide 13)."""
-    query = db.query(Activity)
+    """Danh sách sân chơi theo lĩnh vực — chỉ trạng thái open (slide 13)."""
+    query = db.query(Activity).filter(Activity.status == "open")
     if field:
         query = query.filter(Activity.field == field)
     if q:
@@ -435,6 +550,7 @@ def activities(
             "description": a.description,
             "capacity": a.capacity,
             "start_date": a.start_date,
+            "status": a.status,
             "registered": a.id in my_ids,
             "slots_left": max(0, a.capacity - db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == a.id).count()),
         }

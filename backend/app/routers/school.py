@@ -1,7 +1,8 @@
-"""NHÀ TRƯỜNG — KPI tổng quan, phân tích năng lực (bản đồ & xếp hạng), báo cáo, lớp & khối."""
+"""NHÀ TRƯỜNG — KPI tổng quan, phân tích năng lực (bản đồ & xếp hạng), báo cáo, lớp & khối, cài đặt quản trị."""
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -9,18 +10,40 @@ from ..database import get_db
 from ..models import (
     Activity,
     ActivityRegistration,
+    AuthToken,
     Badge,
     ClassGroup,
     Evaluation,
+    ROLE_SCHOOL,
+    ROLE_STUDENT,
+    ROLE_TEACHER,
     Skill,
     Student,
     StudentBadge,
     StudentSkill,
     Teacher,
+    TeacherClassAssignment,
     User,
 )
 
 router = APIRouter(prefix="/school", tags=["school"])
+
+
+def _extract_token(authorization: str | None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    return authorization.removeprefix("Bearer ").strip()
+
+
+def _require_school(authorization: str | None, db: Session) -> User:
+    token = _extract_token(authorization)
+    row = db.query(AuthToken, User).join(User, User.id == AuthToken.user_id).filter(AuthToken.token == token).first()
+    if not row:
+        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
+    _auth_token, user = row
+    if user.role != ROLE_SCHOOL:
+        raise HTTPException(403, "Chỉ nhà trường mới được truy cập")
+    return user
 
 
 def _pct_delta(curr: int, prev: int) -> str:
@@ -374,3 +397,192 @@ def classes(db: Session = Depends(get_db)):
         "classes": class_list,
         "top_classes": top_classes,
     }
+
+
+# =========================== ENDPOINTS MỚI — CÀI ĐẶT NHÀ TRƯỜNG ===========================
+
+@router.get("/teachers")
+def list_teachers(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách giáo viên: id, full_name, subject, is_homeroom."""
+    _require_school(authorization, db)
+    teachers = db.query(Teacher).all()
+    return [
+        {
+            "id": t.id,
+            "full_name": t.user.full_name if t.user else "—",
+            "subject": t.subject,
+            "is_homeroom": t.is_homeroom,
+        }
+        for t in teachers
+    ]
+
+
+@router.get("/class-groups")
+def list_class_groups(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách lớp học (ClassGroup thật): id, name, grade, homeroom_teacher_id, homeroom_teacher_name, student_count."""
+    _require_school(authorization, db)
+    class_groups = db.query(ClassGroup).all()
+    result = []
+    for cg in class_groups:
+        student_count = db.query(Student).filter(Student.class_name == cg.name, Student.grade == cg.grade).count()
+        homeroom_name = "—"
+        if cg.homeroom_teacher_id:
+            t = db.query(Teacher).filter(Teacher.id == cg.homeroom_teacher_id).first()
+            if t and t.user:
+                homeroom_name = t.user.full_name
+        result.append(
+            {
+                "id": cg.id,
+                "name": cg.name,
+                "grade": cg.grade,
+                "homeroom_teacher_id": cg.homeroom_teacher_id,
+                "homeroom_teacher_name": homeroom_name,
+                "student_count": student_count,
+            }
+        )
+    return result
+
+
+@router.post("/class-groups")
+def create_class_group(
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Tạo lớp học mới: {name, grade, homeroom_teacher_id?}. Trùng tên → 409."""
+    _require_school(authorization, db)
+    name = (payload.get("name") or "").strip()
+    grade = payload.get("grade")
+    homeroom_teacher_id = payload.get("homeroom_teacher_id")
+
+    if not name:
+        raise HTTPException(400, "Tên lớp không được để trống")
+    if grade is None:
+        raise HTTPException(400, "Khối không được để trống")
+    if not isinstance(grade, int) or grade < 1 or grade > 12:
+        raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+
+    # Check trùng tên lớp (unique theo name)
+    existing = db.query(ClassGroup).filter(ClassGroup.name == name).first()
+    if existing:
+        raise HTTPException(409, f"Lớp '{name}' đã tồn tại")
+
+    cg = ClassGroup(name=name, grade=grade, homeroom_teacher_id=homeroom_teacher_id)
+    db.add(cg)
+    db.flush()
+
+    # Tạo TeacherClassAssignment nếu có GVCN
+    if homeroom_teacher_id:
+        tca = TeacherClassAssignment(teacher_id=homeroom_teacher_id, class_group_id=cg.id)
+        db.add(tca)
+
+    db.commit()
+    return {"id": cg.id, "name": cg.name, "grade": cg.grade, "homeroom_teacher_id": cg.homeroom_teacher_id}
+
+
+@router.put("/class-groups/{class_id}")
+def update_class_group(
+    class_id: int,
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Cập nhật lớp: {name?, grade?, homeroom_teacher_id?}.
+    - Đổi tên/khối → đồng bộ mọi Student có class_name == tên cũ (set class_name + grade mới)
+    - Đổi GVCN → cập nhật ClassGroup.homeroom_teacher_id + tạo/cập nhật TeacherClassAssignment
+    """
+    _require_school(authorization, db)
+
+    cg = db.query(ClassGroup).filter(ClassGroup.id == class_id).first()
+    if not cg:
+        raise HTTPException(404, "Lớp không tồn tại")
+
+    old_name = cg.name
+    old_grade = cg.grade
+    new_name = (payload.get("name") or "").strip() if "name" in payload else old_name
+    new_grade = payload.get("grade") if "grade" in payload else old_grade
+    new_homeroom_teacher_id = payload.get("homeroom_teacher_id") if "homeroom_teacher_id" in payload else cg.homeroom_teacher_id
+
+    if not new_name:
+        raise HTTPException(400, "Tên lớp không được để trống")
+    if new_grade is not None and (not isinstance(new_grade, int) or new_grade < 1 or new_grade > 12):
+        raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+
+    # Check trùng tên (nếu đổi tên)
+    if new_name != old_name:
+        existing = db.query(ClassGroup).filter(ClassGroup.name == new_name).first()
+        if existing:
+            raise HTTPException(409, f"Lớp '{new_name}' đã tồn tại")
+
+    # Đồng bộ Student nếu đổi tên hoặc khối
+    if new_name != old_name or new_grade != old_grade:
+        students = db.query(Student).filter(Student.class_name == old_name, Student.grade == old_grade).all()
+        for s in students:
+            s.class_name = new_name
+            s.grade = new_grade
+
+    # Cập nhật ClassGroup
+    cg.name = new_name
+    cg.grade = new_grade
+    cg.homeroom_teacher_id = new_homeroom_teacher_id
+
+    # Cập nhật TeacherClassAssignment
+    # Xoá assignment cũ của lớp này
+    db.query(TeacherClassAssignment).filter(TeacherClassAssignment.class_group_id == cg.id).delete()
+    # Tạo mới nếu có GVCN
+    if new_homeroom_teacher_id:
+        tca = TeacherClassAssignment(teacher_id=new_homeroom_teacher_id, class_group_id=cg.id)
+        db.add(tca)
+
+    db.commit()
+    return {"id": cg.id, "name": cg.name, "grade": cg.grade, "homeroom_teacher_id": cg.homeroom_teacher_id}
+
+
+@router.delete("/class-groups/{class_id}")
+def delete_class_group(
+    class_id: int,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Xoá lớp: còn học sinh → 409; không còn → xoá lớp + TeacherClassAssignment liên quan."""
+    _require_school(authorization, db)
+
+    cg = db.query(ClassGroup).filter(ClassGroup.id == class_id).first()
+    if not cg:
+        raise HTTPException(404, "Lớp không tồn tại")
+
+    # Kiểm tra còn học sinh không
+    student_count = db.query(Student).filter(Student.class_name == cg.name, Student.grade == cg.grade).count()
+    if student_count > 0:
+        raise HTTPException(409, f"Lớp còn {student_count} học sinh, không thể xoá")
+
+    # Xoá TeacherClassAssignment liên quan
+    db.query(TeacherClassAssignment).filter(TeacherClassAssignment.class_group_id == cg.id).delete()
+
+    # Xoá ClassGroup
+    db.delete(cg)
+    db.commit()
+    return {"ok": True}
+
+
+@router.put("/teachers/{teacher_id}/homeroom")
+def toggle_teacher_homeroom(
+    teacher_id: int,
+    payload: dict,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Bật/tắt cờ chủ nhiệm: {is_homeroom: boolean}."""
+    _require_school(authorization, db)
+
+    teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(404, "Giáo viên không tồn tại")
+
+    is_homeroom = payload.get("is_homeroom")
+    if is_homeroom is None or not isinstance(is_homeroom, bool):
+        raise HTTPException(400, "is_homeroom phải là boolean")
+
+    teacher.is_homeroom = is_homeroom
+    db.commit()
+    return {"id": teacher.id, "is_homeroom": teacher.is_homeroom}

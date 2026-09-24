@@ -189,7 +189,6 @@ export default function Layout() {
   const { pathname } = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
   const section = pathname.split("/")[1] || "student";
@@ -225,7 +224,6 @@ export default function Layout() {
     function onResize() {
       if (window.innerWidth >= 1024) {
         setDrawerOpen(false);
-        setMobileMenuOpen(false);
         setRoleSwitcherOpen(false);
       }
     }
@@ -247,7 +245,6 @@ export default function Layout() {
       navigate(target.items[0]?.to || `/${key}`);
       setRoleSwitcherOpen(false);
       setDrawerOpen(false);
-      setMobileMenuOpen(false);
     }
   };
 
@@ -315,34 +312,36 @@ export default function Layout() {
                 role="menu"
                 aria-label="Chuyển cổng"
               >
-                {PORTALS.map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => switchPortal(p.key)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors ${
-                      p.key === portal.key
-                        ? "text-white"
-                        : "text-ink hover:bg-canvas-soft"
-                    }`}
-                    style={{
-                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
-                    }}
-                    role="menuitem"
-                  >
-                    <p.icon size={16} strokeWidth={2.2} />
-                    <span className="truncate">{p.label}</span>
-                    {p.key === portal.key && (
-                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
-                        Cổng đang hoạt động
-                      </span>
-                    )}
-                    {p.key === user?.role && p.key !== portal.key && (
-                      <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                        Trải nghiệm cổng
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {PORTALS.map((p) => {
+                  const isOwnPortal = p.key === user?.role;
+                  const isActivePortal = p.key === portal.key;
+                  return (
+                    <button
+                      key={p.key}
+                      onClick={() => switchPortal(p.key)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors ${
+                        isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
+                      }`}
+                      style={{
+                        backgroundColor: isActivePortal ? p.accent : "transparent",
+                      }}
+                      role="menuitem"
+                    >
+                      <p.icon size={16} strokeWidth={2.2} />
+                      <span className="truncate">{p.label}</span>
+                      {isOwnPortal && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                          Cổng đang hoạt động
+                        </span>
+                      )}
+                      {!isOwnPortal && isActivePortal && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          Đang trải nghiệm
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -466,115 +465,41 @@ export default function Layout() {
                   role="menu"
                   aria-label="Chuyển cổng"
                 >
-                  {PORTALS.map((p) => (
-                    <button
-                      key={p.key}
-                      onClick={() => switchPortal(p.key)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                        p.key === portal.key
-                          ? "text-white"
-                          : "text-ink hover:bg-canvas-soft"
-                      }`}
-                      style={{
-                        backgroundColor: p.key === portal.key ? p.accent : "transparent",
-                      }}
-                      role="menuitem"
-                    >
-                      <p.icon size={16} strokeWidth={2.2} />
-                      <span className="truncate">{p.label}</span>
-                      {p.key === portal.key && (
-                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
-                          Cổng đang hoạt động
-                        </span>
-                      )}
-                      {p.key === user?.role && p.key !== portal.key && (
-                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                          Trải nghiệm cổng
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                  {PORTALS.map((p) => {
+                    const isOwnPortal = p.key === user?.role;
+                    const isActivePortal = p.key === portal.key;
+                    return (
+                      <button
+                        key={p.key}
+                        onClick={() => switchPortal(p.key)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                          isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
+                        }`}
+                        style={{
+                          backgroundColor: isActivePortal ? p.accent : "transparent",
+                        }}
+                        role="menuitem"
+                      >
+                        <p.icon size={16} strokeWidth={2.2} />
+                        <span className="truncate">{p.label}</span>
+                        {isOwnPortal && (
+                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                            Cổng đang hoạt động
+                          </span>
+                        )}
+                        {!isOwnPortal && isActivePortal && (
+                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                            Đang trải nghiệm
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
         </header>
-
-        {/* Mobile quick-nav dropdown */}
-        <div
-          className={`lg:hidden overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-            mobileMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="mx-4 my-2 rounded-2xl border border-line bg-surface/95 p-3 shadow-[0_8px_30px_rgba(51,50,77,0.08)] backdrop-blur-xl">
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-muted mb-2 px-1">
-              Điều hướng nhanh
-            </div>
-            {/* Home link - Mobile quick-nav dropdown */}
-            <NavLink
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md text-ink hover:bg-canvas-soft"
-            >
-              <Home size={14} className="shrink-0" />
-              <span className="min-w-0 line-clamp-2">Về trang chủ</span>
-            </NavLink>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {activePortal.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                      isActive ? "text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)]" : "text-ink hover:bg-canvas-soft"
-                    }`
-                  }
-                  style={({ isActive }) => (isActive ? { background: activePortal.nav } : undefined)}
-                >
-                  <item.icon size={14} className="shrink-0" />
-                  <span className="min-w-0 line-clamp-2 text-center leading-tight">{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-            {/* Role switcher - Mobile quick-nav dropdown */}
-            <div className="mt-3 pt-3 border-t border-line">
-              <div className="text-[10px] font-extrabold uppercase tracking-widest text-muted mb-2 px-1">
-                Chuyển cổng
-              </div>
-              <div className="space-y-1.5">
-                {PORTALS.map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => switchPortal(p.key)}
-                    className={`w-full flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                      p.key === portal.key
-                        ? "text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                        : "text-ink hover:bg-canvas-soft"
-                    }`}
-                    style={{
-                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
-                    }}
-                    role="menuitem"
-                  >
-                    <p.icon size={14} className="shrink-0" />
-                    <span className="min-w-0 line-clamp-2 text-center leading-tight flex-1">{p.label}</span>
-                    {p.key === portal.key && (
-                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
-                        Cổng đang hoạt động
-                      </span>
-                    )}
-                    {p.key === user?.role && p.key !== portal.key && (
-                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                        Trải nghiệm cổng
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Desktop main padding */}
         <div className="relative min-w-0 p-5 sm:p-6 lg:p-8 pb-24 lg:pb-8">
@@ -655,34 +580,36 @@ export default function Layout() {
                 role="menu"
                 aria-label="Chuyển cổng"
               >
-                {PORTALS.map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => switchPortal(p.key)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold transition-colors ${
-                      p.key === portal.key
-                        ? "text-white"
-                        : "text-ink hover:bg-canvas-soft"
-                    }`}
-                    style={{
-                      backgroundColor: p.key === portal.key ? p.accent : "transparent",
-                    }}
-                    role="menuitem"
-                  >
-                    <p.icon size={14} strokeWidth={2.2} />
-                    <span className="truncate">{p.label}</span>
-                    {p.key === portal.key && (
-                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
-                        Cổng đang hoạt động
-                      </span>
-                    )}
-                    {p.key === user?.role && p.key !== portal.key && (
-                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                        Trải nghiệm cổng
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {PORTALS.map((p) => {
+                  const isOwnPortal = p.key === user?.role;
+                  const isActivePortal = p.key === portal.key;
+                  return (
+                    <button
+                      key={p.key}
+                      onClick={() => switchPortal(p.key)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold transition-colors ${
+                        isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
+                      }`}
+                      style={{
+                        backgroundColor: isActivePortal ? p.accent : "transparent",
+                      }}
+                      role="menuitem"
+                    >
+                      <p.icon size={14} strokeWidth={2.2} />
+                      <span className="truncate">{p.label}</span>
+                      {isOwnPortal && (
+                        <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/20">
+                          Cổng đang hoạt động
+                        </span>
+                      )}
+                      {!isOwnPortal && isActivePortal && (
+                        <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          Đang trải nghiệm
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

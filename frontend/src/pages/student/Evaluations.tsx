@@ -8,6 +8,7 @@ interface Evaluation {
   id: number;
   activity: string;
   reviewer: string;
+  reviewer_role?: "coach" | "teacher";
   criteria: { name: string; score: number; max: number }[];
   total: number;
   xep_loai: string;
@@ -73,7 +74,13 @@ export default function Evaluations() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-ink">{ev.activity}</h3>
-                    <p className="text-sm text-muted">{ev.reviewer} · {ev.date}</p>
+                    <p className="text-sm text-muted flex items-center gap-1.5 flex-wrap">
+                      <span>{ev.reviewer}</span>
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-canvas-soft text-muted font-semibold">
+                        {ev.reviewer_role === "coach" ? "Huấn luyện viên" : "Giáo viên"}
+                      </span>
+                      <span>· {ev.date}</span>
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

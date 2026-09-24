@@ -1,4 +1,4 @@
-"""HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI, chứng chỉ."""
+"""HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI, chứng chỉ, gợi ý nhóm."""
 import json
 from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +14,7 @@ from ..models import (
     Badge,
     Certificate,
     CheckIn,
+    Coach,
     Evaluation,
     Project,
     ProjectMember,
@@ -24,10 +25,232 @@ from ..models import (
     TalentAssessment,
     TestQuestion,
     User,
+    StudyGroup,
+    StudyGroupMember,
 )
 from ..schemas import ComputeIn, ComputeOut, QuestionOut
 
 router = APIRouter(prefix="/student", tags=["student"])
+
+# ============================================================
+# GROUP SUGGESTIONS — hằng số & thuật toán gợi ý nhóm
+# ============================================================
+
+FIELD_LABELS_VN: dict[str, str] = {
+    "nghe_thuat": "Nghệ thuật",
+    "the_thao": "Thể thao",
+    "kinh_doanh": "Kinh doanh",
+    "ky_thuat": "Kỹ thuật",
+    "hoc_thuat": "Học thuật",
+    "sang_tao": "Sáng tạo",
+}
+
+# Danh mục nhóm mẫu theo field (2-3 nhóm mỗi field)
+GROUP_SUGGESTIONS: dict[str, list[str]] = {
+    "ky_thuat": ["Maker Space", "IoT Lab", "Drone Lab"],
+    "nghe_thuat": ["CLB Âm nhạc", "Đoàn Diễn sinh viên"],
+    "kinh_doanh": ["Startup Challenge", "Business Fair"],
+    "hoc_thuat": ["CLB Robotics", "Hội thảo khoa học"],
+    "the_thao": ["Đội bóng", "CLB chạy bộ"],
+    "sang_tao": ["CLB Sáng tạo", "Đội dự án ý tưởng"],
+}
+
+def _extract_student_signals(db: Session, s: Student) -> dict:
+    """Trích xuất tín hiệu của học sinh để gợi ý nhóm."""
+    signals = {
+        "top_skills": [],
+        "poles": [],
+        "field": None,
+        "hours": s.experience_hours or 0.0,
+    }
+
+    # 1. StudentSkill - lấy top skills theo level
+    student_skills = (
+        db.query(Skill, StudentSkill.level)
+        .join(StudentSkill, StudentSkill.skill_id == Skill.id)
+        .filter(StudentSkill.student_id == s.id, Skill.is_active.is_(True))
+        .order_by(StudentSkill.level.desc())
+        .limit(5)
+        .all()
+    )
+    if student_skills:
+        signals["top_skills"] = [sk.name for sk, lvl in student_skills if lvl > 0]
+
+    # 2. TalentAssessment - parse result_json lấy poles/holland
+    assessments = (
+        db.query(TalentAssessment)
+        .filter(TalentAssessment.student_id == s.id)
+        .order_by(TalentAssessment.id.desc())
+        .all()
+    )
+    for a in assessments:
+        try:
+            result = json.loads(a.result_json)
+            if a.test_type == "holland" and "holland" in result:
+                signals["field"] = result["holland"]
+            if "poles" in result:
+                for pole in result["poles"]:
+                    if pole not in signals["poles"]:
+                        signals["poles"].append(pole)
+        except Exception:
+            pass  # dữ liệu cũ có thể không parse được
+
+    # 3. Student.interests - so khớp không phân biệt hoa thường
+    if s.interests:
+        interests_lower = s.interests.lower()
+        # Mapping interests -> field
+        interest_field_map = {
+            "lập trình": "ky_thuat",
+            "python": "ky_thuat",
+            "javascript": "ky_thuat",
+            "iot": "ky_thuat",
+            "drone": "ky_thuat",
+            "robot": "ky_thuat",
+            "âm nhạc": "nghe_thuat",
+            "vẽ": "nghe_thuat",
+            "diễn": "nghe_thuat",
+            "startup": "kinh_doanh",
+            "kinh doanh": "kinh_doanh",
+            "toán": "hoc_thuat",
+            "khoa học": "hoc_thuat",
+            "bóng": "the_thao",
+            "chạy": "the_thao",
+            "sáng tạo": "sang_tao",
+            "ý tưởng": "sang_tao",
+        }
+        for kw, fld in interest_field_map.items():
+            if kw in interests_lower and signals["field"] != fld:
+                signals["field"] = fld
+
+    return signals
+
+
+def _calculate_match_pct(signals: dict, group_name: str, group_field: str) -> tuple[int, str]:
+    """Tính match_pct và lý do why từ tín hiệu học sinh và nhóm."""
+    score = 0
+    reasons = []
+
+    # 1. Khớp field chính (+40 điểm)
+    if signals["field"] == group_field:
+        score += 40
+        reasons.append(f"quan tâm {FIELD_LABELS_VN.get(group_field, group_field)}")
+
+    # 2. Khớp poles (từ Holland/MI) (+20 điểm)
+    if group_field in signals["poles"]:
+        score += 20
+        reasons.append(f"xu hướng {FIELD_LABELS_VN.get(group_field, group_field)}")
+
+    # 3. Khớp top_skills (+20 điểm)
+    skill_field_map = {
+        "Lập trình": "ky_thuat",
+        "Python": "ky_thuat",
+        "IoT": "ky_thuat",
+        "Drone": "ky_thuat",
+        "Robot": "ky_thuat",
+        "Âm nhạc": "nghe_thuat",
+        "Vẽ": "nghe_thuat",
+        "Diễn": "nghe_thuat",
+        "Startup": "kinh_doanh",
+        "Kinh doanh": "kinh_doanh",
+        "Toán": "hoc_thuat",
+        "Khoa học": "hoc_thuat",
+        "Bóng đá": "the_thao",
+        "Chạy bộ": "the_thao",
+        "Sáng tạo": "sang_tao",
+        "Ý tưởng": "sang_tao",
+    }
+    for skill in signals["top_skills"]:
+        if skill in skill_field_map and skill_field_map[skill] == group_field:
+            score += 20
+            reasons.append(f"mạnh {skill}")
+
+    # 4. Experience hours (+10 điểm nếu > 10h)
+    if signals["hours"] >= 10:
+        score += 10
+        reasons.append(f"đã tích lũy {signals['hours']:.0f}h trải nghiệm")
+
+    # Giới hạn 0-100
+    match_pct = min(100, max(0, score))
+
+    # Tạo lý do why
+    why = "Bạn phù hợp với nhóm này"
+    if reasons:
+        why = "Bạn " + ", ".join(reasons[:3]) + ("..." if len(reasons) > 3 else "")
+
+    return match_pct, why
+
+
+@router.get("/recommendations")
+def recommendations(student_id: int = 1, db: Session = Depends(get_db)):
+    """Gợi ý nhóm học tập cho học sinh (slide 5)."""
+    s = _get_student(db, student_id)
+    signals = _extract_student_signals(db, s)
+
+    # Lấy danh sách nhóm thực tế từ DB
+    real_groups = db.query(StudyGroup).all()
+    real_group_names = {g.name for g in real_groups}
+    real_group_members = {
+        g.name: db.query(StudyGroupMember).filter(StudyGroupMember.group_id == g.id).count()
+        for g in real_groups
+    }
+    real_group_field = {g.name: g.field for g in real_groups}
+
+    # Lấy nhóm đã tham gia của học sinh
+    my_group_ids = {
+        m.group_id
+        for m in db.query(StudyGroupMember).filter(StudyGroupMember.student_id == s.id).all()
+    }
+    my_group_names = {g.name for g in real_groups if g.id in my_group_ids}
+
+    # Tạo danh sách gợi ý từ GROUP_SUGGESTIONS
+    suggestions = []
+    for field, group_names in GROUP_SUGGESTIONS.items():
+        for name in group_names:
+            match_pct, why = _calculate_match_pct(signals, name, field)
+            if match_pct < 30:
+                continue
+
+            existing = name in real_group_names
+            members = real_group_members.get(name, 0) if existing else 0
+            joined = name in my_group_names
+
+            suggestions.append({
+                "name": name,
+                "field": field,
+                "why": why,
+                "match_pct": match_pct,
+                "members": members,
+                "existing": existing,
+                "joined": joined,
+            })
+
+    # Sắp xếp giảm dần match_pct, lấy tối đa 6
+    suggestions.sort(key=lambda x: x["match_pct"], reverse=True)
+    suggestions = suggestions[:6]
+
+    # Tạo my_groups nếu có
+    my_groups = []
+    for name in my_group_names:
+        g = next((g for g in real_groups if g.name == name), None)
+        if g:
+            my_groups.append({
+                "name": g.name,
+                "field": g.field,
+                "members": db.query(StudyGroupMember).filter(StudyGroupMember.group_id == g.id).count(),
+            })
+
+    based_on = {
+        "top_skills": signals["top_skills"],
+        "poles": signals["poles"],
+        "field": signals["field"],
+        "hours": signals["hours"],
+    }
+
+    return {
+        "based_on": based_on,
+        "suggestions": suggestions,
+        "my_groups": my_groups,
+    }
 
 
 class CertificateCreate(BaseModel):
@@ -506,11 +729,16 @@ def evaluations(student_id: int = 1, db: Session = Depends(get_db)):
         teacher = db.query(User).filter(User.id == e.teacher_id).first()
         activity = db.query(Activity).filter(Activity.id == e.activity_id).first()
         total = round(e.chuyen_mon + e.sang_tao + e.lam_viec_nhom + e.ky_luat, 1)
+        # Xác định role của người chấm (teacher/coach)
+        reviewer_role = "teacher"
+        if teacher and teacher.role == "coach":
+            reviewer_role = "coach"
         out.append(
             {
                 "id": e.id,
                 "activity": activity.title if activity else f"Hoạt động #{e.activity_id}",
                 "reviewer": teacher.full_name if teacher else f"Giáo viên #{e.teacher_id}",
+                "reviewer_role": reviewer_role,
                 "criteria": [
                     {"name": "Chuyên môn", "score": e.chuyen_mon, "max": 40},
                     {"name": "Sáng tạo", "score": e.sang_tao, "max": 20},

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Award, BookOpen, Briefcase, Star, Edit, Trash2, Plus, CheckCircle, AlertCircle } from "lucide-react";
+import { Award, BookOpen, Briefcase, Star, Edit, Trash2, Plus, CheckCircle, AlertCircle, Compass } from "lucide-react";
 import { Link } from "react-router-dom";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
@@ -27,6 +27,27 @@ interface Certificate {
   issued_at: string | null;
 }
 
+interface GroupRecommendation {
+  name: string;
+  field: string;
+  why: string;
+  match_pct: number;
+  members: number;
+  existing: boolean;
+  joined: boolean;
+}
+
+interface RecommendationsResponse {
+  based_on: {
+    top_skills: string[];
+    poles: string[];
+    field: string | null;
+    hours: number;
+  };
+  suggestions: GroupRecommendation[];
+  my_groups: { name: string; field: string; members: number }[];
+}
+
 interface Toast {
   id: number;
   type: "success" | "error";
@@ -35,9 +56,20 @@ interface Toast {
 
 const SKILL_BARS = ["skillbar-a", "skillbar-b", "skillbar-c", "skillbar-d"];
 
+const FIELD_LABELS: Record<string, string> = {
+  ky_thuat: "Kỹ thuật",
+  nghe_thuat: "Nghệ thuật",
+  kinh_doanh: "Kinh doanh",
+  the_thao: "Thể thao",
+  hoc_thuat: "Học thuật",
+  sang_tao: "Sáng tạo",
+};
+
 export default function Profile() {
   const [data, setData] = useState<Profile | null>(null);
   const [error, setError] = useState("");
+  const [recs, setRecs] = useState<RecommendationsResponse | null>(null);
+  const [recsError, setRecsError] = useState("");
   const [showCertForm, setShowCertForm] = useState(false);
   const [editingCert, setEditingCert] = useState<Certificate | null>(null);
   const [certForm, setCertForm] = useState({ title: "", issuer: "", issued_at: "" });
@@ -57,6 +89,10 @@ export default function Profile() {
 
   useEffect(() => {
     loadProfile();
+    // Gợi ý nhóm là dữ liệu phụ: lỗi riêng, không làm hỏng cả trang Hồ sơ.
+    get<RecommendationsResponse>("/student/recommendations")
+      .then(setRecs)
+      .catch((e) => setRecsError(String((e as Error).message || e)));
   }, [loadProfile]);
 
   const validateCertForm = () => {
@@ -365,6 +401,81 @@ export default function Profile() {
             </ul>
           )}
         </div>
+        </Card>
+      </div>
+
+      {/* Gợi ý nhóm theo năng khiếu (slide 5) */}
+      <div className="mt-6">
+        <Card>
+          <div className="flex items-center gap-2 mb-1">
+            <Compass size={18} className="text-emerald-500" />
+            <h2 className="font-semibold text-ink">Gợi ý nhóm cho tôi</h2>
+          </div>
+          <p className="text-xs text-muted mb-4">
+            Dựa trên kỹ năng, kết quả test năng khiếu và sở thích của bạn.
+          </p>
+
+          {recsError ? (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2" role="status">
+              Chưa tải được gợi ý nhóm lúc này.
+            </p>
+          ) : !recs ? (
+            <p className="text-sm text-muted text-center py-6 rounded-xl border border-dashed border-line-strong bg-canvas-soft/40" role="status">
+              Đang tải gợi ý nhóm…
+            </p>
+          ) : recs.suggestions.length === 0 ? (
+            <p className="text-sm text-muted text-center py-6 rounded-xl border border-dashed border-line-strong bg-canvas-soft/40" role="status">
+              Chưa có đủ dữ liệu — hãy làm bài test năng khiếu để nhận gợi ý phù hợp.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {recs.my_groups.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {recs.my_groups.map((g) => (
+                    <span key={g.name} className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-medium">
+                      Đã tham gia: {g.name} · {g.members} thành viên
+                    </span>
+                  ))}
+                </div>
+              )}
+              {recs.suggestions.map((s) => (
+                <div key={s.name} className="rounded-xl border border-line bg-canvas-soft/40 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-ink text-sm">{s.name}</span>
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-canvas-soft text-muted font-semibold">
+                          {FIELD_LABELS[s.field] || s.field}
+                        </span>
+                        {s.joined && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+                            Đã tham gia
+                          </span>
+                        )}
+                        {s.existing && !s.joined && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-100 font-semibold">
+                            Nhóm đã có · {s.members} thành viên
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted">{s.why}</p>
+                    </div>
+                    <span className="text-sm font-extrabold text-ink tabular-nums shrink-0">{s.match_pct}%</span>
+                  </div>
+                  <div
+                    className="h-1.5 mt-2 rounded-full bg-canvas-soft overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={s.match_pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`Mức phù hợp ${s.name}: ${s.match_pct}%`}
+                  >
+                    <div className="h-full rounded-full hero-gradient transition-all duration-700 ease-out" style={{ width: `${Math.max(2, Math.min(100, s.match_pct))}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 

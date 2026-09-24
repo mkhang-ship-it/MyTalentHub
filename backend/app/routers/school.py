@@ -403,15 +403,26 @@ def classes(db: Session = Depends(get_db)):
 
 @router.get("/teachers")
 def list_teachers(authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Danh sách giáo viên: id, full_name, subject, is_homeroom."""
+    """Danh sách giáo viên: id, full_name, subject, is_homeroom (suy ra từ phân công thực tế)."""
     _require_school(authorization, db)
+    # Nguồn chân lý duy nhất: ClassGroup.homeroom_teacher_id + TeacherClassAssignment
+    assigned_teacher_ids = {
+        r[0] for r in db.query(ClassGroup.homeroom_teacher_id)
+        .filter(ClassGroup.homeroom_teacher_id.isnot(None)).all()
+    }
+    # Cũng check TeacherClassAssignment để chắc chắn
+    assigned_from_tca = {
+        r[0] for r in db.query(TeacherClassAssignment.teacher_id).distinct().all()
+    }
+    all_assigned_ids = assigned_teacher_ids | assigned_from_tca
+
     teachers = db.query(Teacher).all()
     return [
         {
             "id": t.id,
             "full_name": t.user.full_name if t.user else "—",
             "subject": t.subject,
-            "is_homeroom": t.is_homeroom,
+            "is_homeroom": t.id in all_assigned_ids,
         }
         for t in teachers
     ]
@@ -449,7 +460,7 @@ def create_class_group(
     authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Tạo lớp học mới: {name, grade, homeroom_teacher_id?}. Trùng tên → 409."""
+    """Tạo lớp học mới: {name, grade, homeroom_teacher_id?}. Trùng tên → 409. GV không tồn tại → 400."""
     _require_school(authorization, db)
     name = (payload.get("name") or "").strip()
     grade = payload.get("grade")
@@ -461,6 +472,12 @@ def create_class_group(
         raise HTTPException(400, "Khối không được để trống")
     if not isinstance(grade, int) or grade < 1 or grade > 12:
         raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+
+    # Validate homeroom_teacher_id nếu có
+    if homeroom_teacher_id is not None:
+        teacher = db.query(Teacher).filter(Teacher.id == homeroom_teacher_id).first()
+        if not teacher:
+            raise HTTPException(400, "Giáo viên chủ nhiệm không tồn tại")
 
     # Check trùng tên lớp (unique theo name)
     existing = db.query(ClassGroup).filter(ClassGroup.name == name).first()
@@ -490,6 +507,7 @@ def update_class_group(
     """Cập nhật lớp: {name?, grade?, homeroom_teacher_id?}.
     - Đổi tên/khối → đồng bộ mọi Student có class_name == tên cũ (set class_name + grade mới)
     - Đổi GVCN → cập nhật ClassGroup.homeroom_teacher_id + tạo/cập nhật TeacherClassAssignment
+    - homeroom_teacher_id không tồn tại → 400
     """
     _require_school(authorization, db)
 
@@ -507,6 +525,12 @@ def update_class_group(
         raise HTTPException(400, "Tên lớp không được để trống")
     if new_grade is not None and (not isinstance(new_grade, int) or new_grade < 1 or new_grade > 12):
         raise HTTPException(400, "Khối phải là số nguyên từ 1 đến 12")
+
+    # Validate homeroom_teacher_id nếu có (không None)
+    if new_homeroom_teacher_id is not None:
+        teacher = db.query(Teacher).filter(Teacher.id == new_homeroom_teacher_id).first()
+        if not teacher:
+            raise HTTPException(400, "Giáo viên chủ nhiệm không tồn tại")
 
     # Check trùng tên (nếu đổi tên)
     if new_name != old_name:
@@ -563,26 +587,3 @@ def delete_class_group(
     db.delete(cg)
     db.commit()
     return {"ok": True}
-
-
-@router.put("/teachers/{teacher_id}/homeroom")
-def toggle_teacher_homeroom(
-    teacher_id: int,
-    payload: dict,
-    authorization: str = Header(default=None),
-    db: Session = Depends(get_db),
-):
-    """Bật/tắt cờ chủ nhiệm: {is_homeroom: boolean}."""
-    _require_school(authorization, db)
-
-    teacher = db.query(Teacher).filter(Teacher.id == teacher_id).first()
-    if not teacher:
-        raise HTTPException(404, "Giáo viên không tồn tại")
-
-    is_homeroom = payload.get("is_homeroom")
-    if is_homeroom is None or not isinstance(is_homeroom, bool):
-        raise HTTPException(400, "is_homeroom phải là boolean")
-
-    teacher.is_homeroom = is_homeroom
-    db.commit()
-    return {"id": teacher.id, "is_homeroom": teacher.is_homeroom}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit, Trash2, ToggleLeft, ToggleRight, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle, CheckCircle, LogIn } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, Badge, PageHeader } from "../../components/ui";
 
@@ -29,6 +29,7 @@ export default function Settings() {
   const [teachers, setTeachers] = useState<Teacher[] | null>(null);
   const [classGroups, setClassGroups] = useState<ClassGroup[] | null>(null);
   const [error, setError] = useState("");
+  const [authError, setAuthError] = useState<{ status: number; message: string } | null>(null);
   const [showClassForm, setShowClassForm] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassGroup | null>(null);
   const [classForm, setClassForm] = useState({ name: "", grade: 10, homeroom_teacher_id: "" });
@@ -55,11 +56,41 @@ export default function Settings() {
   };
 
   const loadTeachers = useCallback(() => {
-    get<Teacher[]>("/school/teachers").then(setTeachers).catch((e) => setError(String((e as Error).message || e)));
+    get<Teacher[]>("/school/teachers")
+      .then((data) => {
+        setTeachers(data);
+        setAuthError(null);
+      })
+      .catch((e) => {
+        const msg = String((e as Error).message || e);
+        if (msg.includes("403")) {
+          setAuthError({ status: 403, message: "Bạn đang xem cổng Nhà trường ở chế độ trải nghiệm. Đăng nhập bằng tài khoản nhà trường để dùng tính năng này." });
+        } else if (msg.includes("401")) {
+          setAuthError({ status: 401, message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại." });
+        } else {
+          setError(msg);
+        }
+        setTeachers([]);
+      });
   }, []);
 
   const loadClassGroups = useCallback(() => {
-    get<ClassGroup[]>("/school/class-groups").then(setClassGroups).catch((e) => setError(String((e as Error).message || e)));
+    get<ClassGroup[]>("/school/class-groups")
+      .then((data) => {
+        setClassGroups(data);
+        setAuthError(null);
+      })
+      .catch((e) => {
+        const msg = String((e as Error).message || e);
+        if (msg.includes("403")) {
+          setAuthError({ status: 403, message: "Bạn đang xem cổng Nhà trường ở chế độ trải nghiệm. Đăng nhập bằng tài khoản nhà trường để dùng tính năng này." });
+        } else if (msg.includes("401")) {
+          setAuthError({ status: 401, message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại." });
+        } else {
+          setError(msg);
+        }
+        setClassGroups([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -138,20 +169,48 @@ export default function Settings() {
     }
   };
 
-  const toggleTeacherHomeroom = async (teacher: Teacher) => {
-    setError("");
-    try {
-      await put(`/school/teachers/${teacher.id}/homeroom`, { is_homeroom: !teacher.is_homeroom });
-      loadTeachers();
-      loadClassGroups(); // Refresh để cập nhật GVCN trên bảng lớp
-      showToast("success", `Đã ${!teacher.is_homeroom ? "bật" : "tắt"} chủ nhiệm cho ${teacher.full_name}`);
-    } catch (e) {
-      showToast("error", String((e as Error).message || e));
-    }
-  };
-
   if (error) return <ErrorBox message={error} />;
+
+  // 401/403 kèm dữ liệu rỗng hoặc chưa tải được: chỉ hiện thông báo + nút đăng nhập,
+  // không render bảng rỗng (tránh gợi ý sai "chưa có dữ liệu" và nút bấm chắc chắn lỗi).
+  if (authError && teachers?.length === 0 && classGroups?.length === 0) {
+    return (
+      <div>
+        <PageHeader
+          title="Cài đặt nhà trường"
+          subtitle="Quản lý giáo viên, lớp học và phân công GVCN"
+        />
+        <div
+          className="p-4 rounded-xl bg-amber-50 border border-amber-200"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="font-medium text-amber-800">{authError.message}</p>
+              <button
+                type="button"
+                onClick={() => { window.location.href = "/login"; }}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-white border border-line text-ink font-semibold hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              >
+                <LogIn size={14} aria-hidden="true" /> Về trang đăng nhập
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!teachers || !classGroups) return <Loading />;
+
+  // Client-side: tính số lớp mỗi GV đang chủ nhiệm (từ classGroups đã tải)
+  const homeroomCounts = new Map<number, number>();
+  classGroups.forEach((cg) => {
+    if (cg.homeroom_teacher_id) {
+      homeroomCounts.set(cg.homeroom_teacher_id, (homeroomCounts.get(cg.homeroom_teacher_id) || 0) + 1);
+    }
+  });
 
   return (
     <div>
@@ -192,9 +251,41 @@ export default function Settings() {
         ))}
       </div>
 
+      {/* Auth error banner (403/401) */}
+      {authError && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200" role="alert">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="font-medium text-amber-800">{authError.message}</p>
+              <div className="mt-2 flex gap-2">
+                {authError.status === 401 && (
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = "/login"}
+                    className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-portal text-white font-semibold hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  >
+                    <LogIn size={14} aria-hidden="true" /> Đăng nhập
+                  </button>
+                )}
+                {authError.status === 403 && (
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = "/login"}
+                    className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl bg-white border border-line text-ink font-semibold hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  >
+                    <LogIn size={14} aria-hidden="true" /> Về trang đăng nhập
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Section 1: Danh sách giáo viên */}
       <section style={{ animation: "fadeUp 0.6s ease-out both" }}>
-        <PageHeader title="Danh sách giáo viên" subtitle="Quản lý và phân công Giáo viên chủ nhiệm" />
+        <PageHeader title="Danh sách giáo viên" subtitle="Phân công GVCN qua form tạo/sửa lớp bên dưới. Trạng thái Chủ nhiệm bên dưới suy ra từ phân công thực tế." />
         <Card>
           {teachers.length === 0 ? (
             <p className="text-sm text-muted text-center py-8 rounded-xl border border-dashed border-line-strong bg-canvas-soft/40" role="status">Chưa có giáo viên nào.</p>
@@ -206,39 +297,27 @@ export default function Settings() {
                     <th className="pb-3 pr-4">Tên</th>
                     <th className="pb-3 pr-4">Môn dạy</th>
                     <th className="pb-3 pr-4">Chủ nhiệm</th>
-                    <th className="pb-3 pr-4">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {teachers.map((t) => (
-                    <tr key={t.id} className="border-b border-line/50 hover:bg-canvas-soft/50 transition-colors">
-                      <td className="py-3 pr-4 font-medium text-ink">{t.full_name}</td>
-                      <td className="py-3 pr-4 text-muted">{t.subject || "—"}</td>
-                      <td className="py-3 pr-4">
-                        <Badge tone={t.is_homeroom ? "emerald" : "slate"}>
-                          {t.is_homeroom ? "Đang làm GVCN" : "Chưa làm GVCN"}
-                        </Badge>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <button
-                          type="button"
-                          onClick={() => toggleTeacherHomeroom(t)}
-                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
-                          style={{
-                            backgroundColor: t.is_homeroom ? "#fef3c7" : "#e5e7eb",
-                            color: t.is_homeroom ? "#92400e" : "#6b7280",
-                          }}
-                          aria-pressed={t.is_homeroom}
-                        >
-                          {t.is_homeroom ? (
-                            <> <ToggleRight size={14} className="inline" aria-hidden="true" /> Bỏ GVCN </>
-                          ) : (
-                            <> <ToggleLeft size={14} className="inline" aria-hidden="true" /> Làm GVCN </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {teachers.map((t) => {
+                    const classCount = homeroomCounts.get(t.id) || 0;
+                    return (
+                      <tr key={t.id} className="border-b border-line/50 hover:bg-canvas-soft/50 transition-colors">
+                        <td className="py-3 pr-4 font-medium text-ink">{t.full_name}</td>
+                        <td className="py-3 pr-4 text-muted">{t.subject || "—"}</td>
+                        <td className="py-3 pr-4">
+                          <Badge tone={t.is_homeroom ? "emerald" : "slate"}>
+                            {t.is_homeroom
+                              ? classCount > 1
+                                ? `Đang chủ nhiệm ${classCount} lớp`
+                                : "Đang chủ nhiệm 1 lớp"
+                              : "Chưa làm GVCN"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

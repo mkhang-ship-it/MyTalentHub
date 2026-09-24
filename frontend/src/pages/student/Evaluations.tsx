@@ -86,7 +86,7 @@ export default function Evaluations() {
                 {CRITERIA_ORDER.map((name) => {
                   const c = ev.criteria.find((cr) => cr.name === name);
                   if (!c) return null;
-                  const pct = Math.min(100, Math.round((c.score / c.max) * 100));
+                  const pct = c.max > 0 ? Math.min(100, Math.round((c.score / c.max) * 100)) : 0;
                   return (
                     <div key={name} className="rounded-xl border border-line bg-canvas-soft/50 p-3" role="listitem">
                       <div className="flex items-center gap-2 mb-2">

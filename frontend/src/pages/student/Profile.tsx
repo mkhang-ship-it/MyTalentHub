@@ -21,7 +21,7 @@ interface Profile {
 }
 
 interface Certificate {
-  id: number;
+  id?: number;
   title: string;
   issuer: string;
   issued_at: string | null;
@@ -100,6 +100,7 @@ export default function Profile() {
   };
 
   const handleDeleteCert = async (cert: Certificate) => {
+    if (!cert.id) return;
     if (!window.confirm(`Xoá chứng chỉ "${cert.title}"?`)) return;
     setSubmitting(true);
     try {
@@ -108,7 +109,11 @@ export default function Profile() {
       loadProfile();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message.includes("404") ? "Không tìm thấy chứng chỉ" : "Có lỗi xảy ra, vui lòng thử lại");
+      if (message.includes("404") || message.includes("422")) {
+        showToast("error", "Chứng chỉ không tồn tại hoặc đã bị xoá");
+      } else {
+        showToast("error", "Có lỗi xảy ra, vui lòng thử lại");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -338,15 +343,19 @@ export default function Profile() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => handleEditCert(c)}
-                      className="text-xs px-2 py-1 rounded-lg border border-line text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                      disabled={!c.id}
+                      className="text-xs px-2 py-1 rounded-lg border border-line text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Chỉnh sửa chứng chỉ ${c.title}`}
+                      title={c.id ? "" : "Chứng chỉ này thiếu ID, không thể sửa"}
                     >
                       <Edit size={14} aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => handleDeleteCert(c)}
-                      className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      disabled={!c.id}
+                      className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Xoá chứng chỉ ${c.title}`}
+                      title={c.id ? "" : "Chứng chỉ này thiếu ID, không thể xoá"}
                     >
                       <Trash2 size={14} aria-hidden="true" />
                     </button>

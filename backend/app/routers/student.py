@@ -109,7 +109,7 @@ def _student_payload(s: Student, db: Session) -> dict:
         ],
         "evaluation_count": len(evals),
         "certificates": [
-            {"title": c.title, "issuer": c.issuer, "issued_at": c.issued_at} for c in certs
+            {"id": c.id, "title": c.title, "issuer": c.issuer, "issued_at": c.issued_at} for c in certs
         ],
         "projects": [
             {"id": p.id, "title": p.title, "field": p.field, "status": p.status, "role": "owner"}
@@ -416,6 +416,25 @@ def get_questions(
     ]
 
 
+# Labels riêng cho DISC và MBTI (tránh trùng key "S", "I")
+DISC_LABELS = {
+    "D": "Dũng cảm - Lãnh đạo",
+    "I": "Cảm hứng - Thuyết phục",
+    "S": "Chăm sóc - Hỗ trợ",
+    "C": "Chặt chẽ - Phân tích",
+}
+MBTI_LABELS = {
+    "E": "Hướng ngoại - Năng động",
+    "I": "Nội tâm - Sáng tạo",
+    "S": "Thực hành - Cụ thể",
+    "N": "Tưởng tượng - Trừu tượng",
+    "T": "Logic - Phân tích",
+    "F": "Cảm xúc - Đồng cảm",
+    "J": "Có tổ chức - Kiên định",
+    "P": "Linh hoạt - Mở cửa",
+}
+
+
 @router.post("/assessments/compute", response_model=ComputeOut)
 def compute_assessment(payload: ComputeIn, student_id: int = 1, db: Session = Depends(get_db)):
     """Tính điểm năng khiếu từ đáp án (slide 12) — server-side."""
@@ -438,17 +457,25 @@ def compute_assessment(payload: ComputeIn, student_id: int = 1, db: Session = De
     max_total = len(questions) * 5
     pct = round(total / max_total * 100) if max_total else 0
     top_pole = max(poles, key=poles.get) if poles else "Chưa xác định"
-    label = {"I": "Nội tâm - Sáng tạo", "C": "Chặt chẽ - Phân tích", "D": "Dũng cảm - Lãnh đạo",
-             "S": "Chăm sóc - Hỗ trợ", "E": "Hướng ngoại - Năng động", "N": "Tưởng tượng - Trừu tượng",
-             "T": "Logic - Phân tích", "F": "Cảm xúc - Đồng cảm", "J": "Có tổ chức - Kiên định",
-             "P": "Linh hoạt - Mở cửa", "S": "Thực hành - Cụ thể"}.get(top_pole[:2].upper(), top_pole)
-    # Holland nhóm
-    holland_map = {"Kỹ thuật": "Doanh nhân thực hành", "Nghệ thuật": "Người sáng tạo",
-                   "Xã hội": "Người giúp đỡ", "Doanh nghiệp": "Người lãnh đạo",
-                   "Tự nhiên": "Nhà nghiên cứu", "Học thuật": "Nhà tư duy"}
+
+    # Chọn label theo test_type
+    if payload.test_type == "disc":
+        label = DISC_LABELS.get(top_pole, top_pole)
+    elif payload.test_type == "mbti":
+        label = MBTI_LABELS.get(top_pole, top_pole)
+    else:
+        # holland / mi: dùng tên pole tiếng Việt (toàn bộ chuỗi, không cắt)
+        label = top_pole
+
+    # Holland nhóm: chỉ set khi test_type == "holland"
     result = {"type": top_pole, "score": pct,
-              "poles": {k: round(v, 1) for k, v in sorted(poles.items(), key=lambda x: -x[1])},
-              "holland": holland_map.get(top_pole, top_pole)}
+              "poles": {k: round(v, 1) for k, v in sorted(poles.items(), key=lambda x: -x[1])}}
+    if payload.test_type == "holland":
+        holland_map = {"Kỹ thuật": "Doanh nhân thực hành", "Nghệ thuật": "Người sáng tạo",
+                       "Xã hội": "Người giúp đỡ", "Doanh nghiệp": "Người lãnh đạo",
+                       "Tự nhiên": "Nhà nghiên cứu", "Học thuật": "Nhà tư duy"}
+        result["holland"] = holland_map.get(top_pole, top_pole)
+
     return ComputeOut(test_type=payload.test_type, result=result,
                       label=label,
                       detail=f"Điểm {pct}/100 — Đặc điểm: {label}")

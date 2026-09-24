@@ -161,12 +161,12 @@ export default function Landing() {
         </section>
 
         {/* Role Cards — Holographic 3D */}
-        <section id="vai-tro" className="mx-auto max-w-6xl px-6 -mt-8 relative z-10">
+        <section id="vai-tro" className="mx-auto max-w-6xl px-6 -mt-8 relative z-10 scroll-mt-24">
           <PortalCard3D />
         </section>
 
         {/* Product Showcase */}
-        <section id="tinh-nang" className="mx-auto max-w-6xl px-6 pt-28 pb-4">
+        <section id="tinh-nang" className="mx-auto max-w-6xl px-6 pt-28 pb-4 scroll-mt-24">
           <div className="text-center mb-16 reveal">
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-ink mb-3">Nền tảng đa cổng</h2>
             <p className="text-muted max-w-xl mx-auto">Tích hợp từ khám phá năng khiếu đến hồ sơ năng lực số và kết nối doanh nghiệp.</p>
@@ -214,7 +214,7 @@ export default function Landing() {
         </section>
 
         {/* Value Propositions */}
-        <section id="gia-tri" className="mx-auto max-w-6xl px-6 pt-28 pb-8">
+        <section id="gia-tri" className="mx-auto max-w-6xl px-6 pt-28 pb-8 scroll-mt-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <div className="reveal">
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-ink mb-6">Tại sao FTalentHub?</h2>

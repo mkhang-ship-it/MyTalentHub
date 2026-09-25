@@ -33,8 +33,16 @@ export default function Dashboard() {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState("");
 
+  // Chuyển lỗi fetch thành thông điệp tiếng Việt rõ ràng (không hiện thô "API ... → 401").
+  const fetchErrorMessage = (e: unknown): string => {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("→ 401")) return "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại để xem tổng quan cá nhân.";
+    if (msg.includes("→ 403")) return "Bạn cần đăng nhập bằng tài khoản học sinh để xem tổng quan cá nhân.";
+    return msg;
+  };
+
   useEffect(() => {
-    get<Overview>("/student/overview").then(setData).catch((e) => setError(String(e.message || e)));
+    get<Overview>("/student/overview").then(setData).catch((e) => setError(fetchErrorMessage(e)));
   }, []);
 
   if (error) return <ErrorBox message={error} />;

@@ -35,10 +35,18 @@ export default function Evaluations() {
   const [evals, setEvals] = useState<Evaluation[] | null>(null);
   const [error, setError] = useState("");
 
+  // Chuyển lỗi fetch thành thông điệp tiếng Việt rõ ràng (không hiện thô "API ... → 401").
+  const fetchErrorMessage = (e: unknown): string => {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("→ 401")) return "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại để xem các đánh giá năng lực.";
+    if (msg.includes("→ 403")) return "Bạn cần đăng nhập bằng tài khoản học sinh để xem các đánh giá năng lực.";
+    return msg;
+  };
+
   useEffect(() => {
     get<Evaluation[]>("/student/evaluations")
       .then(setEvals)
-      .catch((e) => setError(String(e.message || e)));
+      .catch((e) => setError(fetchErrorMessage(e)));
   }, []);
 
   if (error) return <ErrorBox message={error} />;

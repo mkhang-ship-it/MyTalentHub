@@ -1,4 +1,8 @@
 """NHÀ TRƯỜNG — KPI tổng quan, phân tích năng lực (bản đồ & xếp hạng), báo cáo, lớp & khối, cài đặt quản trị."""
+import csv
+import hashlib
+import io
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -7,6 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..schemas import StudentImportIn
 from ..models import (
     Activity,
     ActivityRegistration,
@@ -844,3 +849,293 @@ def update_study_group_members(
     
     member_count = len(student_ids)
     return {"member_count": member_count, "student_ids": student_ids}
+
+
+# ==================== G5 — NHẬP DỮ LIỆU HỌC SINH TỪ CSV ====================
+IMPORT_MAX_ROWS = 200        # tối đa 200 dòng dữ liệu (chưa tính dòng tiêu đề)
+IMPORT_MAX_BYTES = 256 * 1024  # tối đa 256 KB
+IMPORT_REQUIRED_COLS = ("email", "full_name")
+IMPORT_OPTIONAL_COLS = ("class_name", "grade", "talent_score", "experience_hours", "interests", "bio")
+_IMPORT_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Mật khẩu mặc định cho tài khoản học sinh sinh ra từ CSV.
+_IMPORT_DEFAULT_PASSWORD = "demo123"
+
+
+def _import_password_hash(password: str) -> str:
+    """Cùng công thức với `routers.auth.hash_password`: sha256("fth_" + password).
+
+    Viết lại tại chỗ (không import từ auth) để tránh phụ thuộc vòng giữa các router.
+    """
+    return hashlib.sha256(f"fth_{password}".encode()).hexdigest()
+
+
+def _parse_import_csv(content: str) -> tuple[list[str] | None, list[tuple[int, dict[str, str]]]]:
+    """Đọc CSV dạng text → (header, [(số_dòng_thực_tế, {cột: giá_thị})]).
+
+    Số dòng đếm theo dòng vật lý trong file (dòng tiêu đề = 1) để báo lỗi đúng dòng.
+    """
+    reader = csv.reader(io.StringIO(content.lstrip("\ufeff")))
+    header: list[str] | None = None
+    rows: list[tuple[int, dict[str, str]]] = []
+    for raw in reader:
+        line = reader.line_num
+        if header is None:
+            if not any(cell.strip() for cell in raw):
+                continue  # bỏ dòng trắng phía trên dòng tiêu đề
+            header = [cell.strip().lower().lstrip("\ufeff") for cell in raw]
+            continue
+        if not any(cell.strip() for cell in raw):
+            continue  # bỏ dòng trống giữa file
+        row = {
+            h: (raw[i].strip() if i < len(raw) else "")
+            for i, h in enumerate(header)
+            if h
+        }
+        rows.append((line, row))
+    return header, rows
+
+
+def _validate_import_row(line: int, row: dict[str, str], seen_emails: dict[str, int]) -> tuple[list[dict], str | None, str, dict]:
+    """Validate 1 dòng dữ liệu. Trả (errors, email, full_name, values đã parse)."""
+    errors: list[dict] = []
+
+    def err(message: str) -> None:
+        errors.append({"line": line, "message": message})
+
+    email = (row.get("email") or "").strip().lower()
+    full_name = (row.get("full_name") or "").strip()
+
+    if not email:
+        err("Thiếu email (cột email không được để trống)")
+    elif not _IMPORT_EMAIL_RE.match(email):
+        err(f"Email không hợp lệ: {email}")
+    elif email in seen_emails:
+        err(f"Email trùng với dòng {seen_emails[email]} trong file")
+
+    if not full_name:
+        err("Thiếu họ tên (cột full_name không được để trống)")
+
+    values: dict = {}
+
+    grade_raw = (row.get("grade") or "").strip()
+    if grade_raw:
+        try:
+            grade = int(grade_raw)
+        except ValueError:
+            err(f"Khối không hợp lệ: {grade_raw} (phải là số nguyên 1-12)")
+        else:
+            if 1 <= grade <= 12:
+                values["grade"] = grade
+            else:
+                err(f"Khối không hợp lệ: {grade_raw} (phải là số nguyên 1-12)")
+
+    talent_raw = (row.get("talent_score") or "").strip()
+    if talent_raw:
+        try:
+            talent = float(talent_raw)
+        except ValueError:
+            err(f"Điểm năng lực không hợp lệ: {talent_raw} (phải là số từ 0 đến 100)")
+        else:
+            if 0 <= talent <= 100:
+                values["talent_score"] = round(talent, 1)
+            else:
+                err(f"Điểm năng lực ngoài phạm vi 0-100: {talent_raw}")
+
+    hours_raw = (row.get("experience_hours") or "").strip()
+    if hours_raw:
+        try:
+            hours = float(hours_raw)
+        except ValueError:
+            err(f"Số giờ trải nghiệm không hợp lệ: {hours_raw} (phải là số >= 0)")
+        else:
+            if hours >= 0:
+                values["experience_hours"] = round(hours, 1)
+            else:
+                err(f"Số giờ trải nghiệm không được âm: {hours_raw}")
+
+    class_name = (row.get("class_name") or "").strip()
+    if class_name:
+        values["class_name"] = class_name
+    interests = (row.get("interests") or "").strip()
+    if interests:
+        values["interests"] = interests
+    bio = (row.get("bio") or "").strip()
+    if bio:
+        values["bio"] = bio
+
+    return errors, email, full_name, values
+
+
+@router.post("/import/students")
+def import_students(
+    payload: StudentImportIn,
+    dry_run: bool = False,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Nhập học sinh từ CSV dạng text (G5 — chuyển đổi số, slide 33).
+
+    - Bắt buộc token + role school.
+    - `dry_run=true` → chỉ kiểm tra, trả lỗi từng dòng, KHÔNG ghi DB.
+    - `dry_run=false` → ghi trong MỘT transaction (atomic): nếu có bất kỳ lỗi
+      dòng nào thì không ghi gì cả (created=updated=0, skipped=tổng dòng).
+    - Chống trùng theo email: email đã tồn tại → cập nhật hồ sơ (không tạo trùng);
+      email mới → tạo User(role=student) + Student. Email trùng NGAY TRONG FILE → lỗi.
+    - Trả về: {total, created, updated, skipped, errors: [{line, message}]}.
+    """
+    _require_school(authorization, db)
+
+    content = payload.content or ""
+    if not content.strip():
+        raise HTTPException(400, "Nội dung CSV trống — vui lòng dán dữ liệu hoặc tải file mẫu")
+    if len(content.encode("utf-8")) > IMPORT_MAX_BYTES:
+        raise HTTPException(400, f"File quá lớn (tối đa {IMPORT_MAX_BYTES // 1024} KB)")
+
+    header, rows = _parse_import_csv(content)
+    if not header:
+        raise HTTPException(400, "Thiếu dòng tiêu đề (header) trong file CSV")
+    missing = [c for c in IMPORT_REQUIRED_COLS if c not in header]
+    if missing:
+        raise HTTPException(400, f"Thiếu cột bắt buộc: {', '.join(missing)}")
+    if len(rows) > IMPORT_MAX_ROWS:
+        raise HTTPException(400, f"File tối đa {IMPORT_MAX_ROWS} dòng dữ liệu (đang có {len(rows)} dòng)")
+
+    # ---- validate từng dòng (không đụng DB) ----
+    errors: list[dict] = []
+    seen_emails: dict[str, int] = {}
+    plan: list[dict] = []
+
+    all_emails = [
+        (row.get("email") or "").strip().lower()
+        for _line, row in rows
+        if (row.get("email") or "").strip()
+    ]
+    existing_users: dict[str, User] = {}
+    if all_emails:
+        existing_users = {
+            u.email: u
+            for u in db.query(User).filter(User.email.in_(list(set(all_emails)))).all()
+        }
+
+    for line, row in rows:
+        row_errors, email, full_name, values = _validate_import_row(line, row, seen_emails)
+        # Ghi nhận email hợp lệ đầu tiên để phát hiện trùng ngay trong file
+        if email and _IMPORT_EMAIL_RE.match(email) and email not in seen_emails:
+            seen_emails[email] = line
+
+        user = existing_users.get(email) if email else None
+        if user is not None and user.role != ROLE_STUDENT:
+            row_errors.append({
+                "line": line,
+                "message": f"Email đã tồn tại với vai trò khác ({user.role}), không thể cập nhật thành học sinh",
+            })
+            user = None
+
+        if not row_errors:
+            plan.append({
+                "line": line,
+                "email": email,
+                "full_name": full_name,
+                "values": values,
+                "user": user,
+            })
+
+        errors.extend(row_errors)
+
+    will_create = sum(1 for p in plan if p["user"] is None)
+    will_update = len(plan) - will_create
+    invalid = len(rows) - len(plan)
+
+    # ---- dry-run: chỉ trả kết quả, không ghi DB ----
+    if dry_run:
+        return {
+            "total": len(rows),
+            "created": will_create,
+            "updated": will_update,
+            "skipped": invalid,
+            "errors": errors,
+        }
+
+    # ---- có lỗi → không ghi gì (atomic) ----
+    if errors:
+        return {
+            "total": len(rows),
+            "created": 0,
+            "updated": 0,
+            "skipped": len(rows),
+            "errors": errors,
+        }
+
+    # ---- ghi thật: một transaction duy nhất ----
+    created = 0
+    updated = 0
+    try:
+        for item in plan:
+            values = item["values"]
+            if item["user"] is None:
+                user = User(
+                    role=ROLE_STUDENT,
+                    full_name=item["full_name"],
+                    email=item["email"],
+                    password_hash=_import_password_hash(_IMPORT_DEFAULT_PASSWORD),
+                )
+                db.add(user)
+                db.flush()
+                db.add(Student(
+                    id=user.id,
+                    class_name=values.get("class_name", ""),
+                    grade=values.get("grade", 0),
+                    talent_score=values.get("talent_score", 0.0),
+                    experience_hours=values.get("experience_hours", 0.0),
+                    interests=values.get("interests"),
+                    bio=values.get("bio"),
+                ))
+                created += 1
+            else:
+                user = item["user"]
+                user.full_name = item["full_name"]
+                student = db.query(Student).filter(Student.id == user.id).first()
+                if student is None:
+                    student = Student(
+                        id=user.id,
+                        class_name=values.get("class_name", ""),
+                        grade=values.get("grade", 0),
+                        talent_score=values.get("talent_score", 0.0),
+                        experience_hours=values.get("experience_hours", 0.0),
+                        interests=values.get("interests"),
+                        bio=values.get("bio"),
+                    )
+                    db.add(student)
+                else:
+                    for field, value in values.items():
+                        setattr(student, field, value)
+                updated += 1
+        db.commit()
+    except Exception as exc:  # noqa: BLE001 — rollback rồi báo lỗi tiếng Việt
+        db.rollback()
+        raise HTTPException(500, "Nhập dữ liệu thất bại — toàn bộ thay đổi đã được hoàn tác") from exc
+
+    return {
+        "total": len(rows),
+        "created": created,
+        "updated": updated,
+        "skipped": len(rows) - created - updated,
+        "errors": [],
+    }
+
+
+@router.get("/import/template")
+def import_template():
+    """File CSV mẫu (1 dòng tiêu đề + 2 dòng ví dụ) để người dùng tải về."""
+    from fastapi.responses import StreamingResponse
+
+    csv_text = (
+        "\ufeffemail,full_name,class_name,grade,talent_score,experience_hours,interests,bio\n"
+        "hs.mau1@ftalenthub.edu.vn,Nguyễn Văn An,10A1,10,75.5,20,\"IoT, Lập trình, Drone\",\"Học sinh tích cực, thích chế tạo\"\n"
+        "hs.mau2@ftalenthub.edu.vn,Trần Thị Bích,11B2,11,82,15,\"Hội họa, Âm nhạc\",\"Thích nghệ thuật và sáng tạo\"\n"
+    )
+    return StreamingResponse(
+        io.StringIO(csv_text),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="mau-nhap-hoc-sinh.csv"'},
+    )

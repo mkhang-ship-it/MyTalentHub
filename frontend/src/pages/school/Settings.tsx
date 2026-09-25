@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Edit, Trash2, AlertCircle, CheckCircle, Info, LogIn, Users } from "lucide-react";
-import { get, post, put, del } from "../../api/client";
+import { Plus, Edit, Trash2, AlertCircle, CheckCircle, Info, LogIn, Users, Download, Upload } from "lucide-react";
+import { API_BASE, get, getToken, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, Badge, PageHeader } from "../../components/ui";
 
 interface Toast {
   id: number;
   type: "success" | "error" | "info";
   message: string;
+}
+
+interface ImportErrorItem {
+  line: number;
+  message: string;
+}
+
+interface ImportResult {
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: ImportErrorItem[];
 }
 
 interface Teacher {
@@ -76,6 +89,11 @@ export default function Settings() {
   const [memberModal, setMemberModal] = useState<{ group: StudyGroup; selected: number[] } | null>(null);
   const [studentOptions, setStudentOptions] = useState<StudentOption[] | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
+  // ===== NHẬP DỮ LIỆU CSV (G5) =====
+  const [csvContent, setCsvContent] = useState("");
+  const [csvDryRun, setCsvDryRun] = useState<ImportResult | null>(null);
+  const [csvSummary, setCsvSummary] = useState<ImportResult | null>(null);
+  const [csvBusy, setCsvBusy] = useState(false);
 
   const showToast = (type: "success" | "error" | "info", message: string) => {
     const id = Date.now();
@@ -374,6 +392,104 @@ export default function Settings() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // ===== NHẬP DỮ LIỆU CSV (G5) =====
+  const getErrorStatus = (e: unknown): number | null => {
+    const msg = String((e as Error)?.message || e);
+    const m = /→\s*(\d{3}):/.exec(msg);
+    return m ? Number(m[1]) : null;
+  };
+
+  const getErrorDetail = (e: unknown): string | null => {
+    const msg = String((e as Error)?.message || e);
+    const m = /"detail"\s*:\s*"([^"]*)"/.exec(msg);
+    return m ? m[1] : null;
+  };
+
+  /** Tải file CSV mẫu từ GET /school/import/template */
+  const downloadTemplate = async () => {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/school/import/template`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`Tải file mẫu thất bại (HTTP ${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mau-nhap-hoc-sinh.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("success", "Đã tải file mẫu CSV");
+    } catch (e) {
+      showToast("error", String((e as Error).message || e));
+    }
+  };
+
+  /** Gọi POST /school/import/students (dry_run=true → kiểm tra, false → ghi thật) */
+  const runCsvImport = async (dryRun: boolean) => {
+    if (!csvContent.trim()) {
+      showToast("error", "Vui lòng dán nội dung CSV vào ô bên dưới trước khi thao tác");
+      return;
+    }
+    setCsvBusy(true);
+    try {
+      const res = await post<ImportResult>(`/school/import/students?dry_run=${dryRun}`, {
+        content: csvContent,
+      });
+      if (dryRun) {
+        setCsvDryRun(res);
+        setCsvSummary(null);
+        if (res.errors.length === 0) {
+          showToast(
+            "success",
+            `Kiểm tra đạt: ${res.created} hồ sơ sẽ được tạo mới, ${res.updated} cập nhật, ${res.skipped} bỏ qua`
+          );
+        } else {
+          showToast("error", `Phát hiện ${res.errors.length} lỗi — xem bảng chi tiết bên dưới`);
+        }
+      } else {
+        setCsvSummary(res);
+        setCsvDryRun(null);
+        setStudentOptions(null); // nạp lại danh sách học sinh cho modal thành viên
+        showToast(
+          "success",
+          `Nhập hoàn tất: tạo mới ${res.created}, cập nhật ${res.updated}, bỏ qua ${res.skipped}`
+        );
+      }
+    } catch (e) {
+      const status = getErrorStatus(e);
+      if (status === 403) {
+        setAuthError({
+          status: 403,
+          message:
+            "Bạn đang xem cổng Nhà trường ở chế độ trải nghiệm. Đăng nhập bằng tài khoản nhà trường để dùng tính năng này.",
+        });
+        showToast("error", "Chỉ tài khoản nhà trường mới được nhập dữ liệu");
+      } else if (status === 401) {
+        setAuthError({
+          status: 401,
+          message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
+        });
+        showToast("error", "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
+      } else if (status === 400) {
+        showToast("error", getErrorDetail(e) || "Dữ liệu CSV không hợp lệ — vui lòng kiểm tra lại");
+      } else {
+        showToast("error", "Có lỗi xảy ra, vui lòng thử lại");
+      }
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
+  const resetCsv = () => {
+    setCsvContent("");
+    setCsvDryRun(null);
+    setCsvSummary(null);
   };
 
   const filteredStudents = (studentOptions ?? []).filter((s) => {
@@ -884,6 +1000,166 @@ export default function Settings() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </Card>
+      </section>
+
+      {/* Section 4: Nhập dữ liệu học sinh từ CSV (G5) */}
+      <section style={{ animation: "fadeUp 0.6s ease-out 0.3s both" }} className="mt-8">
+        <PageHeader
+          title="Nhập dữ liệu học sinh"
+          subtitle="Nhập hàng loạt từ file CSV: tải mẫu, kiểm tra trước từng dòng rồi mới nhập thật (chuyển đổi số, slide 33)."
+          actions={
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full border border-line text-ink font-semibold hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"
+            >
+              <Download size={16} aria-hidden="true" /> Tải file mẫu
+            </button>
+          }
+        />
+
+        <Card>
+          {/* Cảnh báo quan trọng */}
+          <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2" role="note">
+            <AlertCircle size={18} className="shrink-0 text-amber-600 mt-0.5" aria-hidden="true" />
+            <p className="text-sm text-amber-800">
+              Việc nhập sẽ <strong>cập nhật hồ sơ học sinh đã tồn tại theo email</strong> (họ tên, lớp, khối,
+              điểm năng lực, giờ trải nghiệm…). Email mới sẽ được tạo tài khoản học sinh (mật khẩu mặc định{" "}
+              <code className="px-1 rounded bg-white/70">demo123</code>). Hệ thống <strong>không tạo lớp mới</strong>{" "}
+              từ file — hãy dùng đúng tên lớp/khối đang có.
+            </p>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="csv-content" className="block text-sm font-medium text-ink mb-1">
+              Nội dung CSV (dòng tiêu đề + các dòng dữ liệu){" "}
+              <span className="text-red-500" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              id="csv-content"
+              value={csvContent}
+              onChange={(e) => {
+                setCsvContent(e.target.value);
+                // Nội dung đổi → kết quả kiểm tra trước đó không còn giá trị
+                setCsvDryRun(null);
+                setCsvSummary(null);
+              }}
+              rows={8}
+              spellCheck={false}
+              placeholder={"email,full_name,class_name,grade,talent_score,experience_hours,interests,bio\nhs01@ftalenthub.edu.vn,Nguyễn Văn A,10A1,10,75.5,20,\"IoT, Lập trình\",\"Học sinh tích cực\""}
+              aria-describedby="csv-hint"
+              className="w-full px-3 py-2 rounded-xl border border-line text-sm font-mono bg-white outline-none focus:border-portal focus:ring-2 focus:ring-portal/20 transition-colors resize-y"
+            />
+            <p id="csv-hint" className="mt-1 text-xs text-muted">
+              Tối đa 200 dòng dữ liệu, 256 KB. Cột bắt buộc: <code>email</code>, <code>full_name</code>. Cột tuỳ chọn:{" "}
+              <code>class_name</code>, <code>grade</code> (1–12), <code>talent_score</code> (0–100),{" "}
+              <code>experience_hours</code> (≥0), <code>interests</code>, <code>bio</code>.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Thao tác nhập dữ liệu">
+            <button
+              type="button"
+              onClick={() => runCsvImport(true)}
+              disabled={csvBusy}
+              className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border border-line text-ink font-semibold hover:bg-canvas-soft disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"
+            >
+              <CheckCircle size={15} aria-hidden="true" /> {csvBusy ? "Đang xử lý..." : "Kiểm tra trước"}
+            </button>
+            <button
+              type="button"
+              onClick={() => runCsvImport(false)}
+              disabled={csvBusy || !csvDryRun || csvDryRun.errors.length > 0 || !csvContent.trim()}
+              title={
+                !csvDryRun
+                  ? "Hãy bấm 'Kiểm tra trước' và đảm bảo không có lỗi"
+                  : csvDryRun.errors.length > 0
+                    ? "Còn lỗi — không thể nhập thật"
+                    : "Nhập dữ liệu vào hệ thống"
+              }
+              className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-full cta-gradient text-white font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-opacity"
+            >
+              <Upload size={15} aria-hidden="true" /> Nhập thật
+            </button>
+            {(csvContent || csvDryRun || csvSummary) && (
+              <button
+                type="button"
+                onClick={resetCsv}
+                disabled={csvBusy}
+                className="text-sm px-4 py-2 rounded-xl bg-canvas-soft text-muted hover:bg-canvas-soft/80 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                Xóa
+              </button>
+            )}
+          </div>
+
+          {/* Kết quả kiểm tra trước (dry-run) */}
+          {csvDryRun && (
+            <div className="mt-4" role={csvDryRun.errors.length > 0 ? "alert" : "status"}>
+              {csvDryRun.errors.length > 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-red-600 mb-2">
+                    Phát hiện {csvDryRun.errors.length} lỗi trên {csvDryRun.total} dòng — cần sửa trước khi nhập thật:
+                  </p>
+                  <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-xl border border-line">
+                    <table className="w-full" role="table">
+                      <thead>
+                        <tr className="text-left text-xs font-bold uppercase tracking-wider text-muted border-b border-line bg-canvas-soft/60">
+                          <th className="py-2 px-3">Số dòng</th>
+                          <th className="py-2 px-3">Thông điệp</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvDryRun.errors.map((err, idx) => (
+                          <tr key={`${err.line}-${idx}`} className="border-b border-line/50">
+                            <td className="py-2 px-3 font-mono text-ink whitespace-nowrap">{err.line}</td>
+                            <td className="py-2 px-3 text-ink">{err.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-2 text-xs text-muted" role="status">
+                    Tóm tắt: tạo mới {csvDryRun.created} · cập nhật {csvDryRun.updated} · bỏ qua {csvDryRun.skipped} (tổng{" "}
+                    {csvDryRun.total} dòng). Chưa có thay đổi nào được ghi vào hệ thống.
+                  </p>
+                </>
+              ) : (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2">
+                  <CheckCircle size={18} className="shrink-0 text-emerald-600 mt-0.5" aria-hidden="true" />
+                  <p className="text-sm text-emerald-800">
+                    Kiểm tra đạt — không có lỗi. Tóm tắt:{" "}
+                    <strong>
+                      tạo mới {csvDryRun.created} · cập nhật {csvDryRun.updated} · bỏ qua {csvDryRun.skipped}
+                    </strong>{" "}
+                    (tổng {csvDryRun.total} dòng). Bấm <strong>“Nhập thật”</strong> để ghi vào hệ thống.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Kết quả nhập thật */}
+          {csvSummary && (
+            <div className="mt-4 p-4 rounded-xl bg-sky-50 border border-sky-200" role="status">
+              <p className="text-sm font-semibold text-sky-800 mb-1">
+                Nhập dữ liệu hoàn tất (tổng {csvSummary.total} dòng)
+              </p>
+              <p className="text-sm text-sky-700">
+                Tạo mới: <strong>{csvSummary.created}</strong> · Cập nhật:{" "}
+                <strong>{csvSummary.updated}</strong> · Bỏ qua: <strong>{csvSummary.skipped}</strong>
+              </p>
+              {csvSummary.skipped > 0 && (
+                <p className="text-xs text-amber-700 mt-1">
+                  Có dòng bị bỏ qua — bấm “Kiểm tra trước” lại để xem chi tiết lỗi theo dòng.
+                </p>
+              )}
+              <p className="text-xs text-muted mt-1">
+                Danh sách học sinh ở trang này được nạp lại tự nhiên ở lần mở tiếp theo (modal “Thành viên”).
+              </p>
             </div>
           )}
         </Card>

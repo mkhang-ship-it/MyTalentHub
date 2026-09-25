@@ -5,6 +5,7 @@ Chạy: python -m app.seed
 Tài khoản đăng nhập demo (password: demo123):
 - hs01@ftalenthub.edu.vn  (Học sinh — Nguyễn Minh Anh)
 - nguyen.van.hung@ftalenthub.edu.vn (Giáo viên)
+- hlv.boi@ftalenthub.edu.vn (Huấn luyện viên — HLV Bơi lội)
 - bgh@ftalenthub.edu.vn   (Nhà trường)
 - hr@techfpt.vn           (Doanh nghiệp)
 """
@@ -21,6 +22,7 @@ from .models import (
     Certificate,
     CheckIn,
     ClassGroup,
+    Coach,
     Enterprise,
     Evaluation,
     InternshipApplication,
@@ -166,6 +168,26 @@ def run():
         industry="Công nghệ thông tin",
     )
     db.add_all([sc, ent])
+    db.flush()
+
+    # ---------- coach (huấn luyện viên) demo — 5 vai trò đầy đủ ----------
+    coach_user = User(
+        role="coach",
+        full_name="HLV Bơi lội",
+        email="hlv.boi@ftalenthub.edu.vn",
+        password_hash=hash_password("demo123"),
+    )
+    db.add(coach_user)
+    db.flush()
+    # Coach profile + dòng `teachers` ẩn (cùng id = users.id) để FK
+    # Activity.teacher_id / Evaluation.teacher_id hoạt động. Dòng ẩn này KHÔNG
+    # mang ý nghĩa GVCN: danh sách giáo viên luôn lọc theo User.role == "teacher".
+    db.add(Coach(
+        id=coach_user.id,
+        specialty="Bơi lội",
+        bio="Huấn luyện viên bộ môn Bơi lội, dẫn dắt CLB Bơi lội và nhóm học tập thể thao.",
+    ))
+    db.add(Teacher(id=coach_user.id, subject="Bơi lội", education_level="THPT", is_homeroom=False))
     db.flush()
 
     # ---------- classes + homeroom ----------
@@ -408,6 +430,7 @@ def run():
     counts = {
         "students": db.query(Student).count(),
         "teachers": db.query(Teacher).count(),
+        "coaches": db.query(Coach).count(),
         "activities": db.query(Activity).count(),
         "registrations": db.query(ActivityRegistration).count(),
         "checkins": db.query(CheckIn).count(),
@@ -416,7 +439,7 @@ def run():
         "internships": db.query(InternshipPost).count(),
     }
     print("Seed xong:", counts)
-    print("Login demo (password demo123): hs01@ftalenthub.edu.vn | nguyen.van.hung@ftalenthub.edu.vn | bgh@ftalenthub.edu.vn | hr@techfpt.vn")
+    print("Login demo (password demo123): hs01@ftalenthub.edu.vn | nguyen.van.hung@ftalenthub.edu.vn | hlv.boi@ftalenthub.edu.vn | bgh@ftalenthub.edu.vn | hr@techfpt.vn")
     db.close()
 
 

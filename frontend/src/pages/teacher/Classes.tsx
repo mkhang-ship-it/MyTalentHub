@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Users, Edit, Trash2, X, Eye, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Users, Edit, Trash2, X, Eye, AlertCircle, CheckCircle, LogIn } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading } from "../../components/ui";
 
@@ -32,6 +32,9 @@ interface TeacherMe {
 export default function Classes() {
   const [data, setData] = useState<ClassItem[] | null>(null);
   const [error, setError] = useState("");
+  // Lỗi phân quyền tách riêng: 401 = hết phiên, 403 = đang trải nghiệm cổng khác.
+  // Không nằm trong `error` để không rơi vào ErrorBox trắng trang.
+  const [authError, setAuthError] = useState<{ status: 401 | 403; message: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassItem | null>(null);
   const [form, setForm] = useState({ name: "", grade: 10 });
@@ -69,6 +72,38 @@ export default function Classes() {
     return match ? parseInt(match[1], 10) : 0;
   };
 
+  // Tách lỗi phân quyền (401/403) khỏi lỗi hệ thống:
+  // 401 → banner "hết phiên" + nút đăng nhập lại; 403 → banner "trải nghiệm cổng";
+  // lỗi khác → error (render ErrorBox như cũ). Không để trang rơi vào ErrorBox trắng / Loading kẹt.
+  const applyFetchError = (msg: string, opts?: { toast403?: boolean }) => {
+    const status = getErrorStatus(msg);
+    if (status === 401) {
+      setAuthError({ status: 401, message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại." });
+    } else if (status === 403) {
+      const message = "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.";
+      setAuthError({ status: 403, message });
+      if (opts?.toast403) showToast("error", message);
+    } else {
+      setError(msg);
+    }
+  };
+
+  // Lỗi phát sinh từ thao tác bấm nút: 401/403 → banner + toast thân thiện; còn lại giữ nguyên.
+  const applyActionError = (message: string, fallback: string) => {
+    const status = getErrorStatus(message);
+    if (status === 401 || status === 403) {
+      applyFetchError(message);
+      showToast(
+        "error",
+        status === 401
+          ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+          : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."
+      );
+    } else {
+      showToast("error", fallback);
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.name.trim()) {
@@ -83,21 +118,17 @@ export default function Classes() {
 
   const load = useCallback(() => {
     get<ClassItem[]>("/teacher/classes")
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        setAuthError(null);
+      })
       .catch((e) => {
         const msg = String((e as Error).message || e);
         const status = getErrorStatus(msg);
-        if (status === 401) {
-          setError("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
-        } else if (status === 403) {
-          // 403 mềm: vẫn set error để isAuthError bật banner + không kẹt <Loading />,
-          // nhưng isSoft403 chặn ErrorBox trắng trang.
-          setError(msg);
-          showToast("error", "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.");
-        } else if (status >= 500) {
-          setError(msg);
+        if (status === 401 || status === 403) {
+          applyFetchError(msg, { toast403: true });
         } else {
-          // For other errors (409, 422), we'll handle them in individual actions
+          // For other errors (409, 422, 500), we'll handle them in individual actions
           setError(msg);
         }
       });
@@ -128,7 +159,7 @@ export default function Classes() {
       setClassStudents(students);
       setShowStudents(true);
     } catch (e) {
-      setError(String((e as Error).message || e));
+      applyFetchError(String((e as Error).message || e));
     }
   };
 
@@ -145,7 +176,7 @@ export default function Classes() {
       load();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message);
+      applyActionError(message, message);
     }
   };
 
@@ -165,7 +196,10 @@ export default function Classes() {
       load();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      if (message.includes("409") || message.includes("đã tồn tại")) {
+      const status = getErrorStatus(message);
+      if (status === 401 || status === 403) {
+        applyActionError(message, message);
+      } else if (message.includes("409") || message.includes("đã tồn tại")) {
         showToast("error", "Tên lớp đã tồn tại");
       } else if (message.includes("422") || message.includes("Khối") || message.includes("phạm vi")) {
         showToast("error", message);
@@ -186,7 +220,10 @@ export default function Classes() {
       load();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      if (message.includes("409") || message.includes("còn") || message.includes("học sinh")) {
+      const status = getErrorStatus(message);
+      if (status === 401 || status === 403) {
+        applyActionError(message, message);
+      } else if (message.includes("409") || message.includes("còn") || message.includes("học sinh")) {
         showToast("error", message);
       } else {
         showToast("error", "Có lỗi xảy ra, vui lòng thử lại");
@@ -194,11 +231,11 @@ export default function Classes() {
     }
   };
 
-  // 403 "mềm" - không show ErrorBox, chỉ toast (đã show ở load). Render trang rỗng nhưng vẫn có UI.
-  const isSoft403 = error && getErrorStatus(error) === 403;
-  const isAuthError = error && (getErrorStatus(error) === 401 || getErrorStatus(error) === 403);
+  // 401/403 → banner riêng với nút đăng nhập (authError), KHÔNG rơi vào ErrorBox trắng
+  // và KHÔNG kẹt <Loading />. Lỗi hệ thống (500, 409, 422…) → ErrorBox như cũ.
+  const isAuthError = authError !== null;
 
-  if (error && !isSoft403) return <ErrorBox message={error} />;
+  if (error) return <ErrorBox message={error} />;
   if (!data && !isAuthError) return <Loading />;
 
   return (
@@ -240,14 +277,17 @@ export default function Classes() {
         ))}
       </div>
 
-      {isAuthError && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2" role="alert">
-          <AlertCircle size={18} aria-hidden="true" />
-          <span>
-            {getErrorStatus(error) === 401
-              ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
-              : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."}
-          </span>
+      {isAuthError && authError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2 flex-wrap" role="alert">
+          <AlertCircle size={18} className="shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-[200px]">{authError.message}</span>
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/login"; }}
+            className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl bg-white border border-line text-ink font-semibold hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"
+          >
+            <LogIn size={14} aria-hidden="true" /> {authError.status === 401 ? "Đăng nhập lại" : "Về trang đăng nhập"}
+          </button>
         </div>
       )}
 

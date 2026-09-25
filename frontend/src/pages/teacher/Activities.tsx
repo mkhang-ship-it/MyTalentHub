@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Plus, Users, Edit, Trash2, PauseCircle, CheckCircle, AlertCircle, Zap } from "lucide-react";
+import { Clock, Plus, Users, Edit, Trash2, PauseCircle, CheckCircle, AlertCircle, Zap, LogIn } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
@@ -89,6 +89,9 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 export default function Activities() {
   const [data, setData] = useState<Activity[] | null>(null);
   const [error, setError] = useState("");
+  // Lỗi phân quyền tách riêng: 401 = hết phiên, 403 = đang trải nghiệm cổng khác.
+  // Không nằm trong `error` để không rơi vào ErrorBox trắng trang / kẹt <Loading />.
+  const [authError, setAuthError] = useState<{ status: 401 | 403; message: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [form, setForm] = useState({ title: "", field: "ky_thuat", description: "", capacity: 30, start_date: "" as string | null, end_date: "" as string | null });
@@ -108,6 +111,38 @@ export default function Activities() {
     return match ? parseInt(match[1], 10) : 0;
   };
 
+  // Tách lỗi phân quyền (401/403) khỏi lỗi hệ thống:
+  // 401 → banner "hết phiên" + nút đăng nhập lại; 403 → banner "trải nghiệm cổng";
+  // lỗi khác → error (ErrorBox như cũ).
+  const applyFetchError = (msg: string, opts?: { toast403?: boolean }) => {
+    const status = getErrorStatus(msg);
+    if (status === 401) {
+      setAuthError({ status: 401, message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại." });
+    } else if (status === 403) {
+      const message = "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.";
+      setAuthError({ status: 403, message });
+      if (opts?.toast403) showToast("error", message);
+    } else {
+      setError(msg);
+    }
+  };
+
+  // Lỗi phát sinh từ thao tác bấm nút: 401/403 → banner + toast thân thiện; còn lại giữ nguyên.
+  const applyActionError = (message: string, fallback: string) => {
+    const status = getErrorStatus(message);
+    if (status === 401 || status === 403) {
+      applyFetchError(message);
+      showToast(
+        "error",
+        status === 401
+          ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+          : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."
+      );
+    } else {
+      showToast("error", fallback);
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.title.trim()) {
@@ -122,16 +157,16 @@ export default function Activities() {
 
   const load = useCallback(() => {
     get<Activity[]>("/teacher/activities")
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        setAuthError(null);
+      })
       .catch((e) => {
         const msg = String((e as Error).message || e);
         const status = getErrorStatus(msg);
-        if (status === 401) {
-          setError("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
-        } else if (status === 403) {
-          showToast("error", "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này.");
-        } else if (status >= 500) {
-          setError(msg);
+        if (status === 401 || status === 403) {
+          // Trước đây 403 chỉ toast → data vẫn null → kẹt <Loading /> vô hạn. Giờ có banner riêng.
+          applyFetchError(msg, { toast403: true });
         } else {
           setError(msg);
         }
@@ -187,7 +222,7 @@ export default function Activities() {
       load();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message);
+      applyActionError(message, message);
     } finally {
       setSubmitting(false);
     }
@@ -201,7 +236,7 @@ export default function Activities() {
       load();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message);
+      applyActionError(message, message);
     }
   };
 
@@ -214,14 +249,15 @@ export default function Activities() {
       load();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message);
+      applyActionError(message, message);
     }
   };
 
-  const isSoft403 = error && getErrorStatus(error) === 403;
-  const isAuthError = error && (getErrorStatus(error) === 401 || getErrorStatus(error) === 403);
+  // 401/403 → banner riêng với nút đăng nhập (authError), KHÔNG ErrorBox trắng,
+  // KHÔNG kẹt <Loading />. Lỗi hệ thống → ErrorBox như cũ.
+  const isAuthError = authError !== null;
 
-  if (error && !isSoft403) return <ErrorBox message={error} />;
+  if (error) return <ErrorBox message={error} />;
   if (!data && !isAuthError) return <Loading />;
 
   return (
@@ -272,14 +308,17 @@ export default function Activities() {
         ))}
       </div>
 
-      {isAuthError && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2" role="alert">
-          <AlertCircle size={18} aria-hidden="true" />
-          <span>
-            {getErrorStatus(error) === 401
-              ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
-              : "Bạn đang xem cổng Giáo viên ở chế độ trải nghiệm. Đăng nhập bằng tài khoản giáo viên để dùng tính năng này."}
-          </span>
+      {isAuthError && authError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-2 flex-wrap" role="alert">
+          <AlertCircle size={18} className="shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-[200px]">{authError.message}</span>
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/login"; }}
+            className="inline-flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl bg-white border border-line text-ink font-semibold hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"
+          >
+            <LogIn size={14} aria-hidden="true" /> {authError.status === 401 ? "Đăng nhập lại" : "Về trang đăng nhập"}
+          </button>
         </div>
       )}
 

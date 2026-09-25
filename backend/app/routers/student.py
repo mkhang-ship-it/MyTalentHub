@@ -1,7 +1,7 @@
 """HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI, chứng chỉ, gợi ý nhóm."""
 import json
 from datetime import date, datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
@@ -11,6 +11,7 @@ from ..models import (
     Activity,
     ActivityRegistration,
     AiSuggestion,
+    AuthToken,
     Badge,
     Certificate,
     CheckIn,
@@ -18,6 +19,7 @@ from ..models import (
     Evaluation,
     Project,
     ProjectMember,
+    ROLE_STUDENT,
     Skill,
     Student,
     StudentBadge,
@@ -181,9 +183,9 @@ def _calculate_match_pct(signals: dict, group_name: str, group_field: str) -> tu
 
 
 @router.get("/recommendations")
-def recommendations(student_id: int = 1, db: Session = Depends(get_db)):
-    """Gợi ý nhóm học tập cho học sinh (slide 5)."""
-    s = _get_student(db, student_id)
+def recommendations(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Gợi ý nhóm học tập cho học sinh (slide 5) — bắt buộc token."""
+    s = _get_student_from_token(authorization, db)
     signals = _extract_student_signals(db, s)
 
     # Lấy danh sách nhóm thực tế từ DB
@@ -274,15 +276,42 @@ def _validate_certificate_title(title: str | None) -> str:
     return stripped
 
 
-def _get_student(db: Session, student_id: int) -> Student:
+def _extract_token(authorization: str | None) -> str:
+    """Lấy token từ header Authorization. Không có header → 401 'Thiếu token'."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    return authorization.removeprefix("Bearer ").strip()
+
+
+def _get_student_from_token(authorization: str | None, db: Session) -> Student:
+    """Lấy học sinh ĐANG ĐĂNG NHẬP từ Authorization header — bắt buộc, KHÔNG mặc định id=1.
+
+    Hợp đồng phân quyền (lô 3):
+    - Thiếu header Authorization → 401 "Thiếu token"
+    - Token không tồn tại / hết hạn → 401 "Phiên đăng nhập không hợp lệ"
+    - Token hợp lệ nhưng sai vai trò → 403 "…yêu cầu vai trò học sinh…"
+    - Token hợp lệ, đúng vai trò → Student của chính token đó (không nhận tham số student_id)
+    """
+    token = _extract_token(authorization)
+    row = (
+        db.query(AuthToken, User)
+        .join(User, User.id == AuthToken.user_id)
+        .filter(AuthToken.token == token)
+        .first()
+    )
+    if not row:
+        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
+    _auth_token, user = row
+    if user.role != ROLE_STUDENT:
+        raise HTTPException(403, "Chức năng này yêu cầu vai trò học sinh, tài khoản của bạn không đủ quyền")
     s = (
         db.query(Student)
         .options(selectinload(Student.user))
-        .filter(Student.id == student_id)
+        .filter(Student.id == user.id)
         .first()
     )
     if not s:
-        raise HTTPException(404, f"Không tìm thấy học sinh #{student_id}")
+        raise HTTPException(403, "Tài khoản chưa được liên kết với hồ sơ học sinh")
     return s
 
 
@@ -350,11 +379,11 @@ def _student_payload(s: Student, db: Session) -> dict:
 @router.post("/certificates", status_code=status.HTTP_201_CREATED)
 def create_certificate(
     payload: CertificateCreate,
-    student_id: int = 1,
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Tạo chứng chỉ mới cho học sinh."""
-    s = _get_student(db, student_id)
+    """Tạo chứng chỉ mới — chỉ cho CHÍNH học sinh trong token (bỏ tham số student_id)."""
+    s = _get_student_from_token(authorization, db)
     title = _validate_certificate_title(payload.title)
     cert = Certificate(
         student_id=s.id,
@@ -377,11 +406,14 @@ def create_certificate(
 def update_certificate(
     cert_id: int,
     payload: CertificateUpdate,
-    student_id: int = 1,
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Cập nhật chứng chỉ (chỉ của học sinh đó)."""
-    s = _get_student(db, student_id)
+    """Cập nhật chứng chỉ — chỉ chứng chỉ CỦA học sinh trong token.
+
+    Chứng chỉ của học sinh khác → 404 "Không tìm thấy chứng chỉ" (không lộ sự tồn tại).
+    """
+    s = _get_student_from_token(authorization, db)
     cert = db.query(Certificate).filter(Certificate.id == cert_id, Certificate.student_id == s.id).first()
     if not cert:
         raise HTTPException(404, "Không tìm thấy chứng chỉ")
@@ -404,11 +436,11 @@ def update_certificate(
 @router.delete("/certificates/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_certificate(
     cert_id: int,
-    student_id: int = 1,
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Xoá chứng chỉ (chỉ của học sinh đó)."""
-    s = _get_student(db, student_id)
+    """Xoá chứng chỉ — chỉ chứng chỉ CỦA học sinh trong token (chống leo thang)."""
+    s = _get_student_from_token(authorization, db)
     cert = db.query(Certificate).filter(Certificate.id == cert_id, Certificate.student_id == s.id).first()
     if not cert:
         raise HTTPException(404, "Không tìm thấy chứng chỉ")
@@ -418,9 +450,12 @@ def delete_certificate(
 
 
 @router.get("/overview")
-def overview(student_id: int = 1, db: Session = Depends(get_db)):
-    """Dashboard tổng quan + KPI xếp hạng + huy hiệu + lộ trình AI + chuỗi ngày liên tiếp."""
-    s = _get_student(db, student_id)
+def overview(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Dashboard tổng quan + KPI xếp hạng + huy hiệu + lộ trình AI + chuỗi ngày liên tiếp.
+
+    Bắt buộc token — dữ liệu lấy theo học sinh trong token (tham số `student_id` cũ bị bỏ qua).
+    """
+    s = _get_student_from_token(authorization, db)
     base = _student_payload(s, db)
 
     # xếp hạng theo talent_score trong cùng khối
@@ -505,17 +540,18 @@ def overview(student_id: int = 1, db: Session = Depends(get_db)):
 
 
 @router.get("/profile")
-def profile(student_id: int = 1, db: Session = Depends(get_db)):
-    """Hồ sơ năng lực chi tiết (slide 11)."""
-    return _student_payload(_get_student(db, student_id), db)
+def profile(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Hồ sơ năng lực chi tiết (slide 11) — bắt buộc token, xem hồ sơ của chính mình."""
+    return _student_payload(_get_student_from_token(authorization, db), db)
 
 
 @router.get("/assessments")
-def assessments(student_id: int = 1, db: Session = Depends(get_db)):
-    """Kết quả test năng khiếu Holland/DISC/MBTI/MI (slide 12)."""
+def assessments(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Kết quả test năng khiếu Holland/DISC/MBTI/MI (slide 12) — của học sinh trong token."""
+    s = _get_student_from_token(authorization, db)
     rows = (
         db.query(TalentAssessment)
-        .filter(TalentAssessment.student_id == student_id)
+        .filter(TalentAssessment.student_id == s.id)
         .order_by(TalentAssessment.id.asc())
         .all()
     )
@@ -529,9 +565,10 @@ VALID_TEST_TYPES = {"holland", "disc", "mbti", "mi"}
 
 
 @router.post("/assessments")
-def submit_assessment(payload: dict, student_id: int = 1, db: Session = Depends(get_db)):
-    """Nộp kết quả test năng khiếu (slide 12) — upsert theo loại bài."""
-    _get_student(db, student_id)
+def submit_assessment(payload: dict, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Nộp kết quả test năng khiếu (slide 12) — upsert theo loại bài, ghi cho học sinh trong token."""
+    s = _get_student_from_token(authorization, db)
+    student_id = s.id
     test_type = str(payload.get("test_type", "")).lower()
     if test_type not in VALID_TEST_TYPES:
         raise HTTPException(400, f"test_type phải thuộc {sorted(VALID_TEST_TYPES)}")
@@ -618,7 +655,12 @@ def get_questions(
     test_type: str,
     db: Session = Depends(get_db),
 ):
-    """Lấy ngân hàng câu hỏi cho 1 loại test (slide 12)."""
+    """Lấy ngân hàng câu hỏi cho 1 loại test (slide 12).
+
+    GIỮ MỞ (không yêu cầu token) theo quyết định ở lô 3: câu hỏi test không nhạy cảm
+    (chỉ là lời khai trắc nghiệm), các trang marketing/giới thiệu có thể cần đọc trước.
+    Các endpoint nộp/kết quả (POST /assessments, POST /assessments/compute) vẫn bắt buộc token.
+    """
     if test_type not in VALID_TEST_TYPES:
         raise HTTPException(400, f"test_type phải thuộc {sorted(VALID_TEST_TYPES)}")
     rows = (
@@ -659,9 +701,9 @@ MBTI_LABELS = {
 
 
 @router.post("/assessments/compute", response_model=ComputeOut)
-def compute_assessment(payload: ComputeIn, student_id: int = 1, db: Session = Depends(get_db)):
-    """Tính điểm năng khiếu từ đáp án (slide 12) — server-side."""
-    _get_student(db, student_id)
+def compute_assessment(payload: ComputeIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Tính điểm năng khiếu từ đáp án (slide 12) — server-side, bắt buộc token."""
+    _get_student_from_token(authorization, db)
     questions = QUESTION_BANK.get(payload.test_type)
     if not questions:
         raise HTTPException(400, f"test_type không hợp lệ: {payload.test_type}")
@@ -715,12 +757,12 @@ def _xep_loai(total: float) -> str:
 
 
 @router.get("/evaluations")
-def evaluations(student_id: int = 1, db: Session = Depends(get_db)):
-    """Điểm tiêu chí + nhận xét từ GV/HLV (slide 15)."""
-    _get_student(db, student_id)
+def evaluations(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Điểm tiêu chí + nhận xét từ GV/HLV (slide 15) — bắt buộc token, của học sinh trong token."""
+    s = _get_student_from_token(authorization, db)
     rows = (
         db.query(Evaluation)
-        .filter(Evaluation.student_id == student_id)
+        .filter(Evaluation.student_id == s.id)
         .order_by(Evaluation.id.desc())
         .all()
     )
@@ -755,14 +797,14 @@ def evaluations(student_id: int = 1, db: Session = Depends(get_db)):
 
 
 @router.get("/checkins")
-def checkin_history(student_id: int = 1, db: Session = Depends(get_db)):
-    """Lịch sử check-in QR của học sinh (slide 14)."""
-    _get_student(db, student_id)
+def checkin_history(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Lịch sử check-in QR của học sinh (slide 14) — bắt buộc token."""
+    s = _get_student_from_token(authorization, db)
     rows = (
         db.query(CheckIn, ActivityRegistration, Activity)
         .join(ActivityRegistration, ActivityRegistration.id == CheckIn.registration_id)
         .join(Activity, Activity.id == ActivityRegistration.activity_id)
-        .filter(ActivityRegistration.student_id == student_id)
+        .filter(ActivityRegistration.student_id == s.id)
         .order_by(CheckIn.id.desc())
         .limit(50)
         .all()
@@ -783,10 +825,14 @@ def checkin_history(student_id: int = 1, db: Session = Depends(get_db)):
 def activities(
     field: str | None = None,
     q: str | None = None,
-    student_id: int = 1,
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Danh sách sân chơi theo lĩnh vực — chỉ trạng thái open (slide 13)."""
+    """Danh sách sân chơi theo lĩnh vực — chỉ trạng thái open (slide 13).
+
+    Bắt buộc token (đánh dấu sân chơi đã đăng ký theo học sinh trong token).
+    """
+    s = _get_student_from_token(authorization, db)
     query = db.query(Activity).filter(Activity.status == "open")
     if field:
         query = query.filter(Activity.field == field)
@@ -795,7 +841,7 @@ def activities(
     rows = query.all()
     my_ids = {
         r.activity_id
-        for r in db.query(ActivityRegistration).filter(ActivityRegistration.student_id == student_id)
+        for r in db.query(ActivityRegistration).filter(ActivityRegistration.student_id == s.id)
     }
     return [
         {
@@ -814,27 +860,39 @@ def activities(
 
 
 @router.post("/activities/{activity_id}/register")
-def register(activity_id: int, student_id: int = 1, db: Session = Depends(get_db)):
+def register(activity_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Đăng ký sân chơi cho CHÍNH học sinh trong token (bắt buộc đăng nhập)."""
+    s = _get_student_from_token(authorization, db)
     existing = (
         db.query(ActivityRegistration)
-        .filter(ActivityRegistration.activity_id == activity_id, ActivityRegistration.student_id == student_id)
+        .filter(ActivityRegistration.activity_id == activity_id, ActivityRegistration.student_id == s.id)
         .first()
     )
     if existing:
         return {"ok": True, "status": "already_registered"}
-    db.add(ActivityRegistration(activity_id=activity_id, student_id=student_id))
+    db.add(ActivityRegistration(activity_id=activity_id, student_id=s.id))
     db.commit()
     return {"ok": True, "status": "registered"}
 
 
 @router.post("/checkin")
-def checkin(qr_code: str, registration_id: int | None = None, student_id: int = 1, db: Session = Depends(get_db)):
-    """Check-in QR — cộng giờ tự động (slide 14)."""
+def checkin(
+    qr_code: str,
+    registration_id: int | None = None,
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Check-in QR — cộng giờ tự động (slide 14).
+
+    Bắt buộc token. `registration_id` (nếu truyền) phải là đăng ký CỦA học sinh trong token,
+    nếu không → bỏ qua và lấy đăng ký hợp lệ của chính học sinh đó (không check-in giùm người khác).
+    """
+    s = _get_student_from_token(authorization, db)
     reg = None
     if registration_id:
         reg = (
             db.query(ActivityRegistration)
-            .filter(ActivityRegistration.id == registration_id, ActivityRegistration.student_id == student_id)
+            .filter(ActivityRegistration.id == registration_id, ActivityRegistration.student_id == s.id)
             .first()
         )
     if reg is None:
@@ -842,7 +900,7 @@ def checkin(qr_code: str, registration_id: int | None = None, student_id: int = 
         reg = (
             db.query(ActivityRegistration)
             .join(Activity, Activity.id == ActivityRegistration.activity_id)
-            .filter(ActivityRegistration.student_id == student_id, Activity.status == "open")
+            .filter(ActivityRegistration.student_id == s.id, Activity.status == "open")
             .first()
         )
     if reg is None:
@@ -860,9 +918,9 @@ def checkin(qr_code: str, registration_id: int | None = None, student_id: int = 
 
 
 @router.get("/badges")
-def badges(student_id: int = 1, db: Session = Depends(get_db)):
-    """Hệ thống huy hiệu (slide 17)."""
-    s = _get_student(db, student_id)
+def badges(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Hệ thống huy hiệu (slide 17) — bắt buộc token, tiến độ của học sinh trong token."""
+    s = _get_student_from_token(authorization, db)
     all_badges = db.query(Badge).order_by(Badge.min_hours.asc()).all()
     return [
         {

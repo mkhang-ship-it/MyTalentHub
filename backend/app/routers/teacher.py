@@ -9,6 +9,8 @@ from ..models import (
     AuthToken,
     ClassGroup,
     Evaluation,
+    ROLE_COACH,
+    ROLE_TEACHER,
     Student,
     StudentBadge,
     Teacher,
@@ -31,69 +33,67 @@ from ..schemas import (
 router = APIRouter(prefix="/teacher", tags=["teacher"])
 
 
-def _get_teacher(db: Session, teacher_id: int | None = None) -> Teacher:
-    if teacher_id is not None:
-        t = (
-            db.query(Teacher)
-            .options(selectinload(Teacher.user))
-            .filter(Teacher.id == teacher_id)
-            .first()
+def _extract_token(authorization: str | None) -> str:
+    """Lấy token từ header Authorization. Không có header → 401 'Thiếu token'."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    return authorization.removeprefix("Bearer ").strip()
+
+
+def _auth_user_from_token(token: str, db: Session) -> User:
+    """Tra token trong DB. Token không tồn tại / đã bị xoá → 401 'Phiên đăng nhập không hợp lệ'."""
+    row = (
+        db.query(AuthToken, User)
+        .join(User, User.id == AuthToken.user_id)
+        .filter(AuthToken.token == token)
+        .first()
+    )
+    if not row:
+        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
+    return row[1]
+
+
+def _load_teacher_of(user: User, db: Session) -> Teacher:
+    teacher = (
+        db.query(Teacher)
+        .options(selectinload(Teacher.user))
+        .filter(Teacher.id == user.id)
+        .first()
+    )
+    if not teacher:
+        raise HTTPException(403, "Tài khoản chưa được liên kết với hồ sơ giáo viên")
+    return teacher
+
+
+def _resolve_current_teacher(authorization: str | None, db: Session) -> Teacher:
+    """Lấy giáo viên/HLV ĐANG ĐĂNG NHẬP từ token — bắt buộc, KHÔNG fallback.
+
+    Hợp đồng phân quyền (lô 3):
+    - Thiếu header Authorization → 401 "Thiếu token"
+    - Token không tồn tại / hết hạn → 401 "Phiên đăng nhập không hợp lệ"
+    - Token hợp lệ nhưng sai vai trò → 403 (nêu rõ vai trò được phép: giáo viên hoặc huấn luyện viên)
+    - Token hợp lệ, đúng vai trò → trả về Teacher
+    """
+    user = _auth_user_from_token(_extract_token(authorization), db)
+    if user.role not in (ROLE_TEACHER, ROLE_COACH):
+        raise HTTPException(
+            403,
+            "Chức năng này yêu cầu vai trò giáo viên hoặc huấn luyện viên, tài khoản của bạn không đủ quyền",
         )
-    else:
-        t = db.query(Teacher).options(selectinload(Teacher.user)).first()
-    if not t:
-        raise HTTPException(404, "Không tìm thấy giáo viên")
-    return t
+    return _load_teacher_of(user, db)
 
 
 def _get_teacher_from_token(authorization: str | None, db: Session) -> Teacher:
     """Lấy giáo viên từ Authorization header (bắt buộc token + role teacher hoặc coach)."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Thiếu token")
-    token = authorization.removeprefix("Bearer ").strip()
-    row = (
-        db.query(AuthToken, User, Teacher)
-        .join(User, User.id == AuthToken.user_id)
-        .join(Teacher, Teacher.id == User.id)
-        .filter(AuthToken.token == token, User.role.in_(("teacher", "coach")))
-        .first()
-    )
-    if not row:
-        raise HTTPException(403, "Token không hợp lệ hoặc không phải giáo viên/huấn luyện viên")
-    _auth_token, _user, teacher = row
-    return teacher
+    return _resolve_current_teacher(authorization, db)
 
 
 def _get_teacher_from_token_teacher_only(authorization: str | None, db: Session) -> Teacher:
     """Lấy giáo viên từ Authorization header (chỉ role teacher, KHÔNG nhận coach)."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Thiếu token")
-    token = authorization.removeprefix("Bearer ").strip()
-    row = (
-        db.query(AuthToken, User, Teacher)
-        .join(User, User.id == AuthToken.user_id)
-        .join(Teacher, Teacher.id == User.id)
-        .filter(AuthToken.token == token, User.role == "teacher")
-        .first()
-    )
-    if not row:
-        raise HTTPException(403, "Token không hợp lệ hoặc không phải giáo viên")
-    _auth_token, _user, teacher = row
-    return teacher
-
-
-def _resolve_teacher(authorization: str | None, teacher_id: int | None, db: Session) -> Teacher:
-    """
-    Xác định giáo viên cho endpoint 'của tôi':
-    - Nếu teacher_id được truyền → dùng _get_teacher (hành vi cũ)
-    - Nếu có Authorization header → lấy teacher theo token (nhận cả coach)
-    - Nếu không token → fallback _get_teacher(db, None) (demo)
-    """
-    if teacher_id is not None:
-        return _get_teacher(db, teacher_id)
-    if authorization and authorization.startswith("Bearer "):
-        return _get_teacher_from_token(authorization, db)
-    return _get_teacher(db, None)
+    user = _auth_user_from_token(_extract_token(authorization), db)
+    if user.role != ROLE_TEACHER:
+        raise HTTPException(403, "Chức năng này yêu cầu vai trò giáo viên, tài khoản của bạn không đủ quyền")
+    return _load_teacher_of(user, db)
 
 
 def _grade_range(level: str) -> tuple[int, ...]:
@@ -316,9 +316,13 @@ def remove_student_from_class(
 
 
 @router.get("/overview")
-def overview(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
-    """Tổng quan: số sân chơi, học viên, bài chấm, lớp GVCN (slide 20-21)."""
-    t = _resolve_teacher(authorization, teacher_id, db)
+def overview(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Tổng quan: số sân chơi, học viên, bài chấm, lớp GVCN (slide 20-21).
+
+    Bắt buộc Bearer token (role teacher|coach). Tham số query `teacher_id` cũ (nếu client
+    còn gửi) bị bỏ qua — danh tính lấy hoàn toàn từ token.
+    """
+    t = _resolve_current_teacher(authorization, db)
     activities = db.query(Activity).filter(Activity.teacher_id == t.id).all()
     activity_ids = [a.id for a in activities]
     learner_count = 0
@@ -356,9 +360,9 @@ def overview(authorization: str = Header(default=None), teacher_id: int | None =
 
 
 @router.get("/activities", response_model=list[ActivityOut])
-def my_activities(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
-    """Sân chơi của tôi (slide 21)."""
-    t = _resolve_teacher(authorization, teacher_id, db)
+def my_activities(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Sân chơi của tôi (slide 21) — bắt buộc token; `teacher_id` cũ bị bỏ qua."""
+    t = _resolve_current_teacher(authorization, db)
     rows = db.query(Activity).filter(Activity.teacher_id == t.id).all()
     out = []
     for a in rows:
@@ -381,8 +385,9 @@ def my_activities(authorization: str = Header(default=None), teacher_id: int | N
 
 
 @router.post("/activities", response_model=ActivityOut)
-def create_activity(payload: ActivityIn, authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
-    t = _resolve_teacher(authorization, teacher_id, db)
+def create_activity(payload: ActivityIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Tạo sân chơi — bắt buộc token; sân chơi luôn thuộc người tạo (lấy từ token)."""
+    t = _resolve_current_teacher(authorization, db)
     a = Activity(
         title=payload.title,
         field=payload.field,
@@ -404,8 +409,17 @@ def create_activity(payload: ActivityIn, authorization: str = Header(default=Non
 
 
 @router.get("/activities/{activity_id}/students")
-def activity_students(activity_id: int, db: Session = Depends(get_db)):
-    """Danh sách học viên trong 1 sân chơi."""
+def activity_students(activity_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Danh sách học viên trong 1 sân chơi — CHỈ giáo viên/HLV phụ trách sân chơi đó.
+
+    Sân chơi không tồn tại → 404; tồn tại nhưng không phụ trách → 403.
+    """
+    t = _resolve_current_teacher(authorization, db)
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        raise HTTPException(404, "Không tìm thấy sân chơi")
+    if activity.teacher_id != t.id:
+        raise HTTPException(403, "Bạn không phải người phụ trách sân chơi này nên không thể xem danh sách học viên")
     rows = (
         db.query(ActivityRegistration, Student)
         .join(Student, Student.id == ActivityRegistration.student_id)
@@ -442,10 +456,13 @@ def _validate_rubric(payload: "EvaluationIn") -> None:
 
 
 @router.post("/evaluations", response_model=EvaluationOut)
-def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
-    """Chấm điểm rubric (Chuyên môn 40 / Sáng tạo 20 / Làm việc nhóm 20 / Kỷ luật 20)."""
+def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Chấm điểm rubric (Chuyên môn 40 / Sáng tạo 20 / Làm việc nhóm 20 / Kỷ luật 20).
+
+    Bắt buộc token — người chấm (teacher_id) lấy từ token, không nhận tham số.
+    """
     _validate_rubric(payload)
-    t = _resolve_teacher(authorization, teacher_id, db)
+    t = _resolve_current_teacher(authorization, db)
     e = Evaluation(
         activity_id=payload.activity_id,
         student_id=payload.student_id,
@@ -475,9 +492,12 @@ def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default
 
 
 @router.get("/my-students")
-def my_students(authorization: str = Header(default=None), teacher_id: int | None = None, db: Session = Depends(get_db)):
-    """Học viên của tôi (slide 23): tổng theo sân chơi, filter tên/lớp."""
-    t = _resolve_teacher(authorization, teacher_id, db)
+def my_students(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Học viên của tôi (slide 23): tổng theo sân chơi, filter tên/lớp.
+
+    Bắt buộc token; danh sách chỉ gồm học viên các sân chơi của chính người gọi.
+    """
+    t = _resolve_current_teacher(authorization, db)
     activity_ids = [a.id for a in db.query(Activity).filter(Activity.teacher_id == t.id)]
     rows = []
     if activity_ids:

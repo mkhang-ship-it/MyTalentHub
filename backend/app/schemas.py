@@ -314,3 +314,10 @@ class PassportOut(ORMModel):
     activities: list = []
     skills: list = []
     badges: list = []
+
+
+# ---------------- school — nhập dữ liệu CSV (G5)
+class StudentImportIn(BaseModel):
+    """Nội dung file CSV dạng text (POST /school/import/students)."""
+
+    content: str = ""

@@ -254,16 +254,7 @@ export default function Layout() {
     navigate("/login", { replace: true });
   }
 
-  // Cast role to string to avoid TypeScript comparison issues (coach not in AuthUser["role"] union yet)
-  const userRole: string = (user?.role as string) ?? "";
-  const isOwn = user ? portal.key === userRole : false;
-
-  // Redirect coach from /student to /coach (AuthContext roleHome defaults to /student for unknown roles)
-  useEffect(() => {
-    if (userRole === "coach" && (pathname === "/student" || pathname.startsWith("/student/"))) {
-      navigate("/coach", { replace: true });
-    }
-  }, [userRole, pathname, navigate]);
+  const isOwn = user ? portal.key === user.role : false;
 
   // Xử lý chuyển cổng
   const switchPortal = (key: string) => {
@@ -340,7 +331,7 @@ export default function Layout() {
                 aria-label="Chuyển cổng"
               >
                 {PORTALS.map((p) => {
-                  const isOwnPortal = p.key === userRole;
+                  const isOwnPortal = p.key === user?.role;
                   const isActivePortal = p.key === portal.key;
                   return (
                     <button
@@ -373,7 +364,7 @@ export default function Layout() {
             )}
           </div>
           <div className="mt-1.5 text-[10px] font-medium text-muted">
-            {userRole === "coach" ? "Huấn luyện viên" : roleLabel(user?.role)} · {portal.label}
+            {user?.role === "coach" ? "Huấn luyện viên" : roleLabel(user?.role)} · {portal.label}
           </div>
         </div>
 
@@ -608,7 +599,7 @@ export default function Layout() {
                 aria-label="Chuyển cổng"
               >
                 {PORTALS.map((p) => {
-                  const isOwnPortal = p.key === userRole;
+                  const isOwnPortal = p.key === user?.role;
                   const isActivePortal = p.key === portal.key;
                   return (
                     <button

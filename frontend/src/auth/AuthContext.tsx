@@ -9,7 +9,7 @@ import { api, setToken, getToken } from "../api/client";
 
 export type AuthUser = {
   id: number;
-  role: "student" | "teacher" | "school" | "enterprise";
+  role: "student" | "teacher" | "coach" | "school" | "enterprise";
   full_name: string;
   email: string;
   avatar_url?: string | null;
@@ -21,12 +21,14 @@ export type RegisterData = {
   full_name: string;
   email: string;
   password: string;
-  role: "student" | "teacher" | "school" | "enterprise";
+  role: "student" | "teacher" | "coach" | "school" | "enterprise";
   class_name?: string;
   grade?: number;
   education_level?: string; // student: THCS | THPT | CDDH
   subject?: string;
   education_level_teacher?: string; // teacher: THCS | THPT | CDDH
+  specialty?: string; // coach: bắt buộc khi role=coach (tương đương subject của giáo viên)
+  education_level_coach?: string; // coach: THCS | THPT | CDDH
   school_name?: string;
   education_level_school?: string; // school: THCS | THPT | CDDH
   company_name?: string;
@@ -49,6 +51,8 @@ export function roleHome(role?: AuthUser["role"]): string {
   switch (role) {
     case "teacher":
       return "/teacher";
+    case "coach":
+      return "/coach";
     case "school":
       return "/school";
     case "enterprise":
@@ -62,6 +66,8 @@ export function roleLabel(role?: AuthUser["role"]): string {
   switch (role) {
     case "teacher":
       return "Giáo viên";
+    case "coach":
+      return "Huấn luyện viên";
     case "school":
       return "Nhà trường";
     case "enterprise":

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   KeyRound,
   Mail,
@@ -180,6 +180,13 @@ export default function Login() {
             </p>
           </div>
         </div>
+
+        <p className="mt-5 text-center text-xs text-muted">
+          Chưa có tài khoản?{" "}
+          <Link to="/register" className="font-semibold text-portal hover:underline">
+            Đăng ký ngay
+          </Link>
+        </p>
 
         <p className="mt-5 text-center text-xs text-muted">
           Team FPI Cần Thơ · Discover Talent · Develop Skills · Create Future

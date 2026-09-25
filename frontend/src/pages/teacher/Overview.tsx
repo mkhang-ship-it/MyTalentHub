@@ -8,6 +8,7 @@ interface Overview {
   id: number;
   full_name: string;
   subject: string;
+  education_level: string;
   activity_count: number;
   learner_count: number;
   eval_count: number;
@@ -49,7 +50,7 @@ export default function Overview() {
             {data.full_name}
           </h2>
           <p className="text-sm text-white/80 mt-1">
-            Hôm nay có {data.activity_count} sân chơi đang mở và {data.eval_count} bài
+            {data.subject} · {data.education_level} · Hôm nay có {data.activity_count} sân chơi đang mở và {data.eval_count} bài
             đánh giá đã chấm.
           </p>
           <div className="mt-4 flex gap-2">

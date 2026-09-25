@@ -83,31 +83,50 @@ export default function Landing() {
       `}</style>
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b border-line/60 bg-canvas/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+      <nav className="sticky top-0 z-50 border-b border-line/50 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80 shadow-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3">
           <Link
             to="/"
-            aria-label="FTalentHub — Discover Talent · Develop Skills · Create Future"
-            className="flex items-center gap-2.5"
+            className="group inline-flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-transform duration-150 ease-out hover:scale-[1.01]"
+            aria-label="FTalentHub home"
           >
             <LogoMark size={40} />
             <LogoWordmark compact />
           </Link>
-
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-ink-soft">
-            <a href="#vai-tro" className="hover:text-portal transition-colors">Vai trò</a>
-            <a href="#tinh-nang" className="hover:text-portal transition-colors">Tính năng</a>
-            <a href="#gia-tri" className="hover:text-portal transition-colors">Giá trị</a>
+          <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-ink-soft">
+            <a
+              href="#vai-tro"
+              className="relative py-2 rounded-md transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 after:absolute after:bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-portal after:transition-all after:duration-150 after:ease-out hover:after:w-full"
+            >
+              Vai trò
+            </a>
+            <a
+              href="#tinh-nang"
+              className="relative py-2 rounded-md transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 after:absolute after:bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-portal after:transition-all after:duration-150 after:ease-out hover:after:w-full"
+            >
+              Tính năng
+            </a>
+            <a
+              href="#gia-tri"
+              className="relative py-2 rounded-md transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 after:absolute after:bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-portal after:transition-all after:duration-150 after:ease-out hover:after:w-full"
+            >
+              Giá trị
+            </a>
           </div>
-
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:brightness-110 sm:px-5"
-            style={{ background: "linear-gradient(135deg, #A1458F 0%, #7E2F73 100%)" }}
-          >
-            Đăng nhập
-            <ArrowRight size={14} />
-          </Link>
+          <div className="hidden md:flex items-center gap-2">
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-transparent px-3.5 sm:px-4 py-2 text-sm font-semibold text-ink transition-all duration-150 ease-out hover:border-portal hover:text-portal hover:scale-[1.015] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+            >
+              Đăng ký
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-portal px-3.5 sm:px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/10 transition-all duration-150 ease-out hover:shadow-md hover:scale-[1.015] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+            >
+              Đăng nhập
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -142,6 +161,12 @@ export default function Landing() {
                   className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-[#1B2A5E] bg-white shadow-2xl hover:scale-[1.03] transition-transform"
                 >
                   Bắt đầu ngay <ArrowRight size={18} />
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-white bg-white/10 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors"
+                >
+                  Đăng ký tài khoản
                 </Link>
                 <a
                   href="#vai-tro"
@@ -263,14 +288,22 @@ export default function Landing() {
             <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div>
                 <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Sẵn sàng khám phá năng lực?</h2>
-                <p className="text-white/80 max-w-lg">Đăng nhập để bắt đầu hành trình: từ bài test năng khiếu đến hồ sơ số và kết nối nghề nghiệp.</p>
+                <p className="text-white/80 max-w-lg">Đăng ký để bắt đầu hành trình: từ bài test năng khiếu đến hồ sơ số và kết nối nghề nghiệp.</p>
               </div>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-[#1B2A5E] bg-white shadow-xl hover:scale-[1.03] transition-transform shrink-0"
-              >
-                Đăng nhập ngay <ArrowRight size={18} />
-              </Link>
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-[#1B2A5E] bg-white shadow-xl hover:scale-[1.03] transition-transform shrink-0"
+                >
+                  Đăng nhập ngay <ArrowRight size={18} />
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-white bg-white/10 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors shrink-0"
+                >
+                  Đăng ký tài khoản
+                </Link>
+              </div>
             </div>
           </div>
         </section>

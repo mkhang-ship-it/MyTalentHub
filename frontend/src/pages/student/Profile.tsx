@@ -83,8 +83,29 @@ export default function Profile() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   }, []);
 
+  // Chuyển lỗi API thành thông điệp tiếng Việt rõ ràng — không hiện thô "API ... → 401".
+  const fetchErrorMessage = (e: unknown): string => {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("→ 401")) return "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại để xem hồ sơ năng lực của bạn.";
+    if (msg.includes("→ 403")) return "Bạn cần đăng nhập bằng tài khoản học sinh để xem hồ sơ năng lực của bạn.";
+    return msg;
+  };
+
+  // 401/403 khi bấm thao tác: toast thân thiện thay vì thông điệp kỹ thuật.
+  const toastAuthError = (message: string): boolean => {
+    if (message.includes("→ 401")) {
+      showToast("error", "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
+      return true;
+    }
+    if (message.includes("→ 403")) {
+      showToast("error", "Bạn cần đăng nhập bằng tài khoản học sinh để dùng chức năng này.");
+      return true;
+    }
+    return false;
+  };
+
   const loadProfile = useCallback(() => {
-    get<Profile>("/student/profile").then(setData).catch((e) => setError(String(e.message || e)));
+    get<Profile>("/student/profile").then(setData).catch((e) => setError(fetchErrorMessage(e)));
   }, []);
 
   useEffect(() => {
@@ -122,7 +143,13 @@ export default function Profile() {
       loadProfile();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("error", message.includes("validation") || message.includes("Tên chứng chỉ") ? message : "Có lỗi xảy ra, vui lòng thử lại");
+      if (toastAuthError(message)) {
+        // 401/403 đã có thông điệp tiếng Việt
+      } else if (message.includes("validation") || message.includes("Tên chứng chỉ")) {
+        showToast("error", message);
+      } else {
+        showToast("error", "Có lỗi xảy ra, vui lòng thử lại");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +172,9 @@ export default function Profile() {
       loadProfile();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      if (message.includes("404") || message.includes("422")) {
+      if (toastAuthError(message)) {
+        // 401/403 đã có thông điệp tiếng Việt
+      } else if (message.includes("404") || message.includes("422")) {
         showToast("error", "Chứng chỉ không tồn tại hoặc đã bị xoá");
       } else {
         showToast("error", "Có lỗi xảy ra, vui lòng thử lại");

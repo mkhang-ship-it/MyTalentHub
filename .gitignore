@@ -31,3 +31,7 @@ build/
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Giữ lại file mẫu cấu hình (không chứa bí mật thật)
+!.env.example
+!frontend/.env.example

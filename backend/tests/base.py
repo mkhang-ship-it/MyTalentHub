@@ -53,6 +53,14 @@ TEST_DB = TMPDIR / "test.db"
 TEST_PORT = int(os.environ.get("FTH_TEST_PORT", "8099"))
 BASE_URL = f"http://127.0.0.1:{TEST_PORT}"
 
+#: Nếu bên ngoài đã đặt `DATABASE_URL` (ví dụ job CI chạy trên PostgreSQL) thì
+#: TÔN TRỌNG NÓ thay vì ghi đè bằng bản sao SQLite. Nếu không, job CI đó sẽ
+#: âm thầm chạy SQLite và trở nên vô nghĩa. Đặt `FTH_TEST_USE_GIVEN_DB=0` để ép
+#: dùng bản sao SQLite tạm dù có biến.
+_GIVEN_DB = os.environ.get("DATABASE_URL", "").strip()
+USE_GIVEN_DB = bool(_GIVEN_DB) and os.environ.get("FTH_TEST_USE_GIVEN_DB") != "0"
+GIVEN_DB_KIND = "theo biến môi trường" if USE_GIVEN_DB else "bản sao SQLite tạm"
+
 
 def _free_port() -> int:
     with socket.socket() as s:
@@ -61,7 +69,13 @@ def _free_port() -> int:
 
 
 def _prepare_db() -> None:
-    """Tạo bản sao DB dev để test có dữ liệu thật mà không sửa dữ liệu gốc."""
+    """Tạo bản sao DB dev để test có dữ liệu thật mà không sửa dữ liệu gốc.
+
+    Bỏ qua khi `DATABASE_URL` đã được đặt từ bên ngoài (job CI PostgreSQL):
+    không có file SQLite nào để copy, và tạo bản sao cũng vô nghĩa.
+    """
+    if USE_GIVEN_DB:
+        return
     if DEV_DB.exists():
         shutil.copy2(DEV_DB, TEST_DB)
     else:
@@ -73,7 +87,8 @@ _prepare_db()
 #: Env cho mọi tiến trình con (và cho chính tiến trình test nếu nó import app).
 TEST_ENV = {
     **os.environ,
-    "DATABASE_URL": f"sqlite:///{TEST_DB}",
+    # Xem USE_GIVEN_DB ở trên: có DATABASE_URL sẵn thì giữ nguyên.
+    "DATABASE_URL": _GIVEN_DB if USE_GIVEN_DB else f"sqlite:///{TEST_DB}",
     "LOG_LEVEL": "WARNING",
     "MAIL_TO_OUTBOX": "true",
     "FRONTEND_URL": f"{BASE_URL}/dat-lai-mat-khau",
@@ -127,9 +142,14 @@ def start_server() -> None:
         out = (TMPDIR / "server.log").read_text(errors="replace")[-1500:]
         _server.kill()
         raise RuntimeError(
-            f"server test không lên ở {BASE_URL}.\n{out}\n"
-            f"(DB test: {TEST_DB})"
+            f"server test không lên ở {BASE_URL}.\n"
+            f"DB: {TEST_ENV['DATABASE_URL']}\n"
+            f"{out}"
         )
+    if USE_GIVEN_DB:
+        # Bảng được tạo trong DB của CI (PostgreSQL) — nói rõ để log giúp
+        # người đọc biết test chạy trên DB nào, vì đó là điều cần xác nhận.
+        print(f"[tests] DATABASE_URL: dùng nguyên biến môi trường ({_GIVEN_DB[:60]})")
 
 
 def stop_server() -> None:
@@ -145,6 +165,9 @@ def stop_server() -> None:
 
 def cleanup() -> None:
     stop_server()
+    # Chỉ xoá thư mục tạm khi ta tự tạo bản sao. Khi DB do CI cấp, thư mục tạm
+    # chỉ chứa log server — xoá cũng được, nhưng nói rõ để khỏi tưởng đang xoá
+    # dữ liệu của job.
     shutil.rmtree(TMPDIR, ignore_errors=True)
 
 

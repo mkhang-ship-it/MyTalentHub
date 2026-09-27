@@ -23,6 +23,61 @@ jobs:
         # Chạy từ GỐC repo để đường dẫn gói `backend.*` đúng như tài liệu scripts/README.md.
         run: python -m unittest discover -s backend/tests -t backend -v
 
+  # Job 1b: CHẠY LẠI TOÀN BỘ TEST TRÊN POSTGRESQL THẬT.
+  # Lý do tồn tại: `DATABASE_URL` hỗ trợ PostgreSQL là điều ta TIN nhưng chưa
+  # từng chạy thật — máy dev không có PostgreSQL và không có Docker. Ở đây
+  # dùng service container của GitHub Actions nên lần chạy này là lần đầu
+  # thật sự chứng minh code chạy được ngoài SQLite.
+  # Nó bắt được cả những lỗi chỉ xuất hiện ở PostgreSQL: kiểu dữ liệu, câu
+  # SQL dùng cú pháp riêng của SQLite, `ALTER TABLE ... ADD COLUMN` không có
+  # IF NOT EXISTS, và việc transaction không rollback đúng.
+  postgres:
+    name: Backend (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Chỉ dùng trong CI tạm, không phải bí mật thật.
+          POSTGRES_USER: fth
+          POSTGRES_PASSWORD: fth
+          POSTGRES_DB: fth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://fth:fth@127.0.0.1:5432/fth_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cài phụ thuộc backend
+        run: pip install -r backend/requirements.txt
+      - name: Tạo lược đồ trên PostgreSQL
+        # Database CI này rỗng hoàn toàn, không seed. Nhiệm vụ của job chỉ là
+        # chứng minh DDL và truy vấn chạy được trên PostgreSQL, không phải
+        # kiểm tra dữ liệu nghiệp vụ — việc đó job `backend` đã lo với SQLite.
+        run: |
+          cd backend
+          python -c "
+          from app.database import Base, engine
+          import app.models  # noqa: F401  - để model được đăng ký vào Base
+          from app.security import (
+              create_refresh_token_table, create_verification_token_table,
+          )
+          Base.metadata.create_all(bind=engine)
+          create_refresh_token_table()
+          create_verification_token_table()
+          print('DDL OK trên', engine.dialect.name)
+          "
+      - name: Chạy unittest trên PostgreSQL
+        run: python -m unittest discover -s backend/tests -t backend -v
+
   # Job 2: kiểm tra chất lượng frontend (đúng 3 lệnh trong scripts/README.md).
   frontend:
     name: Frontend (tsc/eslint/build)

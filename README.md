@@ -72,6 +72,21 @@ Giải thích hai biến của frontend (xem `frontend/vite.config.ts`):
   **bắt buộc** đặt `VITE_API_PROXY=http://127.0.0.1:8001`, nếu không trang đăng
   nhập sẽ lỗi — xem mục Xử lý sự cố).
 
+## Biến môi trường (backend)
+
+Mọi biến đều có mặc định trong code — thiếu `.env` app vẫn chạy. Mẫu đầy đủ
+xem `.env.example` ở gốc repo.
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Origin frontend cho phép, phân tách dấu phẩy. Không bao giờ để `*` khi kèm credentials. |
+| `ACCESS_TOKEN_TTL_MINUTES` | `60` | Hạn access token (phút). Hết hạn thì client gọi `POST /auth/refresh` đổi cặp mới, không bắt đăng nhập lại. |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | Hạn refresh token (ngày). Mỗi lần dùng sẽ xoay vòng: token cũ bị thu hồi, dùng lại token đã xoay → 401 và cả họ token bị thu hồi (chống đánh cắp). |
+| `TOKEN_TTL_DAYS` | `7` | Tương thích ngược cho token đời cũ. |
+| `ALLOW_PUBLIC_REGISTER` | `true` | Dev/demo giữ `true`. Production đặt `false` để `POST /auth/register` trả 403 (chỉ tạo tài khoản bằng tay/seed). |
+| `PBKDF2_ITERATIONS` | `240000` | Vòng băm PBKDF2-SHA256. Đổi giá trị không vỡ hash cũ vì số vòng lưu cùng hash. |
+| `LOG_LEVEL` | `INFO` | Mức log uvicorn. |
+
 ## Tài khoản demo (mật khẩu đều là `demo123`)
 
 | Vai trò | Email | Vào cổng |

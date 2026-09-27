@@ -29,6 +29,13 @@ for (const flow of FLOWS) {
       await expect(page.locator("body")).toContainText(flow.nav);
       const len = await page.evaluate(() => document.body.innerText.length);
       expect(len, `trang trắng hoặc rỗng ở ${path}`).toBeGreaterThan(100);
+      // Project mobile: phát hiện lỗi bố cục (tràn ngang màn hình 390px)
+      if (test.info().project.name === "mobile") {
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        );
+        expect(overflow, `tràn ngang ở ${path} (mobile 390px)`).toBeLessThanOrEqual(2);
+      }
     }
 
     guard.assertClean();

@@ -1,65 +1,143 @@
 import { defineConfig, devices } from "@playwright/test";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 /**
- * Kiểm thử giao diện FTalentHub (chạy bằng `npx playwright test` trong frontend/).
+ * Kiểm thử giao diện FTalentHub (`npx playwright test` trong frontend/).
  *
- * - baseURL trỏ vào Vite dev server :5174 (proxy /api sang backend :8001).
- * - webServer tự khởi động backend + frontend rồi tự tắt khi xong; nếu cổng đã có
- *   server đang chạy (chế độ dev thường ngày) thì TÁI DÙNG thay vì khởi động mới
- *   (tránh 2 backend cùng giữ một file SQLite).
- * - Trên CI (CI=true) luôn khởi động server mới.
+ * HAI CHẾ ĐỘ CHẠY:
+ * 1. Dev (mặc định): tái dùng server dev đang chạy (FE :5174, BE :8001).
+ *    Test thao tác GHI bị SKIP — trừ khi `WRITE_TESTS=1` (khi đó chúng ghi vào
+ *    DB dev THẬT, nhưng mỗi test tự dọn sạch trong finally và tự FAIL nếu sót).
+ * 2. Cách ly (`CI=true`): copy `backend/talenthub.db` ra thư mục tạm cố định,
+ *    khởi động backend riêng (cổng 8101) với `DATABASE_URL` trỏ vào bản sao,
+ *    FE riêng (cổng 5175) proxy theo; xong việc globalTeardown xóa thư mục tạm.
+ *    Test ghi chạy thoải mái. Không chạy 2 bộ cách ly song song.
+ *
+ * Project: `desktop` (toàn bộ suite) + `mobile` (390x844, chỉ auth+navigation
+ * để giữ thời gian hợp lý).
  */
+
+const DEV_BACKEND_URL = "http://127.0.0.1:8001";
+const DEV_FRONTEND_PORT = 5174;
+
+const ISOLATED = !!process.env.CI;
+const WRITE_TESTS_ENABLED = ISOLATED || process.env.WRITE_TESTS === "1";
+// `npx playwright test --list` cũng nạp config nhưng không chạy gì — bỏ qua
+// việc sao chép DB để khỏi rò rỉ thư mục tạm.
+const LIST_ONLY = process.argv.includes("--list");
+
+/**
+ * QUAN TRỌNG: Playwright nạp file config này NHIỀU LẦN trong các tiến trình
+ * khác nhau (main + worker). Mọi giá trị suy ra ở scope module PHẢI tất định
+ * (deterministic): cổng cố định, đường dẫn tạm cố định. Tuyệt đối không dùng
+ * cổng ngẫu nhiên hay `mkdtemp` ở đây — mỗi lần nạp sẽ ra một giá trị khác
+ * nhau, tiến trình chạy test dùng baseURL khác với server đã khởi động và toàn
+ * bộ suite fail với ERR_CONNECTION_REFUSED. (Bài học xương máu vòng 4.)
+ * Không chạy 2 bộ test cách ly song song trên cùng máy.
+ */
+const ISOLATED_BE_PORT = Number(process.env.FTH_PW_BE_PORT ?? 8101);
+const ISOLATED_FE_PORT = Number(process.env.FTH_PW_FE_PORT ?? 5175);
+const ISOLATED_TMPDIR = path.join(os.tmpdir(), "fth-pw-isolated");
+
+function prepareIsolatedDb(): void {
+  const src = path.resolve(process.cwd(), "../backend/talenthub.db");
+  if (!fs.existsSync(src)) {
+    throw new Error(`Không thấy DB dev để sao chép: ${src}`);
+  }
+  fs.mkdirSync(ISOLATED_TMPDIR, { recursive: true });
+  fs.copyFileSync(src, path.join(ISOLATED_TMPDIR, "test.db"));
+  // globalTeardown đọc biến này để dọn thư mục tạm.
+  process.env.FTH_PW_TMPDIR = ISOLATED_TMPDIR;
+}
+
+let backendURL = DEV_BACKEND_URL;
+let frontendPort = DEV_FRONTEND_PORT;
+
+if (ISOLATED && !LIST_ONLY) {
+  prepareIsolatedDb();
+  const bePort = ISOLATED_BE_PORT;
+  frontendPort = ISOLATED_FE_PORT;
+  backendURL = `http://127.0.0.1:${bePort}`;
+  console.log(
+    `[playwright] Chế độ CÁCH LY: backend riêng :${bePort} với DB sao chép tại ${ISOLATED_TMPDIR} (DB dev không bị đụng tới).`
+  );
+} else if (WRITE_TESTS_ENABLED) {
+  console.warn(
+    [
+      "[playwright] CẢNH BÁO: WRITE_TESTS=1 — test thao tác ghi SẼ GHI VÀO DB DEV THẬT",
+      `(${DEV_BACKEND_URL}, file backend/talenthub.db). Mỗi test tự dọn trong finally và tự FAIL`,
+      "nếu còn sót dữ liệu. Chỉ dùng khi bạn cố ý kiểm tra ghi trên môi trường dev.",
+    ].join("\n")
+  );
+} else {
+  console.warn(
+    "[playwright] Chế độ dev: tái dùng server đang chạy; các test thao tác ghi bị SKIP " +
+      "(chạy với WRITE_TESTS=1 để kiểm ghi, hoặc CI=true để dùng DB cách ly)."
+  );
+}
+
 export default defineConfig({
   testDir: "./tests",
-  // Chạy tuần tự: các test dùng chung DB dev + cùng cổng, chạy song song dễ gây nhiễu.
+  globalTeardown: "./tests/global-teardown",
+  // Chạy tuần tự: các test dùng chung DB + cùng cổng, chạy song song dễ gây nhiễu.
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
   expect: {
     timeout: 15_000,
   },
-  // 1 lần thử lại: test chập chờn (mạng, chunk lazy-load) thường xanh ở lần
-  // chạy kế tiếp. Không có retries thì một lần nhiễu chặn cả pipeline CI.
-  retries: process.env.CI ? 1 : 0,
-  // Cần cả `html`: CI upload artifact `frontend/playwright-report/` khi test
-  // hỏng. Chỉ có `list` thì thư mục đó không tồn tại và upload rỗng.
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
+  retries: 0,
+  reporter: [["list"]],
   use: {
-    baseURL: "http://127.0.0.1:5174",
-    // `on-first-retry` thay vì `retain-on-failure`:
-    //  - `retain-on-failure` phải ráp trace cho MỌI test, kể cả test xanh, và
-    //    đó là lúc Playwright tự gây flake ENOENT ở teardown (ráp trace.zip vào
-    //    .playwright-artifacts-* đã bị dọn) — fail oan.
-    //  - `on-first-retry` chỉ quay lúc thử lại, tức đúng lúc test đang hỏng
-    //    và trace mới có giá trị chẩn đoán. Test xanh không phải ráp gì.
-    trace: "on-first-retry",
-    // Chụp ảnh màn hình khi hỏng: rẻ hơn trace nhiều mà thấy ngay lỗi hiển thị.
-    screenshot: "only-on-failure",
+    baseURL: `http://127.0.0.1:${frontendPort}`,
+    // TẮT trace: `retain-on-failure` gây flake hạ tầng (ENOENT khi Playwright
+    // ráp trace.zip ở teardown) làm fail oan test dài nhất suite dù app xanh.
+    trace: "off",
   },
   projects: [
     {
-      name: "chromium",
+      name: "desktop",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // Viewport điện thoại 390x844: chỉ chạy lại auth + navigation để phát
+      // hiện lỗi bố cục, không chạy lại toàn bộ (giữ thời gian hợp lý).
+      name: "mobile",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+      testMatch: ["**/auth.spec.ts", "**/navigation.spec.ts"],
     },
   ],
   webServer: [
     {
-      // Backend FastAPI (chỉ khởi động khi :8001 chưa có ai nghe).
-      command: "python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8001",
+      command: `python3 -m uvicorn app.main:app --host 127.0.0.1 --port ${new URL(backendURL).port}`,
       cwd: "../backend",
-      url: "http://127.0.0.1:8001/api/v1/health",
+      url: `${backendURL}/api/v1/health`,
       timeout: 120_000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !ISOLATED,
+      env: ISOLATED
+        ? {
+            DATABASE_URL: `sqlite:///${path.join(process.env.FTH_PW_TMPDIR ?? "", "test.db")}`,
+            LOG_LEVEL: "WARNING",
+            MAIL_TO_OUTBOX: "true",
+            ALLOW_UNVERIFIED_EMAIL: "true",
+          }
+        : {},
     },
     {
-      // Frontend Vite (chỉ khởi động khi :5174 chưa có ai nghe).
-      command: "npm run dev -- --host 127.0.0.1 --port 5174",
-      url: "http://127.0.0.1:5174/login",
+      command: `npm run dev -- --host 127.0.0.1 --port ${frontendPort}`,
+      url: `http://127.0.0.1:${frontendPort}/login`,
       timeout: 120_000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !ISOLATED,
       env: {
-        VITE_API_PROXY: "http://127.0.0.1:8001",
-        VITE_PORT: "5174",
+        VITE_API_PROXY: backendURL,
+        VITE_PORT: String(frontendPort),
       },
     },
   ],

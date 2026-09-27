@@ -29,7 +29,8 @@ type Criterion = (typeof CRITERIA)[number]["key"];
 const BLANK = { chuyen_mon: 0, sang_tao: 0, lam_viec_nhom: 0, ky_luat: 0 };
 
 export default function Grading() {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  // activities = null: đang tải; []: đã tải xong nhưng giáo viên/coach chưa phụ trách sân chơi nào
+  const [activities, setActivities] = useState<Activity[] | null>(null);
   const [activityId, setActivityId] = useState<number | null>(null);
   const [students, setStudents] = useState<Student[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -75,7 +76,7 @@ export default function Grading() {
 
   const selected = students?.find((s) => s.registration_id === selectedId) ?? null;
   const sc = selected ? scores[selected.registration_id] ?? { ...BLANK } : { ...BLANK };
-  const activity = activities.find((a) => a.id === activityId);
+  const activity = activities?.find((a) => a.id === activityId);
 
   const setScore = (key: Criterion, v: number) => {
     if (!selected) return;
@@ -103,30 +104,41 @@ export default function Grading() {
         subtitle={`${students?.length ?? 0} bài đang chờ — hãy hoàn tất chấm điểm (slide 22).`}
       />
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <span className="text-sm font-medium text-muted">Sân chơi:</span>
-        <select
-          value={activityId ?? ""}
-          onChange={(e) => setActivityId(Number(e.target.value))}
-          className="px-3 py-2 rounded-xl border border-line bg-white text-sm"
-        >
-          {activities.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.title}
-            </option>
-          ))}
-        </select>
-        {okMsg && <span className="text-sm text-portal font-medium">{okMsg}</span>}
-      </div>
-
-      {!students ? (
+      {activities === null ? (
         <Loading />
-      ) : students.length === 0 ? (
+      ) : activities.length === 0 ? (
         <Card>
-          <p className="text-sm text-muted">Sân chơi này chưa có học viên đăng ký.</p>
+          <p className="text-sm text-muted">
+            Bạn chưa phụ trách sân chơi nào nên chưa có bài để chấm. Hãy tạo sân chơi mới
+            ở trang “Sân chơi của tôi” rồi quay lại đây.
+          </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <>
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-muted">Sân chơi:</span>
+            <select
+              value={activityId ?? ""}
+              onChange={(e) => setActivityId(Number(e.target.value))}
+              className="px-3 py-2 rounded-xl border border-line bg-white text-sm"
+            >
+              {activities.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </select>
+            {okMsg && <span className="text-sm text-portal font-medium">{okMsg}</span>}
+          </div>
+
+          {!students ? (
+            <Loading />
+          ) : students.length === 0 ? (
+            <Card>
+              <p className="text-sm text-muted">Sân chơi này chưa có học viên đăng ký.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Hàng chờ (slide 22) */}
           <Card reveal revealDelay={1}>
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted mb-3">
@@ -228,6 +240,8 @@ export default function Grading() {
             )}
           </Card>
         </div>
+          )}
+        </>
       )}
     </div>
     </>

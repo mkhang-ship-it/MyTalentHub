@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, X, Users, Mail, Award, Clock, Edit, Trash2, ToggleLeft, ToggleRight, Eye, AlertCircle, CheckCircle } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading } from "../../components/ui";
+import { useDialogA11y } from "../../hooks/useDialog";
 
 interface Toast {
   id: number;
@@ -47,6 +48,11 @@ export default function Internships() {
   const [showApplicants, setShowApplicants] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // a11y cho modal danh sách ứng viên: focus trap + Escape + trả focus về nút mở
+  const applicantsDialogRef = useDialogA11y<HTMLDivElement>(
+    showApplicants && selectedPost !== null,
+    () => setShowApplicants(false)
+  );
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now();
@@ -354,6 +360,7 @@ export default function Internships() {
       {/* Modal xem ứng viên */}
       {showApplicants && selectedPost && (
         <div
+          ref={applicantsDialogRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           role="dialog"
           aria-modal="true"

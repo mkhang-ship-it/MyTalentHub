@@ -88,10 +88,10 @@ không giấu nợ kỹ thuật.
       = 30 phút), `GET /auth/verify-email` + `POST /auth/verify-email/resend`.
       Production phải đặt SMTP thật + `MAIL_TO_OUTBOX=false` + `FRONTEND_URL`
       đúng domain (xem CẢNH BÁO ở mục 1 và `docs/DEPLOY.md` mục 3–4).
-- [ ] Giới hạn tài khoản đăng ký công khai: endpoint `POST /auth/register`
-      cho phép tự đăng ký mọi vai trò — production đặt
-      `ALLOW_PUBLIC_REGISTER=false` (trả 403) rồi duyệt tay, hoặc thêm
-      captcha/email xác thực.
+- [x] Giới hạn tài khoản đăng ký công khai — ĐÃ CÓ: `ALLOW_PUBLIC_REGISTER=false`
+      trong `backend/app/config.py` khiến `POST /auth/register` trả 403 kèm thông
+      điệp tiếng Việt (`routers/auth.py`). Production đặt `false` rồi duyệt tay,
+      hoặc thêm captcha/email xác thực.
 - [x] Đặt rate limit ở tầng reverse proxy cho `/auth/login`:
       `frontend/nginx.conf` có `limit_req_zone` 5 req/phút/IP + burst 5,
       vượt quá trả **429** (`limit_req_status 429`), chỉ áp cho
@@ -111,25 +111,41 @@ không giấu nợ kỹ thuật.
     `/tmp/ftalenthub-dev-{api,web}.log`, Docker ghi ra stdout.
 - [ ] Nối log vào Loki/CloudWatch + đặt cảnh báo khi 5xx tăng đột biến (phần
       dây nối phía hạ tầng, chưa làm).
-- [ ] Khoá CORS như mục 1 (bỏ `allow_origins=["*"]` trong `main.py`).
+- [x] Khoá CORS — ĐÃ LÀM ở lô 4: `main.py` dùng `allow_origins=cors_origins()`
+      (`backend/app/security.py`) thay vì `["*"]`; hàm này lọc bỏ mọi origin
+      `"*"` và fallback về localhost khi env trống. Production vẫn phải đặt
+      `CORS_ORIGINS` đúng domain thật (xem mục 1).
 
 ## 5. Những hạng mục CHƯA làm (nêu thẳng)
 
 
-- [ ] Chưa có gửi email xác thực / quên mật khẩu (không có mã SMTP nào trong
-      repo; đặt lại mật khẩu hiện chỉ làm tay trong DB).
+- [x] Gửi email xác thực / quên mật khẩu — ĐÃ CÓ ở vòng 3 (P4 kiểm chứng luồng):
+      `POST /auth/forgot-password` (email lạ vẫn 200 chung chung, không lộ),
+      `POST /auth/reset-password` (hạn `RESET_TOKEN_TTL_MINUTES` = 30 phút),
+      `GET /auth/verify-email` + `POST /auth/verify-email/resend`, gửi thật qua
+      SMTP (`backend/app/mailer.py`, cấu hình `SMTP_*` trong `config.py`);
+      không SMTP thì ghi `backend/outbox/*.html` (chỉ dev/test — production bắt
+      buộc SMTP thật + `MAIL_TO_OUTBOX=false`, xem CẢNH BÁO mục 1).
 - [ ] Chưa có quản lý ảnh/avatar upload (mới chỉ có trường `avatar_url` dạng
       chuỗi; không có endpoint `UploadFile`/multipart nào).
 - [x] Chưa có theo dõi/log tập trung và dashboard cảnh báo → đã làm một nửa
       (P4 vòng 2): định dạng log + `ops/logrotate-ftalenthub.conf` xong (xem
       mục 4); còn thiếu dây nối Loki/CloudWatch, dashboard và cảnh báo 5xx.
-- [ ] Chưa có kiểm thử tự động ở tầng giao diện: `frontend/tests/` hiện chỉ có
-      `verify-portals.spec.cjs` dạng screenshot smoke bằng Playwright (đăng nhập
-      4 cổng, chụp ảnh, assert URL), chưa có E2E đầy đủ cho luồng nghiệp vụ
-      (đăng ký → chấm điểm → xem báo cáo), và chưa chạy trong CI (job frontend
-      của CI hiện mới chỉ tsc/eslint/build).
-- [ ] Chưa có kiểm thử tải (load test) cho các endpoint chấm điểm/đăng ký hoạt
-      động vào giờ cao điểm.
+- [x] Kiểm thử tự động ở tầng giao diện — ĐÃ CÓ (P4 đếm thật trong code):
+      `frontend/tests/` có 4 spec Playwright (`auth`, `navigation`,
+      `password-reset`, `rbac`) nở thành **19 test** qua loop (auth 6 gồm 5 vai
+      trò, navigation 7 gồm 5 luồng cổng, password-reset 3, rbac 3), chạy trong
+      CI ở job "Giao diện (Playwright)" (`npx playwright test`, chromium
+      headless). Còn thiếu: E2E đầy đủ cho luồng nghiệp vụ dài
+      (đăng ký → chấm điểm → xem báo cáo); đo hiệu năng mặt đọc xem
+      `scripts/loadtest.py`.
+- [x] Kiểm thử tải (load test) — ĐÃ CÓ (P4 vòng 4): `scripts/loadtest.py`
+      (thư viện chuẩn urllib + statistics + ThreadPoolExecutor, không cài gì)
+      đo 5 endpoint mặt đọc, báo median/p95/p99/max và lỗi theo endpoint,
+      exit khác 0 khi p95 vượt ngưỡng (`--p95-max`, mặc định 500ms) để dùng
+      trong CI. Kết quả đo thật trên DB seed: p95 các endpoint 7–14ms
+      (chi tiết xem báo cáo vòng 4). Số này KHÔNG đại diện production —
+      script luôn in cảnh báo đó.
 - [x] Chưa có chiến lược backup tự động cho SQLite (mới chỉ là checklist tay)
       → đã có `scripts/backup.sh` (P4 vòng 2: `.backup` online, nén `.db.gz`,
       giữ 7 bản, tự kiểm integrity); còn thiếu cron/systemd timer chạy định kỳ
@@ -157,8 +173,12 @@ không giấu nợ kỹ thuật.
       vai trò đã đăng nhập đều 200 theo thiết kế QR công khai).
 - [ ] Production vẫn nên đặt cron dọn `auth_tokens` định kỳ nếu server chạy
       liên tục nhiều tuần không restart (purge hiện chỉ chạy lúc khởi động).
-- [ ] Cân nhắc giảm TTL xuống 1 ngày + refresh token riêng cho production
-      (hiện access token sống 7 ngày, đánh cắp token = toàn quyền 7 ngày).
+- [x] Refresh token + TTL ngắn — ĐÃ CÓ: `routers/auth.py` cấp cặp access/refresh
+      (chỉ lưu hash refresh trong bảng `refresh_tokens`,
+      `security.py::new_refresh_expiry`), access token mặc định
+      `ACCESS_TOKEN_TTL_MINUTES=60` (đọc thật trong `security.py`),
+      refresh `REFRESH_TOKEN_TTL_DAYS=30`, `TOKEN_TTL_DAYS=7` chỉ còn tương thích
+      ngược. Production siết thêm bằng env nếu muốn ngắn hơn.
 
 ## 7. Docker (P4 — chưa build thử được)
 

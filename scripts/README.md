@@ -47,6 +47,23 @@ python3 scripts/qa.py --base http://127.0.0.1:8001/api/v1
 - **Exit code khác 0 khi có FAIL** (kể cả backend chết) — dùng được trong CI.
 - `--json` chỉ xuất JSON ra stdout (không in bảng), vẫn giữ exit code.
 
+## 3b. Đo hiệu năng mặt đọc (`scripts/loadtest.py`)
+
+```bash
+python3 scripts/loadtest.py                                # 20 req/endpoint, 4 luồng
+python3 scripts/loadtest.py --requests 50 --concurrency 8  # tăng tải (đừng làm trên máy dùng chung)
+python3 scripts/loadtest.py --json                         # xuất JSON
+python3 scripts/loadtest.py --p95-max 800                  # đổi ngưỡng p95 (ms)
+```
+
+- Chỉ thư viện chuẩn (`urllib`, `statistics`, `ThreadPoolExecutor`), tự đăng
+  nhập lấy token thật, đo 5 endpoint GET, báo median/p95/p99/max và lỗi theo
+  endpoint. `--role student|teacher|school` ép mọi endpoint dùng 1 vai trò
+  (403 lúc đó là bình thường — dùng để kiểm tra RBAC dưới tải).
+- **Exit code khác 0 khi p95 vượt `--p95-max`** (mặc định 500ms).
+- **Số đo phụ thuộc dữ liệu seed (~40 học sinh), KHÔNG đại diện production**
+  — script luôn in cảnh báo này; đừng trích bảng số làm cam kết hiệu năng.
+
 ## 4. Endpoint nào cần token / không cần token
 
 **Không cần token (công khai / demo):**

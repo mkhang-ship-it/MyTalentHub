@@ -7,6 +7,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from ..core.pagination import paginate
+from ..core.pagination import MAX_LIMIT
 from ..database import get_db
 from ..models import (
     Activity,
@@ -749,20 +750,40 @@ def _xep_loai(total: float) -> str:
 
 
 @router.get("/evaluations")
-def evaluations(authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Điểm tiêu chí + nhận xét từ GV/HLV (slide 15) — bắt buộc token, của học sinh trong token."""
+def evaluations(
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    """Điểm tiêu chí + nhận xét từ GV/HLV (slide 15) — bắt buộc token, của học sinh trong token.
+
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
+    """
     s = _get_student_from_token(authorization, db)
-    rows = (
+    base_q = (
         db.query(Evaluation)
         .filter(Evaluation.student_id == s.id)
         .order_by(Evaluation.id.desc())
-        .all()
     )
+    rows, total = paginate(base_q, limit, offset)
+    # Gom reviewer/activity thành 2 truy vấn IN (trước đây: 2 query cho mỗi đánh giá).
+    teacher_map: dict[int, User] = {}
+    activity_map: dict[int, Activity] = {}
+    if rows:
+        teacher_ids = list({e.teacher_id for e in rows})
+        activity_ids = list({e.activity_id for e in rows})
+        for u in db.query(User).filter(User.id.in_(teacher_ids)).all():
+            teacher_map[u.id] = u
+        for a in db.query(Activity).filter(Activity.id.in_(activity_ids)).all():
+            activity_map[a.id] = a
     out = []
     for e in rows:
-        teacher = db.query(User).filter(User.id == e.teacher_id).first()
-        activity = db.query(Activity).filter(Activity.id == e.activity_id).first()
-        total = round(e.chuyen_mon + e.sang_tao + e.lam_viec_nhom + e.ky_luat, 1)
+        teacher = teacher_map.get(e.teacher_id)
+        activity = activity_map.get(e.activity_id)
+        total_score = round(e.chuyen_mon + e.sang_tao + e.lam_viec_nhom + e.ky_luat, 1)
         # Xác định role của người chấm (teacher/coach)
         reviewer_role = "teacher"
         if teacher and teacher.role == "coach":
@@ -779,28 +800,41 @@ def evaluations(authorization: str = Header(default=None), db: Session = Depends
                     {"name": "Làm việc nhóm", "score": e.lam_viec_nhom, "max": 20},
                     {"name": "Kỷ luật", "score": e.ky_luat, "max": 20},
                 ],
-                "total": total,
-                "xep_loai": _xep_loai(total),
+                "total": total_score,
+                "xep_loai": _xep_loai(total_score),
                 "comment": e.comment,
                 "date": str(e.evaluated_at)[:10],
             }
         )
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return out
 
 
 @router.get("/checkins")
-def checkin_history(authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Lịch sử check-in QR của học sinh (slide 14) — bắt buộc token."""
+def checkin_history(
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    """Lịch sử check-in QR của học sinh (slide 14) — bắt buộc token.
+
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
+    """
     s = _get_student_from_token(authorization, db)
-    rows = (
+    base_q = (
         db.query(CheckIn, ActivityRegistration, Activity)
         .join(ActivityRegistration, ActivityRegistration.id == CheckIn.registration_id)
         .join(Activity, Activity.id == ActivityRegistration.activity_id)
         .filter(ActivityRegistration.student_id == s.id)
         .order_by(CheckIn.id.desc())
-        .limit(50)
-        .all()
     )
+    rows, total = paginate(base_q, limit, offset)
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return [
         {
             "id": c.id,
@@ -815,14 +849,19 @@ def checkin_history(authorization: str = Header(default=None), db: Session = Dep
 
 @router.get("/activities")
 def activities(
+    response: Response,
     field: str | None = None,
     q: str | None = None,
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
     authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Danh sách sân chơi theo lĩnh vực — chỉ trạng thái open (slide 13).
 
     Bắt buộc token (đánh dấu sân chơi đã đăng ký theo học sinh trong token).
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
     """
     s = _get_student_from_token(authorization, db)
     query = db.query(Activity).filter(Activity.status == "open")
@@ -830,11 +869,25 @@ def activities(
         query = query.filter(Activity.field == field)
     if q:
         query = query.filter(Activity.title.ilike(f"%{q}%"))
-    rows = query.all()
+    query = query.order_by(Activity.id.asc())
+    rows, total = paginate(query, limit, offset)
     my_ids = {
         r.activity_id
         for r in db.query(ActivityRegistration).filter(ActivityRegistration.student_id == s.id)
     }
+    # Gom đếm đăng ký thành MỘT truy vấn GROUP BY (trước đây: 1 query COUNT cho mỗi sân chơi).
+    counts: dict[int, int] = {}
+    page_ids = [a.id for a in rows]
+    if page_ids:
+        for aid, cnt in (
+            db.query(ActivityRegistration.activity_id, func.count(ActivityRegistration.id))
+            .filter(ActivityRegistration.activity_id.in_(page_ids))
+            .group_by(ActivityRegistration.activity_id)
+            .all()
+        ):
+            counts[aid] = cnt
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return [
         {
             "id": a.id,
@@ -845,7 +898,7 @@ def activities(
             "start_date": a.start_date,
             "status": a.status,
             "registered": a.id in my_ids,
-            "slots_left": max(0, a.capacity - db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == a.id).count()),
+            "slots_left": max(0, a.capacity - counts.get(a.id, 0)),
         }
         for a in rows
     ]

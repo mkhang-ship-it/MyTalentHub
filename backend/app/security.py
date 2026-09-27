@@ -95,6 +95,34 @@ def token_is_expired(auth_token) -> bool:
     return exp <= _utcnow()
 
 
+def purge_expired_tokens(db=None) -> int:
+    """Xoá các token đã hết hạn khỏi `auth_tokens`. Trả về số dòng đã xoá.
+
+    Chỉ xoá dòng có `expires_at` không NULL và đã quá hạn — token còn hiệu lực
+    (và token legacy chưa backfill) được giữ nguyên. `db=None` → tự mở session.
+    Được gọi 1 lần lúc khởi động server trong `database._run_migrations()`.
+    """
+    from .models import AuthToken
+
+    close = False
+    if db is None:
+        from .database import SessionLocal
+
+        db = SessionLocal()
+        close = True
+    try:
+        n = (
+            db.query(AuthToken)
+            .filter(AuthToken.expires_at.isnot(None), AuthToken.expires_at <= _utcnow())
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+        return n
+    finally:
+        if close:
+            db.close()
+
+
 def resolve_token_user(db, token: str):
     """Tra (AuthToken, User) theo token, kèm kiểm tra hết hạn.
 

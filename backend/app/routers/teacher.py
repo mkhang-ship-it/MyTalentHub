@@ -277,8 +277,19 @@ def delete_class(class_id: int, authorization: str = Header(default=None), db: S
 
 
 @router.get("/classes/{class_id}/students", response_model=list[ClassStudentOut])
-def list_class_students(class_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Danh sách học sinh trong lớp chủ nhiệm."""
+def list_class_students(
+    class_id: int,
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    """Danh sách học sinh trong lớp chủ nhiệm.
+
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
+    """
     teacher = _get_teacher_from_token_teacher_only(authorization, db)
     cg = (
         db.query(ClassGroup)
@@ -288,12 +299,15 @@ def list_class_students(class_id: int, authorization: str = Header(default=None)
     if not cg:
         raise HTTPException(404, "Không tìm thấy lớp hoặc bạn không phải GVCN của lớp này")
 
-    students = (
+    base_q = (
         db.query(Student)
         .options(selectinload(Student.user))
         .filter(Student.class_name == cg.name, Student.grade == cg.grade)
-        .all()
+        .order_by(Student.id.asc())
     )
+    students, total = paginate(base_q, limit, offset)
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return [
         ClassStudentOut(
             id=s.id,
@@ -373,13 +387,35 @@ def overview(authorization: str = Header(default=None), db: Session = Depends(ge
 
 
 @router.get("/activities", response_model=list[ActivityOut])
-def my_activities(authorization: str = Header(default=None), db: Session = Depends(get_db)):
-    """Sân chơi của tôi (slide 21) — bắt buộc token; `teacher_id` cũ bị bỏ qua."""
+def my_activities(
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    """Sân chơi của tôi (slide 21) — bắt buộc token; `teacher_id` cũ bị bỏ qua.
+
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
+    """
     t = _resolve_current_teacher(authorization, db)
-    rows = db.query(Activity).filter(Activity.teacher_id == t.id).all()
+    base_q = db.query(Activity).filter(Activity.teacher_id == t.id).order_by(Activity.id.asc())
+    rows, total = paginate(base_q, limit, offset)
+    # Gom đếm đăng ký thành MỘT truy vấn GROUP BY (trước đây: 1 query COUNT cho mỗi sân chơi).
+    counts: dict[int, int] = {}
+    page_ids = [a.id for a in rows]
+    if page_ids:
+        for aid, cnt in (
+            db.query(ActivityRegistration.activity_id, func.count(ActivityRegistration.id))
+            .filter(ActivityRegistration.activity_id.in_(page_ids))
+            .group_by(ActivityRegistration.activity_id)
+            .all()
+        ):
+            counts[aid] = cnt
     out = []
     for a in rows:
-        cnt = db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == a.id).count()
+        cnt = counts.get(a.id, 0)
         out.append(
             ActivityOut(
                 id=a.id,
@@ -394,6 +430,8 @@ def my_activities(authorization: str = Header(default=None), db: Session = Depen
                 registered_count=cnt,
             )
         )
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return out
 
 
@@ -422,10 +460,19 @@ def create_activity(payload: ActivityIn, authorization: str = Header(default=Non
 
 
 @router.get("/activities/{activity_id}/students")
-def activity_students(activity_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+def activity_students(
+    activity_id: int,
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
     """Danh sách học viên trong 1 sân chơi — CHỈ giáo viên/HLV phụ trách sân chơi đó.
 
     Sân chơi không tồn tại → 404; tồn tại nhưng không phụ trách → 403.
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
     """
     t = _resolve_current_teacher(authorization, db)
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
@@ -433,12 +480,16 @@ def activity_students(activity_id: int, authorization: str = Header(default=None
         raise HTTPException(404, "Không tìm thấy sân chơi")
     if activity.teacher_id != t.id:
         raise HTTPException(403, "Bạn không phải người phụ trách sân chơi này nên không thể xem danh sách học viên")
-    rows = (
+    base_q = (
         db.query(ActivityRegistration, Student)
         .join(Student, Student.id == ActivityRegistration.student_id)
+        .options(selectinload(Student.user))
         .filter(ActivityRegistration.activity_id == activity_id)
-        .all()
+        .order_by(ActivityRegistration.id.asc())
     )
+    rows, total = paginate(base_q, limit, offset)
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return [
         {
             "registration_id": r.id,
@@ -508,15 +559,16 @@ def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default
 def my_students(
     response: Response,
     authorization: str = Header(default=None),
-    limit: int | None = Query(default=None, ge=1),
-    offset: int = Query(default=0, ge=0),
+    limit: int | None = Query(default=None),
+    offset: int = Query(default=0),
     db: Session = Depends(get_db),
 ):
     """Học viên của tôi (slide 23): tổng theo sân chơi, filter tên/lớp.
 
     Bắt buộc token; danh sách chỉ gồm học viên các sân chơi của chính người gọi.
     Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
-    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200,
+    offset âm coi như 0).
     """
     t = _resolve_current_teacher(authorization, db)
     activity_ids = [row[0] for row in db.query(Activity.id).filter(Activity.teacher_id == t.id).all()]
@@ -525,6 +577,7 @@ def my_students(
         rows = (
             db.query(ActivityRegistration, Student)
             .join(Student, Student.id == ActivityRegistration.student_id)
+            .options(selectinload(Student.user))
             .filter(ActivityRegistration.activity_id.in_(activity_ids))
             .all()
         )
@@ -544,7 +597,7 @@ def my_students(
     # Tổng hợp trong Python (mỗi HS gộp nhiều sân chơi) nên cắt trang trên list.
     students, total = paginate(list(seen.values()), limit, offset)
     response.headers["X-Total-Count"] = str(total)
-    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit else "all")
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit is not None else "all")
     return {
         "teacher": {"id": t.id, "full_name": t.user.full_name},
         "total": total,

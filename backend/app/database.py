@@ -39,6 +39,14 @@ def _run_migrations():
             conn.commit()
         except Exception:
             conn.rollback()
+        try:
+            # Dọn token đã hết hạn 1 lần mỗi lần khởi động server.
+            from .security import purge_expired_tokens
+
+            purge_expired_tokens()
+        except Exception:
+            # Dọn dẹp thất bại không được chặn server khởi động.
+            pass
 
 
 def get_db():

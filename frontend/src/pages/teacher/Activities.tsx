@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Clock, Plus, Users, Edit, Trash2, PauseCircle, CheckCircle, AlertCircle, Zap, LogIn } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
+import { useDialogA11y } from "../../hooks/useDialog";
 
 interface Toast {
   id: number;
@@ -98,6 +99,15 @@ export default function Activities() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // Menu "Trạng thái": mở bằng click (thay vì chỉ hover) để dùng được bằng bàn phím.
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  // Modal xác nhận xóa (thay window.confirm): focus trap + Escape + trả focus.
+  const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deleteDialogRef = useDialogA11y<HTMLDivElement>(
+    pendingDelete !== null,
+    () => setPendingDelete(null)
+  );
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now();
@@ -229,6 +239,7 @@ export default function Activities() {
   };
 
   const handleStatusChange = async (activity: Activity, newStatus: string) => {
+    setOpenMenuId(null);
     setError("");
     try {
       await put(`/teacher/activities/${activity.id}/status`, { status: newStatus });
@@ -240,16 +251,26 @@ export default function Activities() {
     }
   };
 
-  const handleDelete = async (activity: Activity) => {
-    if (!window.confirm(`Xóa sân chơi "${activity.title}"?`)) return;
+  const handleDelete = (activity: Activity) => {
+    // Mở modal xác nhận thay vì window.confirm (không dùng được bàn phím đầy đủ,
+    // trình chặn popup có thể nuốt mất).
+    setPendingDelete(activity);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     setError("");
     try {
-      await del(`/teacher/activities/${activity.id}`);
+      await del(`/teacher/activities/${pendingDelete.id}`);
       showToast("success", "Xóa sân chơi thành công");
+      setPendingDelete(null);
       load();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       applyActionError(message, message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -506,27 +527,43 @@ export default function Activities() {
                       <Edit size={14} aria-hidden="true" /> Sửa
                     </button>
                     {STATUS_TRANSITIONS[a.status] && STATUS_TRANSITIONS[a.status].length > 0 && (
-                      <div className="relative inline-block group">
+                      <div
+                        className="relative inline-block"
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setOpenMenuId(null);
+                        }}
+                        onBlur={(e) => {
+                          // Rời tiêu điểm khỏi cả cụm nút + menu thì đóng menu lại
+                          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                            setOpenMenuId(null);
+                          }
+                        }}
+                      >
                         <button
+                          type="button"
+                          onClick={() => setOpenMenuId(openMenuId === a.id ? null : a.id)}
                           className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-line font-medium text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-colors"
-                          aria-haspopup="true"
-                          aria-expanded="false"
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === a.id}
+                          aria-label={`Đổi trạng thái ${a.title}`}
                         >
                           <PauseCircle size={14} aria-hidden="true" /> Trạng thái
                         </button>
-                        <div className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded-xl bg-white border border-line shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150" role="menu">
-                          {STATUS_TRANSITIONS[a.status].map((s) => (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => handleStatusChange(a, s)}
-                              className="w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas-soft focus:outline-none focus:bg-canvas-soft"
-                              role="menuitem"
-                            >
-                              {STATUS_LABELS[s]}
-                            </button>
-                          ))}
-                        </div>
+                        {openMenuId === a.id && (
+                          <div className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded-xl bg-white border border-line shadow-lg py-1" role="menu" aria-label={`Trạng thái của ${a.title}`}>
+                            {STATUS_TRANSITIONS[a.status].map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => handleStatusChange(a, s)}
+                                className="w-full px-3 py-2 text-left text-sm text-ink hover:bg-canvas-soft focus:outline-none focus:bg-canvas-soft"
+                                role="menuitem"
+                              >
+                                {STATUS_LABELS[s]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                     <button
@@ -551,6 +588,48 @@ export default function Activities() {
           {data?.length ?? 0} sân chơi · {data?.reduce((s, a) => s + a.registered_count, 0) ?? 0} học viên
         </div>
       </Card>
+
+      {/* Modal xác nhận xóa sân chơi (thay window.confirm) */}
+      {pendingDelete && (
+        <div
+          ref={deleteDialogRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-activity-title"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-xl p-6"
+            style={{ animation: "scaleIn 0.25s ease-out both" }}
+          >
+            <h3 id="delete-activity-title" className="font-semibold text-ink">
+              Xóa sân chơi
+            </h3>
+            <p className="mt-2 text-sm text-muted">
+              Bạn chắc chắn muốn xóa sân chơi <strong className="text-ink">“{pendingDelete.title}”</strong>?
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={deleting}
+                className="text-sm px-4 py-2 rounded-xl bg-canvas-soft text-muted hover:bg-canvas-soft/80 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="text-sm px-4 py-2 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                {deleting ? "Đang xóa…" : "Xóa sân chơi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

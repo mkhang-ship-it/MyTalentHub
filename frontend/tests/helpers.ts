@@ -40,13 +40,14 @@ export interface ConsoleGuard {
 export function guardConsole(page: Page, opts?: { ignoreHttp?: number[] }): ConsoleGuard {
   const errors: string[] = [];
   const ignored = opts?.ignoreHttp ?? [];
+  const isIgnoredHttp = (status: number) => ignored.includes(status);
   const onConsole = (msg: { type: () => string; text: () => string }) => {
     if (msg.type() !== "error") return;
     const text = msg.text();
     // Bỏ qua tiếng ồn mạng đã được test cho phép (VD: 403 khi kiểm tra RBAC)
     if (/^Failed to load resource/i.test(text)) {
       const m = text.match(/status of (\d{3})/);
-      if (m && ignored.includes(Number(m[1]))) return;
+      if (m && isIgnoredHttp(Number(m[1]))) return;
     }
     errors.push(`[console] ${text.slice(0, 300)}`);
   };
@@ -54,8 +55,16 @@ export function guardConsole(page: Page, opts?: { ignoreHttp?: number[] }): Cons
     const message = err instanceof Error ? err.message : String(err);
     errors.push(`[pageerror] ${message.slice(0, 300)}`);
   };
+  // Ghi lại URL của mọi response HTTP lỗi để debug (VD: biết 401 đến từ endpoint nào).
+  const onResponse = (res: { url: () => string; status: () => number }) => {
+    const status = res.status();
+    if (status >= 400 && !isIgnoredHttp(status)) {
+      errors.push(`[http ${status}] ${res.url().slice(0, 200)}`);
+    }
+  };
   page.on("console", onConsole);
   page.on("pageerror", onPageError);
+  page.on("response", onResponse);
   return {
     errors,
     assertClean: () => {

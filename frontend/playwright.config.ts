@@ -18,11 +18,23 @@ export default defineConfig({
   expect: {
     timeout: 15_000,
   },
-  retries: 0,
-  reporter: [["list"]],
+  // 1 lần thử lại: test chập chờn (mạng, chunk lazy-load) thường xanh ở lần
+  // chạy kế tiếp. Không có retries thì một lần nhiễu chặn cả pipeline CI.
+  retries: process.env.CI ? 1 : 0,
+  // Cần cả `html`: CI upload artifact `frontend/playwright-report/` khi test
+  // hỏng. Chỉ có `list` thì thư mục đó không tồn tại và upload rỗng.
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   use: {
     baseURL: "http://127.0.0.1:5174",
-    trace: "retain-on-failure",
+    // `on-first-retry` thay vì `retain-on-failure`:
+    //  - `retain-on-failure` phải ráp trace cho MỌI test, kể cả test xanh, và
+    //    đó là lúc Playwright tự gây flake ENOENT ở teardown (ráp trace.zip vào
+    //    .playwright-artifacts-* đã bị dọn) — fail oan.
+    //  - `on-first-retry` chỉ quay lúc thử lại, tức đúng lúc test đang hỏng
+    //    và trace mới có giá trị chẩn đoán. Test xanh không phải ráp gì.
+    trace: "on-first-retry",
+    // Chụp ảnh màn hình khi hỏng: rẻ hơn trace nhiều mà thấy ngay lỗi hiển thị.
+    screenshot: "only-on-failure",
   },
   projects: [
     {

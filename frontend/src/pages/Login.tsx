@@ -34,6 +34,8 @@ export default function Login() {
 
   // Prefill email từ ?role=... an toàn, không phá auth flow
   const roleFromQuery = searchParams.get("role");
+  // Sau khi đặt lại mật khẩu thành công, trang reset chuyển về đây kèm ?dat-lai=thanh-cong
+  const resetDone = searchParams.get("dat-lai") === "thanh-cong";
   const validRoles = ["student", "teacher", "school", "enterprise"] as const;
   const prefillAccount = typeof roleFromQuery === "string" && (validRoles as readonly string[]).includes(roleFromQuery)
     ? DEMO_ACCOUNTS.find((a) => a.role === (roleFromQuery as AuthUser["role"]))
@@ -95,6 +97,15 @@ export default function Login() {
           <p className="mb-5 mt-0.5 text-sm text-muted">
             Hệ sinh thái tài năng đa lĩnh vực dành cho học sinh
           </p>
+
+          {resetDone && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700"
+            >
+              Đặt lại mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -180,6 +191,12 @@ export default function Login() {
             </p>
           </div>
         </div>
+
+        <p className="mt-4 text-center text-xs text-muted">
+          <Link to="/quen-mat-khau" className="font-semibold text-portal hover:underline">
+            Quên mật khẩu?
+          </Link>
+        </p>
 
         <p className="mt-5 text-center text-xs text-muted">
           Chưa có tài khoản?{" "}

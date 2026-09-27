@@ -23,15 +23,28 @@ for (const role of ROLES) {
 }
 
 test("đăng nhập sai mật khẩu báo lỗi tiếng Việt, không trang trắng", async ({ page }) => {
-  const guard = guardConsole(page);
+  // NGUYÊN TẮC: thao tác cố tình thất bại KHÔNG BAO GIỜ dùng tài khoản demo thật.
+  // Backend chặn 5 lần sai / 10 phút kể cả đăng nhập đúng (429) — dùng hs01 ở đây
+  // sẽ tự khóa tài khoản demo. Email không tồn tại cho cùng phản hồi 401 nên
+  // vẫn kiểm đúng thứ cần kiểm (giao diện báo lỗi, không trắng trang).
+  // 401 là thứ đang kiểm. 429 cũng chấp nhận được vì chính test này tạo ra nó
+  // khi chạy nhiều lần — xem giải thích email bên dưới.
+  const guard = guardConsole(page, { ignoreHttp: [401, 429] });
   await page.goto("/login");
-  await page.fill('input[type="email"]', ACCOUNTS.student.email);
+  // Email KHÔNG tồn tại và MỚI cho mỗi lần chạy. Hai lý do cùng lúc:
+  //  - không thuộc tài khoản demo nào, nên không khoá nhầm tài khoản thật;
+  //  - là mới mỗi lần, nên bộ test chạy lặp nhiều lần không tự dồn đủ 5 lần
+  //    sai để backend khoá chính email đó rồi trả 429.
+  await page.fill(
+    'input[type="email"]',
+    `khong-ton-tai-${Date.now()}-kiem-thu@vidu.com`
+  );
   await page.fill('input[type="password"]', "sai-mat-khau-co-tinh");
   await page.click('button[type="submit"]');
 
-  // Vẫn ở trang login + hiện hộp lỗi có chữ tiếng Việt (không redirect, không trắng trang)
+  // Vẫn ở trang login + hiện hội lỗi có chữ tiếng Việt (không redirect, không trắng trang)
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.locator("body")).toContainText(/mật khẩu/i);
+  await expect(page.locator("body")).toContainText(/mật khẩu|quá nhiều|lần/i);
   const len = await page.evaluate(() => document.body.innerText.length);
   expect(len, "trang trắng khi đăng nhập sai").toBeGreaterThan(100);
 

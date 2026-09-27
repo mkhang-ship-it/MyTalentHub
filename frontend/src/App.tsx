@@ -7,6 +7,9 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Landing from "./pages/Landing";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentDiscover from "./pages/student/Discover";
@@ -70,6 +73,10 @@ export default function App() {
           <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
           <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
           <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+          {/* Khôi phục mật khẩu + xác minh email: công khai (người dùng chưa đăng nhập) */}
+          <Route path="/quen-mat-khau" element={<PageTransition><ForgotPassword /></PageTransition>} />
+          <Route path="/dat-lai-mat-khau" element={<PageTransition><ResetPassword /></PageTransition>} />
+          <Route path="/xac-minh-email" element={<PageTransition><VerifyEmail /></PageTransition>} />
 
           <Route
             path="/"

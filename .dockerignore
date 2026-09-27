@@ -1,0 +1,27 @@
+# FTalentHub — loại khỏi Docker build context.
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+# Không bao giờ nhét DB thật vào image (dữ liệu sống trong volume compose).
+*.db
+*.db-wal
+*.db-shm
+.git/
+.env
+.env.*
+# Thư mục mô hình nặng + script rác ở gốc repo (không thuộc ứng dụng).
+model/
+agent_hub.py
+full_agent_hub.py
+mcp_agent_hub.py
+inspect_glb.py
+*.pptx
+# Dư thừa khi build.
+.gitignore
+backend/.venv/
+frontend/test-results/
+frontend/screenshots.spec.ts

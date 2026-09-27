@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   GraduationCap,
@@ -32,6 +32,8 @@ import {
 import { useAuth, roleLabel } from "../auth/AuthContext";
 import { LogoMark, LogoWordmark } from "./Logo";
 import { PageTransition } from "./motion";
+import ErrorBoundary from "./ErrorBoundary";
+import { Loading } from "./ui";
 
 type PortalDef = {
   key: string;
@@ -544,7 +546,13 @@ export default function Layout() {
           </div>
 
           <PageTransition className="relative">
-            <Outlet />
+            {/* key={pathname}: đổi trang là ErrorBoundary reset, lỗi ở một trang không
+                làm sập cả khung và trang mới được thử lại. Suspense hứng trang lazy. */}
+            <ErrorBoundary key={pathname}>
+              <Suspense fallback={<Loading />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </PageTransition>
         </div>
       </main>

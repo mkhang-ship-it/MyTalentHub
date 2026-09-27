@@ -1,0 +1,62 @@
+# CI cho FTalentHub — chạy trên mọi push vào main và mọi pull request.
+# Không push image lên registry, không dùng secret nào.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Job 1: kiểm thử backend (unittest thư viện chuẩn, không cần pytest).
+  backend:
+    name: Backend (unittest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cài phụ thuộc backend
+        run: pip install -r backend/requirements.txt
+      - name: Chạy unittest
+        # Chạy từ GỐC repo để đường dẫn gói `backend.*` đúng như tài liệu scripts/README.md.
+        run: python -m unittest discover -s backend/tests -t backend -v
+
+  # Job 2: kiểm tra chất lượng frontend (đúng 3 lệnh trong scripts/README.md).
+  frontend:
+    name: Frontend (tsc/eslint/build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Cài phụ thuộc frontend
+        working-directory: frontend
+        # Repo chưa có package-lock.json nên chưa dùng được `npm ci`
+        # (khi nào có lockfile thì đổi lại `npm ci` để build lặp lại được).
+        run: npm install --no-audit --no-fund
+      - name: TypeScript
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: ESLint
+        working-directory: frontend
+        run: npx eslint src --max-warnings 0
+      - name: Build
+        working-directory: frontend
+        run: npx vite build
+
+  # Job 3: bắt lỗi cú pháp Dockerfile/compose ở mức `docker build` (không push).
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image backend
+        run: docker build -f Dockerfile -t fth-api:ci .
+      - name: Build image frontend
+        run: docker build -f frontend/Dockerfile -t fth-web:ci ./frontend
+      - name: Kiểm tra cú pháp compose
+        run: docker compose config --quiet

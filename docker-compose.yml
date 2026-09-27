@@ -1,0 +1,68 @@
+# FTalentHub — chạy cả hệ thống bằng một lệnh.
+# Giả định duy nhất: máy đã cài Docker (không có Docker thì làm theo README.md để chạy tay).
+#
+#   docker compose up --build -d   # dựng + chạy nền 2 service
+#   docker compose exec api python -m app.seed  # NẠP DỮ LIỆU DEMO lần đầu (DB mới
+#     trong volume là DB trống — create_all chỉ tạo schema, không có tài khoản demo)
+#   docker compose logs -f         # xem log gộp của api + web (Ctrl+C để thoát xem)
+#   docker compose logs -f api     # chỉ xem log backend
+#   docker compose down            # dừng, GIỮ nguyên dữ liệu SQLite trong volume
+#   docker compose down -v         # dừng + XOÁ volume (MẤT dữ liệu demo) — cân nhắc kỹ
+#
+# LƯU Ý QUAN TRỌNG về volume: file DB nằm tại /app/talenthub.db trong container
+# (đường dẫn cứng trong backend/app/config.py, không đổi được nếu không sửa code).
+# Volume tên `sqlite-data` được mount đè lên /app nên lần đầu khởi động Docker sẽ
+# chép code + DB từ image vào volume; dữ liệu bạn tạo sau đó sống trong volume và
+# không mất khi restart. Hệ quả: khi rebuild code mới mà volume cũ vẫn còn, hãy
+# recreate container (`docker compose up --build --force-recreate`); chỉ dùng
+# `down -v` khi chấp nhận mất dữ liệu.
+
+name: ftalenthub
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Backend đọc biến từ môi trường; file .env ở gốc repo là optional.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Ghi đè CORS cho đúng origin của service web trong compose khi cần:
+      # CORS_ORIGINS: "http://localhost:5173"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8001:8001"
+    volumes:
+      - sqlite-data:/app
+    networks:
+      - fth-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - fth-net
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:
+    name: ftalenthub-sqlite
+
+networks:
+  fth-net:
+    name: ftalenthub-net

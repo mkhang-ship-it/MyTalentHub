@@ -112,3 +112,15 @@ npx tsc --noEmit                 # TypeScript: 0 error
 npx eslint src --max-warnings 0  # ESLint: 0 warning
 npx vite build                   # Build: phải ra "✓ built in ..."
 ```
+
+## 7. Chạy kiểm thử trong Docker (không cần cài Python/Node ở máy)
+
+```bash
+docker compose up --build -d   # dựng api + web nền
+docker compose logs -f         # xem log gộp
+docker compose exec api python -m unittest discover -s tests -t . -v
+docker compose down            # dừng, GIỮ dữ liệu trong volume sqlite-data
+```
+
+- Web: http://localhost:5173 · API: http://localhost:8001/api/v1/health.
+- `docker compose down -v` sẽ **xoá** volume (mất dữ liệu demo) — cân nhắc kỹ.

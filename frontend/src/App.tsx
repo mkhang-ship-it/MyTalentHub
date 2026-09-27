@@ -1,13 +1,14 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import { PageTransition } from "./components/motion";
+import { Loading } from "./components/ui";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Landing from "./pages/Landing";
 
 import StudentDashboard from "./pages/student/Dashboard";
-import StudentProfile from "./pages/student/Profile";
 import StudentDiscover from "./pages/student/Discover";
 import StudentActivities from "./pages/student/Activities";
 import StudentCheckin from "./pages/student/Checkin";
@@ -24,17 +25,21 @@ import TeacherClasses from "./pages/teacher/Classes";
 import CoachOverview from "./pages/coach/Overview";
 
 import SchoolOverview from "./pages/school/Overview";
-import SchoolAnalysis from "./pages/school/Analysis";
 import SchoolReports from "./pages/school/Reports";
 import SchoolClasses from "./pages/school/Classes";
-import SchoolSettings from "./pages/school/Settings";
 
 import EnterpriseOverview from "./pages/enterprise/Overview";
-import EnterpriseTalents from "./pages/enterprise/Talents";
 import EnterpriseInternships from "./pages/enterprise/Internships";
 import EnterpriseSponsorships from "./pages/enterprise/Sponsorships";
 
-import PassportPage from "./pages/passport/Passport";
+// Tách route nặng ra khỏi bundle chính (code-split bằng React.lazy):
+// - PassportPage kéo theo ba.js (three ~682 KB + GLTFLoader ~47 KB) — chỉ tải khi vào trang Passport
+// - Profile/Analysis/Settings/Talents là các trang nặng riêng biệt
+const StudentProfile = lazy(() => import("./pages/student/Profile"));
+const SchoolAnalysis = lazy(() => import("./pages/school/Analysis"));
+const SchoolSettings = lazy(() => import("./pages/school/Settings"));
+const EnterpriseTalents = lazy(() => import("./pages/enterprise/Talents"));
+const PassportPage = lazy(() => import("./pages/passport/Passport"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuth();
@@ -58,64 +63,68 @@ function RoleBoundary({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
-        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
-        <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+      {/* Suspense hứng trang lazy khi tải chunk (route trong Layout có boundary riêng
+          trong Layout.tsx để giữ nguyên khung điều hướng) */}
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
+          <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+          <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
 
-        <Route
-          path="/"
-          element={
-            <RequireAuth>
-              <RoleBoundary>
-                <Layout />
-              </RoleBoundary>
-            </RequireAuth>
-          }
-        >
-          {/* HỌC SINH */}
-          <Route path="student" element={<StudentDashboard />} />
-          <Route path="student/profile" element={<StudentProfile />} />
-          <Route path="student/discover" element={<StudentDiscover />} />
-          <Route path="student/activities" element={<StudentActivities />} />
-          <Route path="student/checkin" element={<StudentCheckin />} />
-          <Route path="student/badges" element={<StudentBadges />} />
-          <Route path="student/roadmap" element={<StudentRoadmap />} />
-          <Route path="student/statistics" element={<StudentStatistics />} />
-          <Route path="student/evaluations" element={<StudentEvaluations />} />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <RoleBoundary>
+                  <Layout />
+                </RoleBoundary>
+              </RequireAuth>
+            }
+          >
+            {/* HỌC SINH */}
+            <Route path="student" element={<StudentDashboard />} />
+            <Route path="student/profile" element={<StudentProfile />} />
+            <Route path="student/discover" element={<StudentDiscover />} />
+            <Route path="student/activities" element={<StudentActivities />} />
+            <Route path="student/checkin" element={<StudentCheckin />} />
+            <Route path="student/badges" element={<StudentBadges />} />
+            <Route path="student/roadmap" element={<StudentRoadmap />} />
+            <Route path="student/statistics" element={<StudentStatistics />} />
+            <Route path="student/evaluations" element={<StudentEvaluations />} />
 
-          {/* GIÁO VIÊN */}
-          <Route path="teacher" element={<TeacherOverview />} />
-          <Route path="teacher/activities" element={<TeacherActivities />} />
-          <Route path="teacher/grading" element={<TeacherGrading />} />
-          <Route path="teacher/students" element={<TeacherStudents />} />
-          <Route path="teacher/classes" element={<TeacherClasses />} />
+            {/* GIÁO VIÊN */}
+            <Route path="teacher" element={<TeacherOverview />} />
+            <Route path="teacher/activities" element={<TeacherActivities />} />
+            <Route path="teacher/grading" element={<TeacherGrading />} />
+            <Route path="teacher/students" element={<TeacherStudents />} />
+            <Route path="teacher/classes" element={<TeacherClasses />} />
 
-          {/* HUẤN LUYỆN VIÊN */}
-          <Route path="coach" element={<CoachOverview />} />
-          <Route path="coach/activities" element={<TeacherActivities />} />
-          <Route path="coach/grading" element={<TeacherGrading />} />
-          <Route path="coach/students" element={<TeacherStudents />} />
+            {/* HUẤN LUYỆN VIÊN */}
+            <Route path="coach" element={<CoachOverview />} />
+            <Route path="coach/activities" element={<TeacherActivities />} />
+            <Route path="coach/grading" element={<TeacherGrading />} />
+            <Route path="coach/students" element={<TeacherStudents />} />
 
-          {/* NHÀ TRƯỜNG */}
-          <Route path="school" element={<SchoolOverview />} />
-          <Route path="school/analysis" element={<SchoolAnalysis />} />
-          <Route path="school/reports" element={<SchoolReports />} />
-          <Route path="school/classes" element={<SchoolClasses />} />
-          <Route path="school/settings" element={<SchoolSettings />} />
+            {/* NHÀ TRƯỜNG */}
+            <Route path="school" element={<SchoolOverview />} />
+            <Route path="school/analysis" element={<SchoolAnalysis />} />
+            <Route path="school/reports" element={<SchoolReports />} />
+            <Route path="school/classes" element={<SchoolClasses />} />
+            <Route path="school/settings" element={<SchoolSettings />} />
 
-          {/* DOANH NGHIỆP */}
-          <Route path="enterprise" element={<EnterpriseOverview />} />
-          <Route path="enterprise/talents" element={<EnterpriseTalents />} />
-          <Route path="enterprise/internships" element={<EnterpriseInternships />} />
-          <Route path="enterprise/sponsorships" element={<EnterpriseSponsorships />} />
+            {/* DOANH NGHIỆP */}
+            <Route path="enterprise" element={<EnterpriseOverview />} />
+            <Route path="enterprise/talents" element={<EnterpriseTalents />} />
+            <Route path="enterprise/internships" element={<EnterpriseInternships />} />
+            <Route path="enterprise/sponsorships" element={<EnterpriseSponsorships />} />
 
-          {/* TALENT PASSPORT */}
-          <Route path="passport/:studentId" element={<PassportPage />} />
-        </Route>
+            {/* TALENT PASSPORT */}
+            <Route path="passport/:studentId" element={<PassportPage />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AuthProvider>
   );
 }

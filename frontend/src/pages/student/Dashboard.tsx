@@ -101,7 +101,7 @@ export default function Dashboard() {
               Chào mừng trở lại, {data.full_name}! 👋
             </h2>
             <p className="text-sm text-white/70 mt-1">
-              {data.experience_hours}h trải nghiệm · {data.education_level === "CDDH" ? "Khoá" : "Khối"} {data.grade} · {data.education_level} · Hạng #{data.school_rank}/{data.school_total}
+              {data.experience_hours}h trải nghiệm · {data.education_level === "CDDH" ? "Khoá" : "Khối"} {data.grade} · ${data.education_level} · Hạng #{data.school_rank}/{data.school_total}
             </p>
             {/* Streak chip */}
             <div className="mt-3 flex items-center gap-2">
@@ -122,7 +122,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" style={{ animation: "fadeUp 0.7s ease-out 0.1s both" }}>
         <StatCard label="Điểm năng lực" value={data.talent_score} delta="Thang điểm 100" icon={<Trophy size={18} />} color="text-portal-dark" />
         <StatCard label="Giờ trải nghiệm" value={`${data.experience_hours}h`} delta="Tích lũy tự động qua check-in" icon={<Flame size={18} />} color="text-portal-dark" />
-        <StatCard label="Xếp hạng" value={`#${data.school_rank}/${data.school_total}`} delta={`${data.education_level === "CDDH" ? "Khoá" : "Khối"} ${data.grade} · {data.education_level} · ${data.school_total} bạn`} icon={<Users size={18} />} color="text-portal" />
+        <StatCard label="Xếp hạng" value={`#${data.school_rank}/${data.school_total}`} delta={`${data.education_level === "CDDH" ? "Khoá" : "Khối"} ${data.grade} · $${data.education_level} · ${data.school_total} bạn`} icon={<Users size={18} />} color="text-portal" />
         <StatCard label="Huy hiệu đã mở" value={data.unlocked_badges.length} delta="Explorer/Innovator/Expert/Master" icon={<Sparkles size={18} />} color="text-portal" />
       </div>
 

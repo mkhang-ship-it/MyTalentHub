@@ -74,3 +74,22 @@ export function guardConsole(page: Page, opts?: { ignoreHttp?: number[] }): Cons
     },
   };
 }
+
+/**
+ * Chặn lỗi "quên dấu $ trong template string".
+ *
+ * Trong `` `Khối {data.grade}` `` (thiếu `$`) thì cú pháp vẫn hợp lệ nên `tsc`
+ * im lặng, `eslint` im lặng, và test chỉ kiểm tra "có render" vẫn xanh — nhưng
+ * người dùng thấy nguyên chữ `{data.grade}` thay vì số 10. Đã xảy ra thật ở
+ * Dashboard.tsx, nên phải kiểm ở tầng triệu chứng: đọc text thật trên trang.
+ */
+export async function assertNoRawTemplateLiteral(page: Page) {
+  const text = await page.evaluate(() => document.body.innerText);
+  const found = text.match(/\{(?:data|props|item|user)\.[A-Za-z_$][\w$.]*\}/g);
+  if (found) {
+    throw new Error(
+      "Trang hiển thị nguyên văn biểu thức — khả năng cao quên dấu $ " +
+        `trong template string:\n  ${[...new Set(found)].join("\n  ")}`
+    );
+  }
+}

@@ -49,3 +49,4 @@ backend/backups/
 
 # Thư đặt lại mật khẩu chứa link truy cập — tuyệt đối không commit
 backend/outbox/
+

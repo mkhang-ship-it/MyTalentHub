@@ -78,14 +78,48 @@ def verify_password(password: str, stored: str) -> bool:
 
 # ---------------------------------------------------------------- hạn token
 def token_ttl_days() -> int:
+    """Hạn token cũ (giữ để tương thích ngược) — access token mới dùng phút."""
     try:
         return max(1, int(os.environ.get("TOKEN_TTL_DAYS", "7")))
     except (TypeError, ValueError):
         return 7
 
 
+def access_token_ttl_minutes() -> int:
+    try:
+        return max(1, int(os.environ.get("ACCESS_TOKEN_TTL_MINUTES", "60")))
+    except (TypeError, ValueError):
+        return 60
+
+
+def refresh_token_ttl_days() -> int:
+    try:
+        return max(1, int(os.environ.get("REFRESH_TOKEN_TTL_DAYS", "30")))
+    except (TypeError, ValueError):
+        return 30
+
+
+def new_access_expiry() -> datetime:
+    return _utcnow() + timedelta(minutes=access_token_ttl_minutes())
+
+
+def new_refresh_expiry() -> datetime:
+    return _utcnow() + timedelta(days=refresh_token_ttl_days())
+
+
 def new_token_expiry() -> datetime:
-    return _utcnow() + timedelta(days=token_ttl_days())
+    """Alias cũ — access token mới cũng dùng hạn phút (client cũ vẫn chạy)."""
+    return new_access_expiry()
+
+
+def public_register_enabled() -> bool:
+    """ALLOW_PUBLIC_REGISTER=false ở production để chặn đăng ký mở."""
+    return os.environ.get("ALLOW_PUBLIC_REGISTER", "true").strip().lower() not in (
+        "false", "0", "no", "off",
+    )
+
+
+REGISTER_CLOSED_MESSAGE = "Đăng ký công khai đã bị tắt, vui lòng liên hệ nhà trường để tạo tài khoản."
 
 
 def token_is_expired(auth_token) -> bool:
@@ -146,6 +180,46 @@ def resolve_token_user(db, token: str):
     if token_is_expired(auth_token):
         raise HTTPException(401, EXPIRED_MESSAGE)
     return auth_token, user
+
+
+# ---------------------------------------------------------------- refresh token
+def refresh_token_hash(token: str) -> str:
+    """Hash tra cứu refresh token — DB không bao giờ giữ token thật."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_refresh_token_table() -> None:
+    """Tạo bảng `refresh_tokens` nếu chưa có (idempotent, raw SQL).
+
+    Đặt riêng ở đây (thay vì `database._run_migrations`, P2 đang sửa) để
+    coordinator gọi 1 lần lúc khởi động từ `main.py`:
+        from .security import create_refresh_token_table
+        create_refresh_token_table()
+    Ngoài ra `auth` tự gọi hàm này mỗi lần cấp token (đảm bảo-bảng-tồn-tại)
+    nên luồng đăng nhập không vỡ kể cả khi main.py chưa được đấu nối.
+    """
+    from sqlalchemy import text
+
+    from .database import engine
+
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE TABLE IF NOT EXISTS refresh_tokens ("
+            "id INTEGER NOT NULL PRIMARY KEY, "
+            "token_hash VARCHAR(128) NOT NULL UNIQUE, "
+            "user_id INTEGER NOT NULL REFERENCES users (id), "
+            "expires_at DATETIME NOT NULL, "
+            "revoked_at DATETIME, "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL)"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_id "
+            "ON refresh_tokens (user_id)"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_expires_at "
+            "ON refresh_tokens (expires_at)"
+        ))
 
 
 # ---------------------------------------------------------------- chống dò mật khẩu

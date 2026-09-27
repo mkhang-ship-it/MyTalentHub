@@ -35,3 +35,14 @@ build/
 # Giữ lại file mẫu cấu hình (không chứa bí mật thật)
 !.env.example
 !frontend/.env.example
+
+# Artifact kiểm thử Playwright (không commit)
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+
+# Sao lưu SQLite chứa mật khẩu băm — tuyệt đ�ối không commit
+backend/backups/
+*.db.gz
+*.db-journal

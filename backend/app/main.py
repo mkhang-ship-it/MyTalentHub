@@ -4,16 +4,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from starlette.routing import Mount
 
-from .database import Base, engine, _run_migrations
+from .database import Base, engine, _run_migrations, ensure_indexes
 from .routers import auth, enterprise, passport, school, student, teacher
 from .ai.router import router as ai_router
 from .core.errors import install_error_handlers, request_logging_middleware
 from .core.logging_conf import setup_logging
-from .security import cors_origins
+from .security import cors_origins, create_refresh_token_table, purge_expired_tokens
 
 setup_logging()
 _run_migrations()
 Base.metadata.create_all(bind=engine)
+# Bảng token làm mới: tạo sau create_all vì không nằm trong Base.metadata của
+# router (nằm ở security.py). Idempotent nên gọi mỗi lần khởi động đều an toàn.
+create_refresh_token_table()
+# Index cho các cột khóa ngoại / hay lọc. Idempotent, không sao khi chạy lại.
+ensure_indexes()
+# Dọn token quá hạn một lần lúc khởi phục, bảng không phình vô hạn.
+purge_expired_tokens()
 
 app = FastAPI(title="FTalentHub API", version="1.0.0")
 

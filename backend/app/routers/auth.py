@@ -2,7 +2,10 @@
 
 Hash mật khẩu PBKDF2 (`app.security`); hash cũ sha256("fth_" + password) vẫn
 được chấp nhận để đăng nhập và tự nâng cấp trong cùng lần đó.
-Token có hạn 7 ngày (env TOKEN_TTL_DAYS). Chống dò mật khẩu: 5 lần sai / 10 phút.
+Access token hạn ngắn (ACCESS_TOKEN_TTL_MINUTES, mặc định 60 phút) + refresh
+token hạn dài (REFRESH_TOKEN_TTL_DAYS, mặc định 30 ngày), xoay vòng mỗi lần
+dùng. Đăng ký công khai tắt được bằng ALLOW_PUBLIC_REGISTER=false.
+Chống dò mật khẩu: 5 lần sai / 10 phút.
 Accounts seed: hs01@ftalenthub.edu.vn / nguyen.van.hung@ftalenthub.edu.vn /
 hlv.boi@ftalenthub.edu.vn / bgh@ftalenthub.edu.vn / hr@techfpt.vn — password `demo123`.
 """
@@ -20,21 +23,27 @@ from ..models import (
     ROLE_TEACHER,
     AuthToken,
     Coach,
+    RefreshToken,
     Student,
     Teacher,
     School,
     Enterprise,
     User,
 )
-from ..schemas import LoginIn, LoginOut, RegisterIn
+from ..schemas import LoginIn, RegisterIn
 from ..security import (
+    REGISTER_CLOSED_MESSAGE,
     WRONG_CREDENTIALS_MESSAGE,
     clear_login_failures,
+    create_refresh_token_table,
     hash_password,
     login_wait_seconds,
-    new_token_expiry,
+    new_access_expiry,
+    new_refresh_expiry,
+    public_register_enabled,
     rate_limit_message,
     record_login_failure,
+    refresh_token_hash,
     resolve_token_user,
     verify_password,
 )
@@ -43,6 +52,40 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Giữ tên cũ để `seed.py` (`from .routers.auth import hash_password`) không vỡ.
 __all__ = ["router", "hash_password", "verify_password"]
+
+
+def _issue_token_pair(db: Session, user: User) -> tuple[str, str, str]:
+    """Cấp cặp (access token, refresh token, refresh_expires_at ISO).
+
+    Đảm bảo bảng refresh_tokens tồn tại (phòng khi main.py chưa đấu nối
+    `create_refresh_token_table`). Chỉ lưu hash của refresh token.
+    """
+    create_refresh_token_table()
+    access = secrets.token_hex(24)
+    db.add(AuthToken(token=access, user_id=user.id, expires_at=new_access_expiry()))
+    refresh = secrets.token_hex(32)
+    db.add(RefreshToken(
+        token_hash=refresh_token_hash(refresh),
+        user_id=user.id,
+        expires_at=new_refresh_expiry(),
+    ))
+    db.commit()
+    row = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == refresh_token_hash(refresh))
+        .first()
+    )
+    return access, refresh, row.expires_at.isoformat() if row else ""
+
+
+def _revoke_refresh_tokens(db: Session, user_id: int) -> None:
+    """Thu hồi toàn bộ refresh token còn hiệu lực của user (logout / lộ token)."""
+    from ..security import _utcnow
+
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({"revoked_at": _utcnow()}, synchronize_session=False)
 
 
 def _profile_ids(user: User, db: Session) -> dict:
@@ -77,8 +120,14 @@ def _profile_ids(user: User, db: Session) -> dict:
     return {"profile_id": pid, "detail": detail}
 
 
-@router.post("/register", response_model=LoginOut)
+@router.post("/register")
 def register(payload: RegisterIn, db: Session = Depends(get_db)):
+    """Đăng ký tài khoản mới + cấp ngay cặp token (giữ shape cũ + thêm refresh).
+
+    Production tắt đăng ký mở bằng ALLOW_PUBLIC_REGISTER=false → 403.
+    """
+    if not public_register_enabled():
+        raise HTTPException(403, REGISTER_CLOSED_MESSAGE)
     email = payload.email.lower().strip()
     existing = db.query(User).filter(User.email == email).first()
     if existing:
@@ -153,15 +202,15 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 
     db.commit()
 
-    # Create auth token (có thời hạn)
-    token = secrets.token_hex(24)
-    db.add(AuthToken(token=token, user_id=user.id, expires_at=new_token_expiry()))
-    db.commit()
+    # Cấp cặp token (giữ nguyên các trường cũ để client cũ vẫn chạy).
+    token, refresh_token, refresh_expires_at = _issue_token_pair(db, user)
 
     info = _profile_ids(user, db)
-    return LoginOut(
-        token=token,
-        user={
+    return {
+        "token": token,
+        "refresh_token": refresh_token,
+        "refresh_expires_at": refresh_expires_at,
+        "user": {
             "id": user.id,
             "role": user.role,
             "full_name": user.full_name,
@@ -169,11 +218,12 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
             "avatar_url": user.avatar_url,
             **info,
         },
-    )
+    }
 
 
-@router.post("/login", response_model=LoginOut)
+@router.post("/login")
 def login(payload: LoginIn, db: Session = Depends(get_db)):
+    """Đăng nhập + cấp cặp token (giữ nguyên các trường cũ + thêm refresh)."""
     email = payload.email.lower().strip()
 
     # Chống dò mật khẩu: vượt ngưỡng → 429 (không tiết lộ email có tồn tại).
@@ -195,15 +245,16 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
 
     if not is_new_hash_format(user.password_hash):
         user.password_hash = hash_password(payload.password)
+        db.flush()
 
-    token = secrets.token_hex(24)
-    db.add(AuthToken(token=token, user_id=user.id, expires_at=new_token_expiry()))
-    db.commit()
+    token, refresh_token, refresh_expires_at = _issue_token_pair(db, user)
 
     info = _profile_ids(user, db)
-    return LoginOut(
-        token=token,
-        user={
+    return {
+        "token": token,
+        "refresh_token": refresh_token,
+        "refresh_expires_at": refresh_expires_at,
+        "user": {
             "id": user.id,
             "role": user.role,
             "full_name": user.full_name,
@@ -211,7 +262,64 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
             "avatar_url": user.avatar_url,
             **info,
         },
+    }
+
+
+@router.post("/refresh")
+def refresh(payload: dict, db: Session = Depends(get_db)):
+    """Đổi refresh token còn hạn thành cặp token MỚI (xoay vòng).
+
+    Body: {"refresh_token": "..."}. Dòng cũ bị đánh dấu đã xoay; dùng lại dòng
+    đã xoay/hết hiệu lực = dấu hiệu đánh cắp → thu hồi cả họ refresh token của
+    user đó rồi mới trả 401, để token lọt ra ngoài cũng vô dụng.
+    """
+    from ..security import EXPIRED_MESSAGE, INVALID_MESSAGE, _utcnow
+
+    create_refresh_token_table()
+    presented = (payload or {}).get("refresh_token") or ""
+    if not isinstance(presented, str) or not presented.strip():
+        raise HTTPException(401, INVALID_MESSAGE)
+
+    row = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == refresh_token_hash(presented.strip()))
+        .first()
     )
+    if not row:
+        raise HTTPException(401, INVALID_MESSAGE)
+    if row.revoked_at is not None:
+        # Dùng lại token đã xoay/thu hồi → nghi đánh cắp: thu hồi cả họ.
+        _revoke_refresh_tokens(db, row.user_id)
+        db.commit()
+        raise HTTPException(401, INVALID_MESSAGE)
+    if row.expires_at <= _utcnow():
+        raise HTTPException(401, EXPIRED_MESSAGE)
+
+    user = db.query(User).filter(User.id == row.user_id).first()
+    if not user:
+        raise HTTPException(401, INVALID_MESSAGE)
+
+    # Xoay vòng: thu hồi dòng cũ, cấp cặp mới trong cùng transaction.
+    row.revoked_at = _utcnow()
+    access = secrets.token_hex(24)
+    db.add(AuthToken(token=access, user_id=user.id, expires_at=new_access_expiry()))
+    new_refresh = secrets.token_hex(32)
+    db.add(RefreshToken(
+        token_hash=refresh_token_hash(new_refresh),
+        user_id=user.id,
+        expires_at=new_refresh_expiry(),
+    ))
+    db.commit()
+    new_row = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == refresh_token_hash(new_refresh))
+        .first()
+    )
+    return {
+        "token": access,
+        "refresh_token": new_refresh,
+        "refresh_expires_at": new_row.expires_at.isoformat() if new_row else "",
+    }
 
 
 @router.get("/me")
@@ -234,19 +342,22 @@ def me(authorization: str | None = Header(default=None), db: Session = Depends(g
 
 @router.post("/logout")
 def logout(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    """Đăng xuất: xoá access token hiện tại + thu hồi cả họ refresh token."""
     token = _extract(authorization)
-    auth_token, _user = resolve_token_user(db, token)
+    auth_token, user = resolve_token_user(db, token)
     db.delete(auth_token)
+    _revoke_refresh_tokens(db, user.id)
     db.commit()
     return {"ok": True}
 
 
 @router.post("/logout-all")
 def logout_all(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    """Đăng xuất mọi thiết bị: xoá toàn bộ token của user đang đăng nhập."""
+    """Đăng xuất mọi thiết bị: xoá toàn bộ access token + thu hồi refresh token."""
     token = _extract(authorization)
     _auth_token, user = resolve_token_user(db, token)
     db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    _revoke_refresh_tokens(db, user.id)
     db.commit()
     return {"ok": True}
 

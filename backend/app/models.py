@@ -40,6 +40,27 @@ class AuthToken(Base):
     )
 
 
+class RefreshToken(Base):
+    """Refresh token — đổi access token mới mà không bắt đăng nhập lại.
+
+    Chỉ lưu `token_hash` (sha256 của token thật); token thật chỉ xuất hiện đúng
+    1 lần trong response của login/refresh. Xoay vòng (rotation): mỗi lần dùng
+    xong dòng cũ bị đánh dấu `revoked_at`; dùng lại dòng đã xoay = dấu hiệu
+    đánh cắp → thu hồi cả họ token của user đó (xem `auth.refresh`).
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 

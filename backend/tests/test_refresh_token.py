@@ -24,7 +24,7 @@ from pathlib import Path
 BASE = os.environ.get("QA_BASE_URL", "http://127.0.0.1:8001/api/v1").rstrip("/")
 EMAIL = "hs01@ftalenthub.edu.vn"
 PASSWORD = "demo123"
-DB_PATH = Path(__file__).resolve().parents[1] / "talenthub.db"
+from .base import TEST_DB as DB_PATH
 
 
 def call(method: str, path: str, token: str | None = None, body=None, timeout: float = 20):

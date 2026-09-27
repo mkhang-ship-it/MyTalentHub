@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 
 BASE = os.environ.get("QA_BASE_URL", "http://127.0.0.1:8001/api/v1").rstrip("/")
-DB_PATH = Path(__file__).resolve().parents[1] / "talenthub.db"
+from .base import TEST_DB as DB_PATH
 PASSWORD = "demo123"
 PREFIX_CLASS = "QA-"
 PREFIX_CERT = "QA "

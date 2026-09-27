@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ORMModel(BaseModel):
@@ -122,6 +122,13 @@ class StudentDetail(StudentOut):
 
 
 # ---------------- teacher
+# Giới hạn độ dài đặt CAO HƠN giá trị dài nhất trong dữ liệu seed, nên không
+# làm hỏng dữ liệu sẵn có mà vẫn chặn payload khổng lồ.
+MAX_TEXT = 2000
+MAX_TITLE = 200
+MAX_CLASS_NAME = 40
+
+
 class TeacherOut(ORMModel):
     id: int
     subject: str
@@ -133,11 +140,11 @@ class TeacherOut(ORMModel):
 class EvaluationIn(BaseModel):
     activity_id: int
     student_id: int
-    chuyen_mon: float = 0
-    sang_tao: float = 0
-    lam_viec_nhom: float = 0
-    ky_luat: float = 0
-    comment: Optional[str] = None
+    chuyen_mon: float = Field(default=0, ge=0, le=40)
+    sang_tao: float = Field(default=0, ge=0, le=20)
+    lam_viec_nhom: float = Field(default=0, ge=0, le=20)
+    ky_luat: float = Field(default=0, ge=0, le=20)
+    comment: Optional[str] = Field(default=None, max_length=MAX_TEXT)
 
 
 class EvaluationOut(EvaluationIn, ORMModel):
@@ -171,12 +178,12 @@ class ComputeOut(ORMModel):
 
 # ---------------- activity
 class ActivityIn(BaseModel):
-    title: str
-    field: str
-    description: Optional[str] = None
-    capacity: int = 30
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    title: str = Field(min_length=1, max_length=MAX_TITLE)
+    field: str = Field(min_length=1, max_length=40)
+    description: Optional[str] = Field(default=None, max_length=MAX_TEXT)
+    capacity: int = Field(default=30, ge=1, le=10_000)
+    start_date: Optional[str] = Field(default=None, max_length=20)
+    end_date: Optional[str] = Field(default=None, max_length=20)
 
 
 class ActivityOut(ActivityIn, ORMModel):
@@ -187,23 +194,23 @@ class ActivityOut(ActivityIn, ORMModel):
 
 
 class ActivityUpdate(BaseModel):
-    title: Optional[str] = None
-    field: Optional[str] = None
-    description: Optional[str] = None
-    capacity: Optional[int] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=MAX_TITLE)
+    field: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    description: Optional[str] = Field(default=None, max_length=MAX_TEXT)
+    capacity: Optional[int] = Field(default=None, ge=1, le=10_000)
+    start_date: Optional[str] = Field(default=None, max_length=20)
+    end_date: Optional[str] = Field(default=None, max_length=20)
     status: Optional[str] = None
 
 
 class ActivityStatusUpdate(BaseModel):
-    status: str
+    status: str = Field(pattern="^(open|paused|closed)$")
 
 
 # ---------------- class group
 class ClassIn(BaseModel):
-    name: str
-    grade: int
+    name: str = Field(min_length=1, max_length=MAX_CLASS_NAME)
+    grade: int = Field(ge=1, le=12)
 
 
 class ClassOut(BaseModel):

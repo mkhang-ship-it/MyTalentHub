@@ -7,15 +7,26 @@ from starlette.routing import Mount
 from .database import Base, engine, _run_migrations
 from .routers import auth, enterprise, passport, school, student, teacher
 from .ai.router import router as ai_router
+from .core.errors import install_error_handlers, request_logging_middleware
+from .core.logging_conf import setup_logging
+from .security import cors_origins
 
+setup_logging()
 _run_migrations()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="FTalentHub API", version="1.0.0")
 
+# Lỗi trả về luôn là JSON có cấu trúc {"detail", "code"} bằng tiếng Việt.
+install_error_handlers(app)
+# Log mỗi request kèm request_id và thời gian xử lý (không log token/mật khẩu).
+# Đăng ký TRƯỚC CORS để CORSMiddleware nằm ngoài cùng — nhờ vậy cả response
+# lỗi 500 vẫn mang header CORS, trình duyệt đọc được thay vì báo lỗi CORS.
+app.middleware("http")(request_logging_middleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

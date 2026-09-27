@@ -1,12 +1,14 @@
 """GIÁO VIÊN — tổng quan, sân chơi (CRUD), chấm điểm rubric 40/20/20/20, học viên, quản lý lớp."""
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
+from ..core.pagination import paginate
+from ..core.pagination import MAX_LIMIT
 from ..database import get_db
 from ..models import (
     Activity,
     ActivityRegistration,
-    AuthToken,
     ClassGroup,
     Evaluation,
     ROLE_COACH,
@@ -41,16 +43,15 @@ def _extract_token(authorization: str | None) -> str:
 
 
 def _auth_user_from_token(token: str, db: Session) -> User:
-    """Tra token trong DB. Token không tồn tại / đã bị xoá → 401 'Phiên đăng nhập không hợp lệ'."""
-    row = (
-        db.query(AuthToken, User)
-        .join(User, User.id == AuthToken.user_id)
-        .filter(AuthToken.token == token)
-        .first()
-    )
-    if not row:
-        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
-    return row[1]
+    """Tra token trong DB qua helper dùng chung `security.resolve_token_user`.
+
+    - Token không tồn tại / đã bị xoá → 401 "Phiên đăng nhập không hợp lệ"
+    - Token quá hạn (expires_at) → 401 "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+    """
+    from ..security import resolve_token_user
+
+    _auth_token, user = resolve_token_user(db, token)
+    return user
 
 
 def _load_teacher_of(user: User, db: Session) -> Teacher:
@@ -68,9 +69,11 @@ def _load_teacher_of(user: User, db: Session) -> Teacher:
 def _resolve_current_teacher(authorization: str | None, db: Session) -> Teacher:
     """Lấy giáo viên/HLV ĐANG ĐĂNG NHẬP từ token — bắt buộc, KHÔNG fallback.
 
-    Hợp đồng phân quyền (lô 3):
+    Hợp đồng phân quyền (lô 3) + hạn token (lô 4):
     - Thiếu header Authorization → 401 "Thiếu token"
-    - Token không tồn tại / hết hạn → 401 "Phiên đăng nhập không hợp lệ"
+    - Token không tồn tại → 401 "Phiên đăng nhập không hợp lệ"
+    - Token quá hạn → 401 "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+    (kiểm tra bằng helper dùng chung `security.resolve_token_user`)
     - Token hợp lệ nhưng sai vai trò → 403 (nêu rõ vai trò được phép: giáo viên hoặc huấn luyện viên)
     - Token hợp lệ, đúng vai trò → trả về Teacher
     """
@@ -141,19 +144,29 @@ def list_classes(authorization: str = Header(default=None), db: Session = Depend
     """Danh sách lớp chủ nhiệm của tôi."""
     teacher = _get_teacher_from_token_teacher_only(authorization, db)
     classes = db.query(ClassGroup).filter(ClassGroup.homeroom_teacher_id == teacher.id).all()
-    out = []
-    for c in classes:
-        student_count = db.query(Student).filter(Student.class_name == c.name, Student.grade == c.grade).count()
-        out.append(
-            ClassOut(
-                id=c.id,
-                name=c.name,
-                grade=c.grade,
-                homeroom_teacher_name=teacher.user.full_name,
-                student_count=student_count,
+    # Gom đếm học sinh thành MỘT truy vấn GROUP BY (trước đây: 1 query COUNT cho mỗi lớp).
+    counts: dict[tuple[str, int], int] = {}
+    if classes:
+        rows = (
+            db.query(Student.class_name, Student.grade, func.count(Student.id))
+            .filter(
+                Student.class_name.in_([c.name for c in classes]),
+                Student.grade.in_([c.grade for c in classes]),
             )
+            .group_by(Student.class_name, Student.grade)
+            .all()
         )
-    return out
+        counts = {(name, grade): n for name, grade, n in rows}
+    return [
+        ClassOut(
+            id=c.id,
+            name=c.name,
+            grade=c.grade,
+            homeroom_teacher_name=teacher.user.full_name,
+            student_count=counts.get((c.name, c.grade), 0),
+        )
+        for c in classes
+    ]
 
 
 @router.post("/classes", response_model=ClassOut)
@@ -492,13 +505,21 @@ def submit_evaluation(payload: EvaluationIn, authorization: str = Header(default
 
 
 @router.get("/my-students")
-def my_students(authorization: str = Header(default=None), db: Session = Depends(get_db)):
+def my_students(
+    response: Response,
+    authorization: str = Header(default=None),
+    limit: int | None = Query(default=None, ge=1),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
     """Học viên của tôi (slide 23): tổng theo sân chơi, filter tên/lớp.
 
     Bắt buộc token; danh sách chỉ gồm học viên các sân chơi của chính người gọi.
+    Phân trang tùy chọn: không truyền `limit` → trả TẤT CẢ (hành vi cũ);
+    có `limit` → trả trang + header X-Total-Count / X-Limit (tối đa 200).
     """
     t = _resolve_current_teacher(authorization, db)
-    activity_ids = [a.id for a in db.query(Activity).filter(Activity.teacher_id == t.id)]
+    activity_ids = [row[0] for row in db.query(Activity.id).filter(Activity.teacher_id == t.id).all()]
     rows = []
     if activity_ids:
         rows = (
@@ -520,10 +541,14 @@ def my_students(authorization: str = Header(default=None), db: Session = Depends
             }
         seen[s.id]["hours"] += r.hours
         seen[s.id]["activity_count"] += 1
+    # Tổng hợp trong Python (mỗi HS gộp nhiều sân chơi) nên cắt trang trên list.
+    students, total = paginate(list(seen.values()), limit, offset)
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Limit"] = str(min(limit, MAX_LIMIT) if limit else "all")
     return {
         "teacher": {"id": t.id, "full_name": t.user.full_name},
-        "total": len(seen),
-        "students": list(seen.values()),
+        "total": total,
+        "students": students,
     }
 
 

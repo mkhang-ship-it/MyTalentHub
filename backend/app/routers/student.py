@@ -1,17 +1,17 @@
 """HỌC SINH — dashboard, hồ sơ, khám phá, hoạt động, check-in QR, huy hiệu, lộ trình AI, chứng chỉ, gợi ý nhóm."""
 import json
 from datetime import date, datetime, timedelta
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
+from ..core.pagination import paginate
 from ..database import get_db
 from ..models import (
     Activity,
     ActivityRegistration,
     AiSuggestion,
-    AuthToken,
     Badge,
     Certificate,
     CheckIn,
@@ -286,22 +286,18 @@ def _extract_token(authorization: str | None) -> str:
 def _get_student_from_token(authorization: str | None, db: Session) -> Student:
     """Lấy học sinh ĐANG ĐĂNG NHẬP từ Authorization header — bắt buộc, KHÔNG mặc định id=1.
 
-    Hợp đồng phân quyền (lô 3):
+    Hợp đồng phân quyền (lô 3) + hạn token (lô 4):
     - Thiếu header Authorization → 401 "Thiếu token"
-    - Token không tồn tại / hết hạn → 401 "Phiên đăng nhập không hợp lệ"
+    - Token không tồn tại → 401 "Phiên đăng nhập không hợp lệ"
+    - Token quá hạn → 401 "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+    (kiểm tra bằng helper dùng chung `security.resolve_token_user`)
     - Token hợp lệ nhưng sai vai trò → 403 "…yêu cầu vai trò học sinh…"
     - Token hợp lệ, đúng vai trò → Student của chính token đó (không nhận tham số student_id)
     """
+    from ..security import resolve_token_user
+
     token = _extract_token(authorization)
-    row = (
-        db.query(AuthToken, User)
-        .join(User, User.id == AuthToken.user_id)
-        .filter(AuthToken.token == token)
-        .first()
-    )
-    if not row:
-        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
-    _auth_token, user = row
+    _auth_token, user = resolve_token_user(db, token)
     if user.role != ROLE_STUDENT:
         raise HTTPException(403, "Chức năng này yêu cầu vai trò học sinh, tài khoản của bạn không đủ quyền")
     s = (
@@ -328,22 +324,21 @@ def _student_payload(s: Student, db: Session) -> dict:
         .filter(StudentSkill.student_id == s.id, Skill.is_active.is_(True))
         .all()
     )
-    evals = db.query(Evaluation).filter(Evaluation.student_id == s.id).all()
+    evaluation_count = db.query(func.count(Evaluation.id)).filter(Evaluation.student_id == s.id).scalar() or 0
     certs = db.query(Certificate).filter(Certificate.student_id == s.id).all()
-    owned = db.query(Project).filter(Project.owner_student_id == s.id).all()
     member_ids = {
         r[0]
         for r in db.query(ProjectMember.project_id)
         .filter(ProjectMember.student_id == s.id)
         .all()
     }
-    membered = (
+    # MỘT truy vấn cho cả dự án làm chủ lẫn tham gia (trước đây: 2 query owned + membered).
+    projects = (
         db.query(Project)
-        .filter(Project.id.in_(member_ids - {p.id for p in owned}))
+        .filter(or_(Project.owner_student_id == s.id, Project.id.in_(member_ids)))
         .all()
-        if member_ids
-        else []
     )
+    projects.sort(key=lambda p: (p.owner_student_id != s.id, p.id))  # chủ trước, thành viên sau (giữ thứ tự cũ)
     return {
         "id": s.id,
         "full_name": s.user.full_name,
@@ -359,17 +354,19 @@ def _student_payload(s: Student, db: Session) -> dict:
         "skills": [
             {"code": sk.code, "name": sk.name, "level": level} for sk, level in skills
         ],
-        "evaluation_count": len(evals),
+        "evaluation_count": evaluation_count,
         "certificates": [
             {"id": c.id, "title": c.title, "issuer": c.issuer, "issued_at": c.issued_at} for c in certs
         ],
         "projects": [
-            {"id": p.id, "title": p.title, "field": p.field, "status": p.status, "role": "owner"}
-            for p in owned
-        ]
-        + [
-            {"id": p.id, "title": p.title, "field": p.field, "status": p.status, "role": "member"}
-            for p in membered
+            {
+                "id": p.id,
+                "title": p.title,
+                "field": p.field,
+                "status": p.status,
+                "role": "owner" if p.owner_student_id == s.id else "member",
+            }
+            for p in projects
         ],
     }
 
@@ -518,23 +515,18 @@ def overview(authorization: str = Header(default=None), db: Session = Depends(ge
         for r, a in regs
     ]
 
-    # lộ trình AI
-    roadmap = (
+    # lộ trình AI + phân tích (MỘT truy vấn cho cả 2 kind; trước đây: 2 query).
+    suggestions = (
         db.query(AiSuggestion)
-        .filter(AiSuggestion.student_id == s.id, AiSuggestion.kind == "roadmap")
+        .filter(AiSuggestion.student_id == s.id, AiSuggestion.kind.in_(("roadmap", "analysis")))
         .order_by(AiSuggestion.id.desc())
-        .limit(4)
         .all()
     )
+    roadmaps = [r for r in suggestions if r.kind == "roadmap"][:4]
     base["roadmap"] = [
-        {"title": r.title, "content": r.content} for r in roadmap
+        {"title": r.title, "content": r.content} for r in roadmaps
     ]
-    analysis = (
-        db.query(AiSuggestion)
-        .filter(AiSuggestion.student_id == s.id, AiSuggestion.kind == "analysis")
-        .order_by(AiSuggestion.id.desc())
-        .first()
-    )
+    analysis = next((r for r in suggestions if r.kind == "analysis"), None)
     base["ai_analysis"] = analysis.content if analysis else None
     return base
 

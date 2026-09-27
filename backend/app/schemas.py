@@ -25,12 +25,39 @@ class LoginIn(BaseModel):
     password: str
 
 
+class ForgotPasswordIn(BaseModel):
+    """Yêu cầu gửi link đặt lại mật khẩu.
+
+    Không có trường nào khác: endpoint luôn trả cùng một thông điệp dù email
+    có tồn tại hay không, nên không gửi gì quá nhiều cũng không lộ thông tin.
+    """
+
+    email: str = Field(min_length=3, max_length=160)
+
+
+class ResetPasswordIn(BaseModel):
+    """Đặt mật khẩu mới bằng token trong link."""
+
+    token: str = Field(min_length=10, max_length=200)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    def model_post_init(self, __context):
+        # 8 ký tự là mức tối thiểu hợp lý cho mật khẩu mới. Không ép phức tạp
+        # hơn (ký tự đặc biệt, bảng chữ cái…) vì người dùng hay bỏ qua và
+        # quay lại dùng mật khẩu yếu — cấm chặn cứng cũng không làm họ mạnh hơn.
+        if not self.new_password.strip():
+            raise ValueError("Mật khẩu không được để trống")
+        if self.new_password == self.new_password.lower():
+            raise ValueError("Mật khẩu nên có ít nhất một chữ hoa")
+        if not any(c.isdigit() for c in self.new_password):
+            raise ValueError("Mật khẩu nên có ít nhất một chữ số")
+
+
 class RegisterIn(BaseModel):
     full_name: str
     email: str
     password: str
-    role: str  # student | teacher | coach | school | enterprise
-    # Student fields
+    role: str  # student | teacher | coach | school | enterprise    # Student fields
     class_name: Optional[str] = None
     grade: Optional[int] = None
     education_level: Optional[str] = None  # THCS | THPT | CDDH

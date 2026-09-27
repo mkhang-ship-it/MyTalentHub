@@ -61,6 +61,31 @@ class RefreshToken(Base):
     )
 
 
+class VerificationToken(Base):
+    """Token một lần cho xác minh email và đặt lại mật khẩu.
+
+    Chung một bảng, phân biệt bằng `purpose`. Chỉ lưu `token_hash` (sha256 của
+    token thật) — token thật chỉ xuất hiện trong link gửi cho chính chủ tài khoản.
+    `used_at` đánh dấu đã dùng: một link chỉ sửa được một lần, dùng lại thì bị
+    từ chối (tương tự nguyên tắc xoay token của `RefreshToken`).
+    """
+
+    __tablename__ = "verification_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # "verify" (xác minh email) | "reset" (đặt lại mật khẩu)
+    purpose: Mapped[str] = mapped_column(String(20), index=True)
+    token_hash: Mapped[str] = mapped_column(
+        String(128), unique=True, index=True
+    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -70,6 +95,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(160), unique=True)
     password_hash: Mapped[str] = mapped_column(String(200))
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # Tài khoản demo seed sẵn không đi qua đăng ký nên không có email thật để
+    # xác minh; cờ này cho phép chúng đăng nhập bình thường.
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

@@ -9,12 +9,16 @@ Chống dò mật khẩu: 5 lần sai / 10 phút.
 Accounts seed: hs01@ftalenthub.edu.vn / nguyen.van.hung@ftalenthub.edu.vn /
 hlv.boi@ftalenthub.edu.vn / bgh@ftalenthub.edu.vn / hr@techfpt.vn — password `demo123`.
 """
+import logging
+import os
 import secrets
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..mailer import send_reset_email, send_verify_email
 from ..models import (
     ROLE_COACH,
     ROLE_ENTERPRISE,
@@ -29,13 +33,23 @@ from ..models import (
     School,
     Enterprise,
     User,
+    VerificationToken,
 )
-from ..schemas import LoginIn, RegisterIn
+from ..schemas import (
+    ForgotPasswordIn,
+    LoginIn,
+    RegisterIn,
+    ResetPasswordIn,
+)
 from ..security import (
     REGISTER_CLOSED_MESSAGE,
     WRONG_CREDENTIALS_MESSAGE,
+    _hash_token,
+    _new_reset_pair,
+    _new_verify_pair,
     clear_login_failures,
     create_refresh_token_table,
+    create_verification_token_table,
     hash_password,
     login_wait_seconds,
     new_access_expiry,
@@ -47,6 +61,8 @@ from ..security import (
     resolve_token_user,
     verify_password,
 )
+
+log = logging.getLogger("ftalenthub")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -366,3 +382,168 @@ def _extract(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Thiếu token")
     return authorization.removeprefix("Bearer ").strip()
+
+
+# ---------------------------------------------- xác minh email / quên mật khẩu
+# Cả hai luồng dùng chung bảng `verification_tokens` với cột `purpose`.
+# Nguyên tắc chung: KHÔNG bao giờ tiết lộ email nào có tồn tại — thất bại và
+# thành công trả về cùng một thông điệp, cùng mã HTTP. Nếu không, kẻ xấu dò
+# email chỉ cần so sánh phản hồi là biết tài khoản nào có trong hệ thống.
+
+_FORGOT_OK = "Nếu email này đã có tài khoản, chúng tôi đã gửi link đặt lại mật khẩu. Hãy kiểm tra hộp thư (kể cả thư rác)."
+_VERIFY_OK = "Cảm ơn bạn, email đã được xác minh."
+
+# Thông điệp chung cho mọi lỗi của link: người dùng không biết token sai,
+# hết hạn hay đã dùng — và việc phân biệt ra cũng vô ích cho họ.
+_LINK_INVALID = "Link không hợp lệ hoặc đã hết hạn. Hãy yêu cầu link mới."
+
+
+def _frontend_base() -> str:
+    """Địa chỉ giao diện để dựng link trong thư (đọc từ env)."""
+    return os.environ.get("FRONTEND_URL", "http://127.0.0.1:5174").rstrip("/")
+
+
+def _issue_verification(db: Session, user: User, purpose: str) -> str:
+    """Sinh token mới, vô hiệu các token cũ cùng purpose, trả link đầy đủ."""
+    create_verification_token_table()
+    # Mỗi lần yêu cầu chỉ giữ lại token mới nhất: token cũ đã gửi đi có thể
+    # nằm trong hộp thư cũ, cho phép nó dùng lại là mở cửa cho kẻ đọc trộm.
+    db.query(VerificationToken).filter(
+        VerificationToken.user_id == user.id,
+        VerificationToken.purpose == purpose,
+        VerificationToken.used_at.is_(None),
+    ).delete(synchronize_session=False)
+
+    pair = _new_verify_pair() if purpose == "verify" else _new_reset_pair()
+    token, token_hash, expires_at = pair
+    db.add(VerificationToken(
+        purpose=purpose, token_hash=token_hash,
+        user_id=user.id, expires_at=expires_at,
+    ))
+    db.commit()
+    base = _frontend_base()
+    return f"{base}/xac-minh-email?token={token}" if purpose == "verify" else \
+           f"{base}/dat-lai-mat-khau?token={token}"
+
+
+def _consume_verification(
+    db: Session, token: str, purpose: str
+) -> User:
+    """Kiểm tra và đánh dấu đã dùng token, trả về user tương ứng.
+
+    Đánh dấu `used_at` TRONG cùng lúc đọc để một link chỉ sửa được một lần, kể
+    cả khi hai request đến cùng lúc.
+    """
+    create_verification_token_table()
+    from ..security import _utcnow
+
+    now = _utcnow()
+    row = (
+        db.query(VerificationToken)
+        .filter(
+            VerificationToken.token_hash == _hash_token(token),
+            VerificationToken.purpose == purpose,
+        )
+        .first()
+    )
+    if row is None or row.used_at is not None or row.expires_at < now:
+        raise HTTPException(400, _LINK_INVALID)
+    row.used_at = now
+    user = db.query(User).filter(User.id == row.user_id).first()
+    if user is None:
+        raise HTTPException(400, _LINK_INVALID)
+    return user
+
+
+@router.post("/forgot-password")
+def forgot_password(body: ForgotPasswordIn, db: Session = Depends(get_db)):
+    """Gửi link đặt lại mật khẩu.
+
+    Luôn trả 200 với cùng thông điệp, kể cả khi email không tồn tại — xem
+    `_FORGOT_OK`. Có giới hạn số lần gọi để không bị dùng để spam thư.
+    """
+    create_verification_token_table()
+    wait = login_wait_seconds("reset:" + body.email)
+    if wait:
+        raise HTTPException(429, rate_limit_message(wait))
+
+    record_login_failure("reset:" + body.email)
+    user = (
+        db.query(User)
+        .filter(User.email == body.email.strip().lower())
+        .first()
+    )
+    if user is not None:
+        try:
+            link = _issue_verification(db, user, "reset")
+            send_reset_email(user.email, link)
+        except Exception:  # noqa: BLE001
+            # Không gửi được thư KHÔNG được lộ ra ngoài: nếu báo lỗi 500 thì
+            # người gọi biết chắc email tồn tại (đã tìm thấy user rồi mới
+            # gửi), tức là lộ thông tin dù đã cố giấu.
+            log.exception("Gửi thư đặt lại mật khẩu thất bại cho %s", user.email)
+    clear_login_failures("reset:" + body.email)
+    return {"message": _FORGOT_OK}
+
+
+@router.post("/reset-password")
+def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
+    """Đặt mật khẩu mới bằng token trong link, rồi thu hồi mọi phiên đang mở.
+
+    Thu hồi token là bắt buộc: nếu kẻ xấm có link và đã đăng nhập được trước
+    đó, họ sẽ mất quyền truy cập ngay khi chủ tài khoản đổi mật khẩu.
+    """
+    user = _consume_verification(db, body.token, "reset")
+    user.password_hash = hash_password(body.new_password)
+    user.email_verified = True
+    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    _revoke_refresh_tokens(db, user.id)
+    db.commit()
+    return {"message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."}
+
+
+@router.get("/verify-email")
+def verify_email(token: str = Query(...), db: Session = Depends(get_db)):
+    """Xác minh email qua link trong thư. Trả HTML tối giản để mở bằng trình duyệt."""
+    try:
+        user = _consume_verification(db, token, "verify")
+        user.email_verified = True
+        db.commit()
+        return _result_page(_VERIFY_OK, ok=True)
+    except HTTPException as exc:
+        return _result_page(str(exc.detail), ok=False)
+
+
+@router.post("/verify-email/resend")
+def resend_verification(authorization: str | None = Header(default=None),
+                        db: Session = Depends(get_db)):
+    """Gửi lại link xác minh (người dùng đã đăng nhập nhưng email chưa xác minh)."""
+    _auth_token, user = resolve_token_user(db, _extract(authorization))
+    if user.email_verified:
+        return {"message": "Email của bạn đã được xác minh trước đó."}
+    try:
+        link = _issue_verification(db, user, "verify")
+        send_verify_email(user.email, link)
+    except Exception:  # noqa: BLE001
+        log.exception("Gửi lại thư xác minh thất bại cho %s", user.email)
+    return {"message": "Đã gửi lại link xác minh. Hãy kiểm tra hộp thư."}
+
+
+def _result_page(message: str, ok: bool) -> HTMLResponse:
+    """Trang kết quả một nút, dùng khi mở link trực tiếp trên trình duyệt."""
+    color = "#047857" if ok else "#b91c1c"
+    return HTMLResponse(
+        '<!doctype html><html lang="vi"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>FTalentHub</title></head>"
+        '<body style="margin:0;min-height:100vh;display:flex;align-items:center;'
+        'justify-content:center;background:#f4f6fb;font-family:system-ui,sans-serif">'
+        '<div style="max-width:460px;background:#fff;padding:36px;border-radius:14px;'
+        'border:1px solid #e5e7eb;text-align:center">'
+        '<div style="font-size:20px;font-weight:700;margin-bottom:14px">FTalentHub</div>'
+        f'<p style="color:{color};font-size:15px;line-height:1.6">{message}</p>'
+        f'<a href="{_frontend_base()}" style="display:inline-block;margin-top:12px;'
+        'background:#2563eb;color:#fff;text-decoration:none;padding:11px 22px;'
+        'border-radius:10px;font-weight:600">Về trang chủ</a>'
+        "</div></body></html>"
+    )

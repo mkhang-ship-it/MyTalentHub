@@ -18,6 +18,11 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
+from .config import (
+    RESET_TOKEN_TTL_MINUTES,
+    VERIFY_TOKEN_TTL_MINUTES,
+)
+
 EXPIRED_MESSAGE = "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
 INVALID_MESSAGE = "Phiên đăng nhập không hợp lệ"
 MISSING_MESSAGE = "Thiếu token"
@@ -188,6 +193,11 @@ def refresh_token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _hash_token(token: str) -> str:
+    """Hash tra cứu token một lần (xác minh email / đặt lại mật khẩu)."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def create_refresh_token_table() -> None:
     """Tạo bảng `refresh_tokens` nếu chưa có (idempotent, raw SQL).
 
@@ -220,6 +230,89 @@ def create_refresh_token_table() -> None:
             "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_expires_at "
             "ON refresh_tokens (expires_at)"
         ))
+
+
+# ------------------------------------------- token xác minh email / đặt lại mật khẩu
+def _new_verify_pair() -> tuple[str, str, datetime]:
+    """Sinh token xác minh email: `(token_thật, sha256(token), hạn)`.
+
+    Token thật chỉ nằm trong link gửi cho chủ tài khoản; DB chỉ giữ sha256 nên
+    vẫn kiểm tra được token có đúng mà không giữ bí mật dạng rõ.
+    """
+    token = secrets.token_urlsafe(32)
+    return (
+        token,
+        hashlib.sha256(token.encode()).hexdigest(),
+        _utcnow() + timedelta(minutes=VERIFY_TOKEN_TTL_MINUTES),
+    )
+
+
+def _new_reset_pair() -> tuple[str, str, datetime]:
+    """Sinh token đặt lại mật khẩu: `(token_thật, sha256(token), hạn)`.
+
+    Hạn ngắn hơn token xác minh (mặc định 30 phút) vì đây là thao tác nhạy cảm.
+    """
+    token = secrets.token_urlsafe(32)
+    return (
+        token,
+        hashlib.sha256(token.encode()).hexdigest(),
+        _utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES),
+    )
+
+
+def create_verification_token_table() -> None:
+    """Tạo bảng `verification_tokens` nếu chưa có (idempotent, raw SQL)."""
+    from sqlalchemy import text
+
+    from .database import engine
+
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE TABLE IF NOT EXISTS verification_tokens ("
+            "id INTEGER NOT NULL PRIMARY KEY, "
+            "purpose VARCHAR(20) NOT NULL, "
+            "token_hash VARCHAR(128) NOT NULL UNIQUE, "
+            "user_id INTEGER NOT NULL REFERENCES users (id), "
+            "expires_at DATETIME NOT NULL, "
+            "used_at DATETIME, "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL)"
+        ))
+        for col in ("purpose", "user_id", "expires_at"):
+            conn.execute(text(
+                f"CREATE INDEX IF NOT EXISTS ix_verification_tokens_{col} "
+                f"ON verification_tokens ({col})"
+            ))
+        # users.email_verified: cột này mới thêm cho tài khoản đăng ký.
+        # SQLite không có ADD COLUMN IF NOT EXISTS nên phải bắt lỗi bỏ qua.
+        try:
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL "
+                "DEFAULT 0"
+            ))
+        except Exception:  # noqa: BLE001 - cột đã tồn tại là chuyện bình thường
+            pass
+
+
+def purge_used_verification_tokens(db=None) -> int:
+    """Dọn token đã dùng và token quá hạn. Trả về số dòng đã xoá."""
+    from .database import SessionLocal
+    from .models import VerificationToken
+
+    own = db is None
+    session = db or SessionLocal()
+    try:
+        now = _utcnow()
+        q = session.query(VerificationToken).filter(
+            (VerificationToken.used_at.isnot(None))
+            | (VerificationToken.expires_at < now)
+        )
+        n = q.delete(synchronize_session=False)
+        if own:
+            session.commit()
+        return n
+    finally:
+        if own:
+            session.close()
 
 
 # ---------------------------------------------------------------- chống dò mật khẩu

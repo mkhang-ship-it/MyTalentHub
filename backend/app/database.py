@@ -2,13 +2,18 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from .config import DB_URL
+from .config import CONNECT_ARGS, DB_IS_SQLITE, DB_URL
 
-os.makedirs(os.path.dirname(DB_URL.replace("sqlite:///", "")), exist_ok=True)
+# Chỉ tạo thư mục khi dùng SQLite. Với PostgreSQL, DB_URL không phải đường dẫn
+# nên os.makedirs sẽ tạo ra thư mục rác hoặc ném lỗi.
+if DB_IS_SQLITE:
+    _sqlite_file = DB_URL.replace("sqlite:///", "", 1)
+    if _sqlite_file and _sqlite_file != ":memory:":
+        os.makedirs(os.path.dirname(_sqlite_file) or ".", exist_ok=True)
 
 engine = create_engine(
     DB_URL,
-    connect_args={"check_same_thread": False},
+    connect_args=CONNECT_ARGS,
 )
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 

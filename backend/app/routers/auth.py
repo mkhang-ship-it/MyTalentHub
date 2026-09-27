@@ -1,10 +1,11 @@
-"""AUTH — login theo vai trò (student/teacher/school/enterprise).
+"""AUTH — login theo vai trò (student/teacher/coach/school/enterprise).
 
-Demo: password hash = sha256("fth_" + password), token ngẫu nhiên lưu bảng auth_tokens.
+Hash mật khẩu PBKDF2 (`app.security`); hash cũ sha256("fth_" + password) vẫn
+được chấp nhận để đăng nhập và tự nâng cấp trong cùng lần đó.
+Token có hạn 7 ngày (env TOKEN_TTL_DAYS). Chống dò mật khẩu: 5 lần sai / 10 phút.
 Accounts seed: hs01@ftalenthub.edu.vn / nguyen.van.hung@ftalenthub.edu.vn /
-bgh@ftalenthub.edu.vn / hr@techfpt.vn — password mặc định `demo123`.
+hlv.boi@ftalenthub.edu.vn / bgh@ftalenthub.edu.vn / hr@techfpt.vn — password `demo123`.
 """
-import hashlib
 import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -26,12 +27,22 @@ from ..models import (
     User,
 )
 from ..schemas import LoginIn, LoginOut, RegisterIn
+from ..security import (
+    WRONG_CREDENTIALS_MESSAGE,
+    clear_login_failures,
+    hash_password,
+    login_wait_seconds,
+    new_token_expiry,
+    rate_limit_message,
+    record_login_failure,
+    resolve_token_user,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-
-def hash_password(password: str) -> str:
-    return hashlib.sha256(f"fth_{password}".encode()).hexdigest()
+# Giữ tên cũ để `seed.py` (`from .routers.auth import hash_password`) không vỡ.
+__all__ = ["router", "hash_password", "verify_password"]
 
 
 def _profile_ids(user: User, db: Session) -> dict:
@@ -142,9 +153,9 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 
     db.commit()
 
-    # Create auth token
+    # Create auth token (có thời hạn)
     token = secrets.token_hex(24)
-    db.add(AuthToken(token=token, user_id=user.id))
+    db.add(AuthToken(token=token, user_id=user.id, expires_at=new_token_expiry()))
     db.commit()
 
     info = _profile_ids(user, db)
@@ -163,12 +174,30 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=LoginOut)
 def login(payload: LoginIn, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email.lower().strip()).first()
-    if not user or user.password_hash != hash_password(payload.password):
-        raise HTTPException(401, "Email hoặc mật khẩu không đúng")
+    email = payload.email.lower().strip()
+
+    # Chống dò mật khẩu: vượt ngưỡng → 429 (không tiết lộ email có tồn tại).
+    wait_s = login_wait_seconds(email)
+    if wait_s > 0:
+        raise HTTPException(429, rate_limit_message(wait_s))
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(payload.password, user.password_hash):
+        record_login_failure(email)
+        # Luôn trả 401 giống nhau — không tiết lộ email có tồn tại hay không.
+        # Lần sai thứ 6 trở đi bị chặn ngay ở đầu hàm (429).
+        raise HTTPException(401, WRONG_CREDENTIALS_MESSAGE)
+
+    clear_login_failures(email)
+
+    # Tự nâng cấp hash cũ sang PBKDF2 trong cùng lần đăng nhập đúng mật khẩu.
+    from ..security import is_new_hash_format
+
+    if not is_new_hash_format(user.password_hash):
+        user.password_hash = hash_password(payload.password)
 
     token = secrets.token_hex(24)
-    db.add(AuthToken(token=token, user_id=user.id))
+    db.add(AuthToken(token=token, user_id=user.id, expires_at=new_token_expiry()))
     db.commit()
 
     info = _profile_ids(user, db)
@@ -188,10 +217,7 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
 @router.get("/me")
 def me(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     token = _extract(authorization)
-    row = db.query(AuthToken, User).join(User, User.id == AuthToken.user_id).filter(AuthToken.token == token).first()
-    if not row:
-        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
-    _auth_token, user = row
+    _auth_token, user = resolve_token_user(db, token)
     info = _profile_ids(user, db)
     return {
         "token": token,
@@ -209,10 +235,19 @@ def me(authorization: str | None = Header(default=None), db: Session = Depends(g
 @router.post("/logout")
 def logout(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     token = _extract(authorization)
-    row = db.query(AuthToken).filter(AuthToken.token == token).first()
-    if row:
-        db.delete(row)
-        db.commit()
+    auth_token, _user = resolve_token_user(db, token)
+    db.delete(auth_token)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/logout-all")
+def logout_all(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    """Đăng xuất mọi thiết bị: xoá toàn bộ token của user đang đăng nhập."""
+    token = _extract(authorization)
+    _auth_token, user = resolve_token_user(db, token)
+    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    db.commit()
     return {"ok": True}
 
 

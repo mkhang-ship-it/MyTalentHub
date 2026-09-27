@@ -27,6 +27,18 @@ def _run_migrations():
             except Exception:
                 conn.rollback()
                 # column likely exists; ignore
+        try:
+            conn.execute(text("ALTER TABLE auth_tokens ADD COLUMN expires_at DATETIME"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            # column likely exists; ignore
+        try:
+            # Token legacy (chưa có hạn) được gia hạn 7 ngày kể từ lúc migrate.
+            conn.execute(text("UPDATE auth_tokens SET expires_at = datetime('now', '+7 days') WHERE expires_at IS NULL"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 def get_db():

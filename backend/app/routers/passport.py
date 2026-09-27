@@ -1,5 +1,5 @@
 """TALENT PASSPORT — QR định danh, hồ sơ, chứng chỉ, dự án, hoạt động, kỹ năng, CV (slide 19, 32)."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
@@ -16,13 +16,24 @@ from ..models import (
     StudentSkill,
     TalentPassport,
 )
+from ..security import resolve_token_user
 
 router = APIRouter(prefix="/passport", tags=["passport"])
 
 
 @router.get("/{student_id}")
-def passport(student_id: int, db: Session = Depends(get_db)):
-    """Hồ sơ Talent Passport đầy đủ theo QR/tên."""
+def passport(student_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    """Hồ sơ Talent Passport đầy đủ theo QR/tên.
+
+    Hồ sơ công khai theo ý tưởng QR — bất kỳ ai ĐÃ ĐĂNG NHẬP cũng xem được,
+    nhưng bắt buộc phải có token hợp lệ (chưa hết hạn).
+    """
+    from ..security import MISSING_MESSAGE
+
+    token = authorization
+    if not token or not token.startswith("Bearer "):
+        raise HTTPException(401, MISSING_MESSAGE)
+    resolve_token_user(db, token.removeprefix("Bearer ").strip())
     p = (
         db.query(TalentPassport)
         .options(selectinload(TalentPassport.student))

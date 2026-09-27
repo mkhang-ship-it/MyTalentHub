@@ -1,6 +1,5 @@
 """NHÀ TRƯỜNG — KPI tổng quan, phân tích năng lực (bản đồ & xếp hạng), báo cáo, lớp & khối, cài đặt quản trị."""
 import csv
-import hashlib
 import io
 import re
 from datetime import datetime
@@ -15,7 +14,6 @@ from ..schemas import StudentImportIn
 from ..models import (
     Activity,
     ActivityRegistration,
-    AuthToken,
     Badge,
     ClassGroup,
     Coach,
@@ -50,11 +48,10 @@ def _extract_token(authorization: str | None) -> str:
 
 
 def _require_school(authorization: str | None, db: Session) -> User:
+    from ..security import resolve_token_user
+
     token = _extract_token(authorization)
-    row = db.query(AuthToken, User).join(User, User.id == AuthToken.user_id).filter(AuthToken.token == token).first()
-    if not row:
-        raise HTTPException(401, "Phiên đăng nhập không hợp lệ")
-    _auth_token, user = row
+    _auth_token, user = resolve_token_user(db, token)
     if user.role != ROLE_SCHOOL:
         raise HTTPException(403, "Chỉ nhà trường mới được truy cập")
     return user
@@ -68,8 +65,9 @@ def _pct_delta(curr: int, prev: int) -> str:
 
 
 @router.get("/overview")
-def overview(db: Session = Depends(get_db)):
+def overview(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """KPI toàn trường (slide 24): học sinh hoạt động/tháng, tỷ lệ tham gia & hoàn thành."""
+    _require_school(authorization, db)
     total_students = db.query(Student).count()
     total_hours = db.query(func.coalesce(func.sum(Student.experience_hours), 0)).scalar()
     active_regs = db.query(ActivityRegistration).filter(ActivityRegistration.status == "registered").count()
@@ -145,8 +143,9 @@ def overview(db: Session = Depends(get_db)):
 
 
 @router.get("/talent-analysis")
-def talent_analysis(db: Session = Depends(get_db)):
+def talent_analysis(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Bản đồ năng khiếu + bảng xếp hạng khối (slide 25)."""
+    _require_school(authorization, db)
     # điểm TB thật từng kỹ năng từ StudentSkill.level (thang 0-10 → /100)
     skills = db.query(Skill).filter(Skill.is_active.is_(True)).all()
     skill_map = []
@@ -187,15 +186,16 @@ def talent_analysis(db: Session = Depends(get_db)):
 
 
 @router.get("/analysis")
-def analysis(db: Session = Depends(get_db)):
+def analysis(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Alias for /talent-analysis — slide 25."""
-    return talent_analysis(db)
+    return talent_analysis(authorization, db)
 
 
 @router.get("/reports")
 def reports(
     type: str = "students",
     format: str = "json",
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """
@@ -203,6 +203,7 @@ def reports(
     type: students|activities|evaluations|badges
     format: json|csv
     """
+    _require_school(authorization, db)
     if type == "students":
         students = db.query(Student).order_by(Student.grade.asc(), Student.talent_score.desc()).all()
         rows = [
@@ -360,8 +361,9 @@ def reports(
 
 
 @router.get("/classes")
-def classes(db: Session = Depends(get_db)):
+def classes(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Tổng quan khối & lớp (slide 27): GVCN + top 5 lớp xuất sắc + tỷ lệ hoàn thành hoạt động."""
+    _require_school(authorization, db)
     rows = (
         db.query(Student.class_name, Student.grade, func.count(Student.id), func.avg(Student.talent_score), func.sum(Student.experience_hours))
         .group_by(Student.class_name, Student.grade)
@@ -862,11 +864,14 @@ _IMPORT_DEFAULT_PASSWORD = "demo123"
 
 
 def _import_password_hash(password: str) -> str:
-    """Cùng công thức với `routers.auth.hash_password`: sha256("fth_" + password).
+    """Hash cho tài khoản học sinh sinh ra từ CSV — dùng chung `security.hash_password`.
 
-    Viết lại tại chỗ (không import từ auth) để tránh phụ thuộc vòng giữa các router.
+    (Lô 3 viết lại sha256 tại chỗ để tránh phụ thuộc vòng; nay dùng module dùng
+    chung nên import trực tiếp — tài khoản CSV mới nhận hash PBKDF2.)
     """
-    return hashlib.sha256(f"fth_{password}".encode()).hexdigest()
+    from ..security import hash_password
+
+    return hash_password(password)
 
 
 def _parse_import_csv(content: str) -> tuple[list[str] | None, list[tuple[int, dict[str, str]]]]:
@@ -1125,8 +1130,9 @@ def import_students(
 
 
 @router.get("/import/template")
-def import_template():
+def import_template(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """File CSV mẫu (1 dòng tiêu đề + 2 dòng ví dụ) để người dùng tải về."""
+    _require_school(authorization, db)
     from fastapi.responses import StreamingResponse
 
     csv_text = (

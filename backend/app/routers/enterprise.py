@@ -1,10 +1,11 @@
 """DOANH NGHIỆP — tổng quan, tìm nhân tài (filter), tuyển thực tập, tài trợ dự án."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import (
+    ROLE_ENTERPRISE,
     Enterprise,
     InternshipApplication,
     InternshipPost,
@@ -40,20 +41,36 @@ FIELD_KEYWORDS: dict[str, list[str]] = {
 }
 
 
-def _get_enterprise(db: Session, enterprise_id: int | None = None) -> Enterprise:
-    if enterprise_id is not None:
-        e = db.query(Enterprise).filter(Enterprise.id == enterprise_id).first()
-    else:
-        e = db.query(Enterprise).first()
+def _extract_token(authorization: str | None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Thiếu token")
+    return authorization.removeprefix("Bearer ").strip()
+
+
+def _require_enterprise(authorization: str | None, db: Session) -> Enterprise:
+    """Doanh nghiệp ĐANG ĐĂNG NHẬP — bắt buộc token + role enterprise.
+
+    Hợp đồng phân quyền (giữ nguyên như lô 3):
+    - Thiếu header → 401 "Thiếu token"; token lạ → 401 "Phiên đăng nhập không hợp lệ"
+    - Token hết hạn → 401 "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+    - Sai vai trò → 403.
+    """
+    from ..security import resolve_token_user
+
+    token = _extract_token(authorization)
+    _auth_token, user = resolve_token_user(db, token)
+    if user.role != ROLE_ENTERPRISE:
+        raise HTTPException(403, "Chức năng này yêu cầu vai trò doanh nghiệp, tài khoản của bạn không đủ quyền")
+    e = db.query(Enterprise).filter(Enterprise.id == user.id).first()
     if not e:
-        raise HTTPException(404, "Không tìm thấy doanh nghiệp")
+        raise HTTPException(403, "Tài khoản chưa được liên kết với hồ sơ doanh nghiệp")
     return e
 
 
 @router.get("/overview")
-def overview(enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def overview(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Tổng quan (slide 28): hồ sơ phù hợp, tin thực tập, ứng viên, tài trợ."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     posts = db.query(InternshipPost).filter(InternshipPost.enterprise_id == e.id).all()
     post_ids = [p.id for p in posts]
     applicants = 0
@@ -87,9 +104,11 @@ def talents(
     min_technical_score: float | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Tìm kiếm nhân tài (slide 29): filter tên/lớp/khối/điểm năng lực/điểm kỹ thuật + phân trang."""
+    _require_enterprise(authorization, db)
     query = db.query(Student).join(Student.user).order_by(Student.talent_score.desc())
     if q:
         query = query.filter(
@@ -154,11 +173,11 @@ def talents(
 @router.post("/invite", response_model=InterviewInvitationOut)
 def invite_student(
     payload: InterviewInvitationIn,
-    enterprise_id: int | None = None,
+    authorization: str = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Gửi lời mời phỏng vấn cho học sinh."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     # Kiểm tra học sinh tồn tại
     student = db.query(Student).filter(Student.id == payload.student_id).first()
     if not student:
@@ -183,8 +202,8 @@ def invite_student(
 
 
 @router.post("/internships", response_model=InternshipPostOut)
-def create_internship(payload: InternshipPostIn, enterprise_id: int | None = None, db: Session = Depends(get_db)):
-    e = _get_enterprise(db, enterprise_id)
+def create_internship(payload: InternshipPostIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    e = _require_enterprise(authorization, db)
     p = InternshipPost(
         enterprise_id=e.id,
         title=payload.title,
@@ -206,9 +225,9 @@ def create_internship(payload: InternshipPostIn, enterprise_id: int | None = Non
 
 
 @router.get("/internships")
-def internships(enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def internships(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách tin tuyển thực tập (slide 30)."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     rows = db.query(InternshipPost).filter(InternshipPost.enterprise_id == e.id).all()
     return [
         {
@@ -226,9 +245,9 @@ def internships(enterprise_id: int | None = None, db: Session = Depends(get_db))
 
 
 @router.get("/internships/{post_id}")
-def get_internship(post_id: int, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def get_internship(post_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Chi tiết tin tuyển thực tập."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     p = db.query(InternshipPost).filter(InternshipPost.id == post_id, InternshipPost.enterprise_id == e.id).first()
     if not p:
         raise HTTPException(404, "Không tìm thấy tin tuyển dụng")
@@ -247,9 +266,9 @@ def get_internship(post_id: int, enterprise_id: int | None = None, db: Session =
 
 
 @router.put("/internships/{post_id}", response_model=InternshipPostOut)
-def update_internship(post_id: int, payload: InternshipPostIn, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def update_internship(post_id: int, payload: InternshipPostIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Cập nhật tin tuyển thực tập."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     p = db.query(InternshipPost).filter(InternshipPost.id == post_id, InternshipPost.enterprise_id == e.id).first()
     if not p:
         raise HTTPException(404, "Không tìm thấy tin tuyển dụng")
@@ -272,9 +291,9 @@ def update_internship(post_id: int, payload: InternshipPostIn, enterprise_id: in
 
 
 @router.delete("/internships/{post_id}")
-def delete_internship(post_id: int, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def delete_internship(post_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Xóa tin tuyển thực tập."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     p = db.query(InternshipPost).filter(InternshipPost.id == post_id, InternshipPost.enterprise_id == e.id).first()
     if not p:
         raise HTTPException(404, "Không tìm thấy tin tuyển dụng")
@@ -284,9 +303,9 @@ def delete_internship(post_id: int, enterprise_id: int | None = None, db: Sessio
 
 
 @router.get("/internships/{post_id}/applicants")
-def internship_applicants(post_id: int, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def internship_applicants(post_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách ứng viên cho một tin tuyển thực tập."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     p = db.query(InternshipPost).filter(InternshipPost.id == post_id, InternshipPost.enterprise_id == e.id).first()
     if not p:
         raise HTTPException(404, "Không tìm thấy tin tuyển dụng")
@@ -316,8 +335,9 @@ def internship_applicants(post_id: int, enterprise_id: int | None = None, db: Se
 
 
 @router.get("/projects")
-def projects(field: str | None = None, status: str | None = None, db: Session = Depends(get_db)):
+def projects(field: str | None = None, status: str | None = None, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách dự án học sinh để doanh nghiệp chọn tài trợ (slide 31). Filter: field, status."""
+    _require_enterprise(authorization, db)
     query = db.query(Project).order_by(Project.id.desc())
     if field:
         query = query.filter(Project.field == field)
@@ -352,9 +372,9 @@ def projects(field: str | None = None, status: str | None = None, db: Session = 
 
 
 @router.get("/sponsorships")
-def sponsorships(enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def sponsorships(authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Danh sách tài trợ dự án (slide 31)."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     rows = (
         db.query(Sponsorship, Project)
         .join(Project, Project.id == Sponsorship.project_id)
@@ -377,8 +397,8 @@ def sponsorships(enterprise_id: int | None = None, db: Session = Depends(get_db)
 
 
 @router.post("/sponsorships", response_model=SponsorshipOut)
-def create_sponsorship(payload: SponsorshipIn, enterprise_id: int | None = None, db: Session = Depends(get_db)):
-    e = _get_enterprise(db, enterprise_id)
+def create_sponsorship(payload: SponsorshipIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
+    e = _require_enterprise(authorization, db)
     sp = Sponsorship(enterprise_id=e.id, project_id=payload.project_id, amount=payload.amount, conditions=payload.conditions, status="approved")
     db.add(sp)
     pr = db.query(Project).filter(Project.id == payload.project_id).first()
@@ -401,9 +421,9 @@ def create_sponsorship(payload: SponsorshipIn, enterprise_id: int | None = None,
 
 
 @router.get("/sponsorships/{sponsorship_id}", response_model=SponsorshipOut)
-def get_sponsorship(sponsorship_id: int, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def get_sponsorship(sponsorship_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Chi tiết tài trợ."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     sp = db.query(Sponsorship).filter(Sponsorship.id == sponsorship_id, Sponsorship.enterprise_id == e.id).first()
     if not sp:
         raise HTTPException(404, "Không tìm thấy tài trợ")
@@ -422,9 +442,9 @@ def get_sponsorship(sponsorship_id: int, enterprise_id: int | None = None, db: S
 
 
 @router.put("/sponsorships/{sponsorship_id}", response_model=SponsorshipOut)
-def update_sponsorship(sponsorship_id: int, payload: SponsorshipIn, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def update_sponsorship(sponsorship_id: int, payload: SponsorshipIn, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Cập nhật tài trợ."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     sp = db.query(Sponsorship).filter(Sponsorship.id == sponsorship_id, Sponsorship.enterprise_id == e.id).first()
     if not sp:
         raise HTTPException(404, "Không tìm thấy tài trợ")
@@ -454,9 +474,9 @@ def update_sponsorship(sponsorship_id: int, payload: SponsorshipIn, enterprise_i
 
 
 @router.delete("/sponsorships/{sponsorship_id}")
-def delete_sponsorship(sponsorship_id: int, enterprise_id: int | None = None, db: Session = Depends(get_db)):
+def delete_sponsorship(sponsorship_id: int, authorization: str = Header(default=None), db: Session = Depends(get_db)):
     """Xóa tài trợ."""
-    e = _get_enterprise(db, enterprise_id)
+    e = _require_enterprise(authorization, db)
     sp = db.query(Sponsorship).filter(Sponsorship.id == sponsorship_id, Sponsorship.enterprise_id == e.id).first()
     if not sp:
         raise HTTPException(404, "Không tìm thấy tài trợ")

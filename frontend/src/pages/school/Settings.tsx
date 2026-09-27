@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Edit, Trash2, AlertCircle, CheckCircle, Info, LogIn, Users, Download, Upload } from "lucide-react";
 import { API_BASE, get, getToken, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, Badge, PageHeader } from "../../components/ui";
+import { useDialogA11y } from "../../hooks/useDialog";
 
 interface Toast {
   id: number;
@@ -87,6 +88,11 @@ export default function Settings() {
   const [submitting, setSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [memberModal, setMemberModal] = useState<{ group: StudyGroup; selected: number[] } | null>(null);
+  // a11y cho modal gán thành viên: focus trap + Escape + trả focus về nút mở
+  const memberDialogRef = useDialogA11y<HTMLDivElement>(
+    memberModal !== null,
+    () => setMemberModal(null)
+  );
   const [studentOptions, setStudentOptions] = useState<StudentOption[] | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
   // ===== NHẬP DỮ LIỆU CSV (G5) =====
@@ -1168,6 +1174,7 @@ export default function Settings() {
       {/* Modal gán thành viên cho nhóm học tập */}
       {memberModal && (
         <div
+          ref={memberDialogRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           role="dialog"
           aria-modal="true"

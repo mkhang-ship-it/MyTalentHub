@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Users, Edit, Trash2, X, Eye, AlertCircle, CheckCircle, LogIn } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading } from "../../components/ui";
+import { useDialogA11y } from "../../hooks/useDialog";
 
 interface Toast {
   id: number;
@@ -46,6 +47,11 @@ export default function Classes() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [me, setMe] = useState<TeacherMe | null>(null);
   const [meLoading, setMeLoading] = useState(true);
+  // a11y cho modal danh sách học sinh: focus trap + Escape + trả focus về nút mở
+  const studentsDialogRef = useDialogA11y<HTMLDivElement>(
+    showStudents && selectedClass !== null,
+    () => setShowStudents(false)
+  );
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now();
@@ -391,6 +397,7 @@ export default function Classes() {
       {/* Modal xem học viên */}
       {showStudents && selectedClass && (
         <div
+          ref={studentsDialogRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           role="dialog"
           aria-modal="true"

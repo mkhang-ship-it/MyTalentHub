@@ -1,14 +1,16 @@
 """NHÀ TRƯỜNG — KPI tổng quan, phân tích năng lực (bản đồ & xếp hạng), báo cáo, lớp & khối, cài đặt quản trị."""
 import csv
 import io
+import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from ..core.pagination import MAX_LIMIT
 from ..database import get_db
 from ..schemas import StudentImportIn
 from ..models import (
@@ -55,6 +57,81 @@ def _require_school(authorization: str | None, db: Session) -> User:
     if user.role != ROLE_SCHOOL:
         raise HTTPException(403, "Chỉ nhà trường mới được truy cập")
     return user
+
+
+@router.get("/audit-log")
+def audit_log(
+    authorization: str = Header(default=None),
+    db: Session = Depends(get_db),
+    action: Optional[str] = Query(default=None, max_length=60),
+    role: Optional[str] = Query(default=None, max_length=20),
+    user_id: Optional[int] = Query(default=None, ge=1),
+    since: Optional[str] = Query(default=None, max_length=25),
+    until: Optional[str] = Query(default=None, max_length=25),
+    limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+):
+    """Nhật ký thao tác nhạy cảm (slide vận hành).
+
+    Chỉ nhà trường xem được: nhật ký chứa email và IP của người dùng, tức là
+    dữ liệu nhạy cảm hơn cả bảng người dùng mà các cổng khác đang giới hạn.
+
+    Lọc theo `action` (tiền tố, ví dụ `auth.` xem mọi sự kiện đăng nhập),
+    `role`, `user_id`, và khoảng thời gian `since`/`until` theo ngày
+    (định dạng YYYY-MM-DD, khoảng `until` bao trọn cả ngày đó).
+    """
+    from ..models import AuditLog
+
+    _require_school(authorization, db)
+    q = db.query(AuditLog)
+    if action:
+        # So khớp tiền tố để "auth." ra mọi sự kiện đăng nhập.
+        q = q.filter(AuditLog.action.like(f"{action}%"))
+    if role:
+        q = q.filter(AuditLog.role == role)
+    if user_id:
+        q = q.filter(AuditLog.user_id == user_id)
+    if since:
+        try:
+            q = q.filter(AuditLog.created_at >= datetime.fromisoformat(since))
+        except ValueError:
+            raise HTTPException(422, "since phải có dạng YYYY-MM-DD")
+    if until:
+        try:
+            d = datetime.fromisoformat(until)
+        except ValueError:
+            raise HTTPException(422, "until phải có dạng YYYY-MM-DD")
+        # +1 ngày rồi dùng "<" để lấy trọn ngày `until`, không cắt mất các sự
+        # kiện diễn ra sau 00:00.
+        q = q.filter(AuditLog.created_at < d.replace(hour=0, minute=0) + timedelta(days=1))
+
+    total = q.count()
+    rows = (
+        q.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .offset(offset).limit(limit).all()
+    )
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            {
+                "id": r.id,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "action": r.action,
+                "user_id": r.user_id,
+                "role": r.role,
+                "target": (
+                    f"{r.target_type}:{r.target_id}"
+                    if r.target_type and r.target_id else None
+                ),
+                "detail": json.loads(r.detail) if r.detail else None,
+                "ip": r.ip,
+                "request_id": r.request_id,
+            }
+            for r in rows
+        ],
+    }
 
 
 def _pct_delta(curr: int, prev: int) -> str:

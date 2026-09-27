@@ -293,6 +293,39 @@ def create_verification_token_table() -> None:
             pass
 
 
+def create_audit_log_table() -> None:
+    """Tạo bảng `audit_logs` nếu chưa có (idempotent, raw SQL).
+
+    Để riêng ở đây thay vì chỉ dựa vào `create_all` vì bảng nhật ký phải tồn tại
+    sớm: nếu nó thiếu thì mọi lệnh ghi nhật ký sẽ ném lỗi — tuy đã nuốt lỗi để
+    không hỏng request, nhưng đồng nghĩa không còn dấu vết nào.
+    """
+    from sqlalchemy import text
+
+    from .database import engine
+
+    with engine.begin() as conn:
+        conn.execute(text(
+            "CREATE TABLE IF NOT EXISTS audit_logs ("
+            "id INTEGER NOT NULL PRIMARY KEY, "
+            "user_id INTEGER REFERENCES users (id), "
+            "role VARCHAR(20), "
+            "action VARCHAR(60) NOT NULL, "
+            "target_type VARCHAR(40), "
+            "target_id VARCHAR(60), "
+            "detail TEXT, "
+            "ip VARCHAR(45), "
+            "user_agent VARCHAR(200), "
+            "request_id VARCHAR(16), "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL)"
+        ))
+        for col in ("action", "user_id", "role", "created_at"):
+            conn.execute(text(
+                f"CREATE INDEX IF NOT EXISTS ix_audit_logs_{col} "
+                f"ON audit_logs ({col})"
+            ))
+
+
 def purge_used_verification_tokens(db=None) -> int:
     """Dọn token đã dùng và token quá hạn. Trả về số dòng đã xoá."""
     from .database import SessionLocal

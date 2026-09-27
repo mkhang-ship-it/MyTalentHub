@@ -105,6 +105,48 @@ class User(Base):
     )
 
 
+class AuditLog(Base):
+    """Nhật ký thao tác nhạy cảm — ai làm gì, lúc nào, từ đâu.
+
+    Vì sao cần: hệ thống có 5 vai trò và chứa dữ liệu học sinh. Khi có khiếu
+    nại ("ai đã sửa điểm tôi?", "tài khoản tôi bị đăng nhập lúc 2h sáng từ đâu?")
+    thì phải có câu trả lời từ dữ liệu, không phải từ trí nhớ.
+
+    Ghi thủ công ở những chỗ quan trọng (đăng nhập, đổi mật khẩu, thao tác ghi
+    theo vai trò) chứ không bắt tự động mọi câu lệnh: nhật ký tự động theo ORM
+    sẽ ghi cả những thứ không ai cần đọc, và dễ nhầm lẫn với nhật ký truy cập.
+    Xem `app/core/audit.py` để biết những chỗ nào được ghi.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Null khi hành động xảy ra khi chưa đăng nhập (đăng nhập sai, đăng ký).
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    # Ghi lại vai trò tại thời điểm xảy ra, không tra lại từ users: vai trò có
+    # thể đổi sau này mà nhật ký phải phản ánh đúng lúc đó.
+    role: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, index=True)
+    # Tên hành động, dạng "danh_từ.động_từ": auth.login_ok, auth.login_fail,
+    # activity.update, evaluation.create...
+    action: Mapped[str] = mapped_column(String(60), index=True)
+    # Đối tượng bị tác động, ví dụ ("activity", 12). Dùng chuỗi vì có loại
+    # không nằm trong CSDL.
+    target_type: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    target_id: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    # Chi tiết dạng JSON: ghi bao nhiêu bản ghi bị ảnh hưởng, lý do, v.v.
+    # TUYỆT ĐỐI không ghi mật khẩu, token, hay bất kỳ bí mật nào vào đây.
+    detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # Khoá với log ứng dụng để đối chiếu một sự kiện giữa nhật ký và log server.
+    request_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), index=True
+    )
+
+
 class Student(Base):
     __tablename__ = "students"
 

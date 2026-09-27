@@ -11,11 +11,13 @@ from .core.errors import install_error_handlers, request_logging_middleware
 from .core.logging_conf import setup_logging
 from .security import (
     cors_origins,
+    create_audit_log_table,
     create_refresh_token_table,
     create_verification_token_table,
     purge_expired_tokens,
     purge_used_verification_tokens,
 )
+from .core.audit import purge_old_audit_logs
 
 setup_logging()
 _run_migrations()
@@ -24,12 +26,17 @@ Base.metadata.create_all(bind=engine)
 # router (nằm ở security.py). Idempotent nên gọi mỗi lần khởi động đều an toàn.
 create_refresh_token_table()
 create_verification_token_table()
+# Nhật ký thao tác nhạy cảm. Nằm trong Base.metadata nên create_all đã tạo,
+# nhưng gọi tường minh để không phụ thuộc vào thứ tự import model.
+create_audit_log_table()
 # Index cho các cột khóa ngoại / hay lọc. Idempotent, không sao khi chạy lại.
 ensure_indexes()
 # Dọn token quá hạn một lần lúc khởi phục, bảng không phình vô hạn.
 purge_expired_tokens()
 # Dọn link xác minh/đặt lại mật khẩu đã dùng hoặc quá hạn.
 purge_used_verification_tokens()
+# Dọn nhật ký cũ hơn AUDIT_RETENTION_DAYS (mặc định 180 ngày).
+purge_old_audit_logs()
 
 app = FastAPI(title="FTalentHub API", version="1.0.0")
 

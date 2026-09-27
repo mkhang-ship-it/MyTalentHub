@@ -13,10 +13,11 @@ import logging
 import os
 import secrets
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
+from ..core.audit import record_audit
 from ..database import get_db
 from ..mailer import send_reset_email, send_verify_email
 from ..models import (
@@ -238,22 +239,34 @@ def register(payload: RegisterIn, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(payload: LoginIn, db: Session = Depends(get_db)):
+def login(payload: LoginIn, request: Request, db: Session = Depends(get_db)):
     """Đăng nhập + cấp cặp token (giữ nguyên các trường cũ + thêm refresh)."""
     email = payload.email.lower().strip()
 
     # Chống dò mật khẩu: vượt ngưỡng → 429 (không tiết lộ email có tồn tại).
     wait_s = login_wait_seconds(email)
     if wait_s > 0:
+        record_audit(db, "auth.login_blocked", detail={"reason": "rate_limited"},
+                     request=request)
         raise HTTPException(429, rate_limit_message(wait_s))
 
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(payload.password, user.password_hash):
         record_login_failure(email)
+        # Ghi nhật ký cả email lẫn IP: đây là dữ liệu quan trọng nhất khi điều tra
+        # đăng nhập trái phép. Không ghi mật khẩu (và cũng không xác minh được mật
+        # khẩu sai thì làm sao ghi — chỉ ghi email và IP).
+        record_audit(
+            db, "auth.login_fail",
+            user=user,  # None nếu email không tồn tại
+            detail={"email": email}, request=request,
+        )
         # Luôn trả 401 giống nhau — không tiết lộ email có tồn tại hay không.
         # Lần sai thứ 6 trở đi bị chặn ngay ở đầu hàm (429).
         raise HTTPException(401, WRONG_CREDENTIALS_MESSAGE)
 
+    record_audit(db, "auth.login_ok", user=user, detail={"email": email},
+                 request=request)
     clear_login_failures(email)
 
     # Tự nâng cấp hash cũ sang PBKDF2 trong cùng lần đăng nhập đúng mật khẩu.
@@ -364,6 +377,7 @@ def logout(authorization: str | None = Header(default=None), db: Session = Depen
     db.delete(auth_token)
     _revoke_refresh_tokens(db, user.id)
     db.commit()
+    record_audit(db, "auth.logout", user=user)
     return {"ok": True}
 
 
@@ -372,9 +386,11 @@ def logout_all(authorization: str | None = Header(default=None), db: Session = D
     """Đăng xuất mọi thiết bị: xoá toàn bộ access token + thu hồi refresh token."""
     token = _extract(authorization)
     _auth_token, user = resolve_token_user(db, token)
-    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    n = db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
     _revoke_refresh_tokens(db, user.id)
     db.commit()
+    # Sự kiện đáng nhớ khi điều tra truy cập trái phép: huỷ phiên ở bao nhiêu nơi.
+    record_audit(db, "auth.logout_all", user=user, detail={"sessions_revoked": n})
     return {"ok": True}
 
 
@@ -487,7 +503,7 @@ def forgot_password(body: ForgotPasswordIn, db: Session = Depends(get_db)):
 
 
 @router.post("/reset-password")
-def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
+def reset_password(body: ResetPasswordIn, request: Request, db: Session = Depends(get_db)):
     """Đặt mật khẩu mới bằng token trong link, rồi thu hồi mọi phiên đang mở.
 
     Thu hồi token là bắt buộc: nếu kẻ xấm có link và đã đăng nhập được trước
@@ -496,21 +512,29 @@ def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
     user = _consume_verification(db, body.token, "reset")
     user.password_hash = hash_password(body.new_password)
     user.email_verified = True
-    db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
+    n = db.query(AuthToken).filter(AuthToken.user_id == user.id).delete()
     _revoke_refresh_tokens(db, user.id)
     db.commit()
+    # Nhật ký KHÔNG ghi mật khẩu mới (record_audit tự lọc trường nhạy cảm) và
+    # ghi số phiên bị thu hồi — con số này cho biết mức độ nghi vấn.
+    record_audit(db, "auth.password_reset", user=user,
+                 detail={"sessions_revoked": n}, request=request)
     return {"message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."}
 
 
 @router.get("/verify-email")
-def verify_email(token: str = Query(...), db: Session = Depends(get_db)):
+def verify_email(token: str = Query(...), request: Request = None,
+                 db: Session = Depends(get_db)):
     """Xác minh email qua link trong thư. Trả HTML tối giản để mở bằng trình duyệt."""
     try:
         user = _consume_verification(db, token, "verify")
         user.email_verified = True
         db.commit()
+        record_audit(db, "auth.email_verified", user=user, request=request)
         return _result_page(_VERIFY_OK, ok=True)
     except HTTPException as exc:
+        record_audit(db, "auth.email_verify_fail", request=request,
+                     detail={"reason": str(exc.detail)[:80]})
         return _result_page(str(exc.detail), ok=False)
 
 

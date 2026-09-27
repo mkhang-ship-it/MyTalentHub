@@ -24,21 +24,45 @@ Passport, gợi ý nhóm học tập theo năng khiếu, chấm điểm rubric v
 
 ## Cài đặt và chạy ở máy
 
+Cách nhanh nhất — một script dựng cả hai (chờ healthy rồi mới in URL):
+
 ```bash
-# 1. Backend — cổng 8001
+./scripts/dev.sh
+# Backend : http://localhost:8001 · Frontend: http://localhost:5174
+# Nhấn Ctrl+C để dừng sạch cả hai (không để tiến trình mồ côi).
+# Cổng bị chiếm? BACKEND_PORT=8009 FRONTEND_PORT=5179 ./scripts/dev.sh
+# Dừng từ terminal khác: ./scripts/dev-stop.sh
+```
+
+Lần đầu cần chuẩn bị một lần (tạo venv + cài phụ thuộc + seed DB):
+
+```bash
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m app.seed   # tạo DB + dữ liệu demo (chỉ cần chạy lần đầu)
+cd ..
+./scripts/dev.sh
+```
+
+<details>
+<summary>Cách thủ công (không dùng script)</summary>
+
+```bash
+# 1. Backend — cổng 8001
+cd backend
+source .venv/bin/activate   # hoặc python3 -m venv .venv && pip install -r requirements.txt nếu chưa có
 python -m uvicorn app.main:app --port 8001
 # Kiểm tra: http://127.0.0.1:8001/api/v1/health → {"status": "ok", ...}
 
 # 2. Frontend — cổng 5174 (mở terminal khác, ở gốc repo)
 cd frontend
-npm install
-VITE_PORT=5174 VITE_API_PROXY=http://127.0.0.1:8001 npm run dev
+npm install   # chỉ lần đầu
+VITE_PORT=5174 VITE_API_PROXY=http://127.0.0.1:8001 npm run dev -- --host 127.0.0.1
 # Mở: http://localhost:5174
 ```
+
+</details>
 
 Giải thích hai biến của frontend (xem `frontend/vite.config.ts`):
 

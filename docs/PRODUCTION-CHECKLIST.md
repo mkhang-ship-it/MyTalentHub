@@ -58,6 +58,7 @@ không giấu nợ kỹ thuật.
 
 ## 5. Những hạng mục CHƯA làm (nêu thẳng)
 
+
 - [ ] Chưa có gửi email xác thực / quên mật khẩu (không có mã SMTP nào trong
       repo; đặt lại mật khẩu hiện chỉ làm tay trong DB).
 - [ ] Chưa có quản lý ảnh/avatar upload (mới chỉ có trường `avatar_url` dạng
@@ -71,3 +72,42 @@ không giấu nợ kỹ thuật.
 - [ ] Chưa có kiểm thử tải (load test) cho các endpoint chấm điểm/đăng ký hoạt
       động vào giờ cao điểm.
 - [ ] Chưa có chiến lược backup tự động cho SQLite (mới chỉ là checklist tay).
+
+## 6. Tình trạng token đăng nhập (P1 — lô security, đã kiểm chứng)
+
+- [x] Token có hạn dùng: `AuthToken.expires_at` (UTC naive), login/register cấp
+      mới với hạn `TOKEN_TTL_DAYS` (mặc định `7` ngày); migration trong
+      `backend/app/database.py::_run_migrations()` thêm cột idempotent và backfill
+      `+7 days` cho token legacy chưa có hạn.
+- [x] Mọi nơi xác thực token đều từ chối token hết hạn bằng 401
+      `"Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."` qua helper dùng
+      chung `backend/app/security.py::resolve_token_user` (auth, school,
+      enterprise, passport, student, teacher). Không token → 401 `"Thiếu token"`,
+      token lạ → 401 `"Phiên đăng nhập không hợp lệ"`, sai vai trò → 403.
+- [x] `POST /auth/logout-all` xoá toàn bộ token của user đang đăng nhập.
+- [x] Dọn token hết hạn: `security.purge_expired_tokens()` chỉ xoá dòng có
+      `expires_at` đã quá hạn (giữ nguyên token còn hiệu lực và token legacy),
+      được gọi 1 lần mỗi lần khởi động server cuối `_run_migrations()`.
+      Đã kiểm chứng: chèn 1 token hết hạn + 1 token còn hạn → purge xoá đúng 1.
+- [x] Test tự động `backend/tests/test_rbac_guard.py` duyệt route từ
+      `app.main:app` (không hard-code): 34 route /school/*, /enterprise/*,
+      /passport/* đều 401 khi không token, 403 khi sai vai trò (passport: mọi
+      vai trò đã đăng nhập đều 200 theo thiết kế QR công khai).
+- [ ] Production vẫn nên đặt cron dọn `auth_tokens` định kỳ nếu server chạy
+      liên tục nhiều tuần không restart (purge hiện chỉ chạy lúc khởi động).
+- [ ] Cân nhắc giảm TTL xuống 1 ngày + refresh token riêng cho production
+      (hiện access token sống 7 ngày, đánh cắp token = toàn quyền 7 ngày).
+
+## 7. Docker (P4 — chưa build thử được)
+
+- [ ] Docker **CHƯA build thử được**: máy dev hiện tại không cài Docker
+      (`which docker` rỗng) nên `Dockerfile`, `frontend/Dockerfile` và
+      `docker-compose.yml` mới chỉ được kiểm tra cú pháp (đọc tay + CI),
+      chưa từng build/run thật. Bắt buộc build thử thành công trên máy có
+      Docker trước khi dùng để deploy.
+- [ ] Lệnh kiểm chạy khi đã có Docker (từ gốc repo):
+      `docker compose up --build -d` → chờ `docker compose ps` báo cả hai
+      service healthy → `curl http://localhost:8001/api/v1/health` và mở
+      http://localhost:5173 → nạp dữ liệu demo lần đầu
+      `docker compose exec api python -m app.seed` → xong `docker compose down`
+      (giữ volume) và xác nhận restart không mất dữ liệu.

@@ -16,9 +16,15 @@ import json
 import os
 import sqlite3
 import sys
+import textwrap
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+
+def wrap(text: str, width: int) -> list[str]:
+    """Ngắt dòng cho phần cảnh báo, không phụ thuộc thư viện ngoài."""
+    return textwrap.wrap(text, width) or [""]
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "backend" / "talenthub.db"
@@ -39,6 +45,7 @@ class Qa:
         self.timeout = timeout
         self.tokens: dict[str, str] = {}
         self.results: list[dict] = []
+        self.warned: str | None = None
 
     def call(self, method: str, path: str, token: str | None = None, body=None):
         req = urllib.request.Request(self.base + path, method=method)
@@ -64,6 +71,10 @@ class Qa:
         self.results.append({"check": name, "ok": bool(ok), "detail": detail})
         return bool(ok)
 
+    def warn(self, message: str) -> None:
+        """Ghi chú không tính vào PASS/FAIL (xem `run` — biến `warned`)."""
+        self.warned = message
+
     def expect(self, name: str, actual, expected) -> bool:
         ok = actual == expected
         return self.check(name, ok, "" if ok else f"nhận {actual!r}, mong đợi {expected!r}")
@@ -80,12 +91,25 @@ class Qa:
             return False  # backend chết thì các check sau vô nghĩa
 
         # 2. đăng nhập 5 tài khoản demo
+        throttled: list[str] = []
         for role, email in ACCOUNTS.items():
             status, payload = self.call("POST", "/auth/login", body={"email": email, "password": PASSWORD})
             ok = status == 200 and isinstance(payload, dict) and "token" in payload
+            # 429 không phải lỗi chức năng — đó là chống dò mật khẩu đang hoạt
+            # động, và nó xảy ra khi ai đó vừa đăng nhập sai vài lần (hay một
+            # bộ test cố tình thử sai). Gộp vào FAIL chung sẽ khiến người đọc
+            # tưởng ứng dụng hỏng, nên tách thành cảnh báo riêng có chỉ dẫn.
+            if status == 429:
+                throttled.append(role)
             self.check(f"đăng nhập {role}", ok, f"HTTP {status}")
             if ok:
                 self.tokens[role] = payload["token"]
+        if throttled:
+            self.warned = (
+                f"Bị giới hạn đăng nhập (HTTP 429) cho: {', '.join(throttled)}. "
+                "Đây không phải lỗi ứng dụng — giới hạn 5 lần sai / 10 phút đang "
+                "chạy. Hãy đợi hết cửa sổ rồi chạy lại."
+            )
         if len(self.tokens) < len(ACCOUNTS):
             return False  # thiếu token → không kiểm phân quyền được
 
@@ -208,6 +232,12 @@ def main() -> int:
             print(line)
         print("-" * 72)
         print(f"KẾT QUẢ: {passed} pass, {failed} fail")
+        if qa.warned:
+            # In cảnh báo SAU kết quả để không lẫn với dòng PASS/FAIL.
+            print()
+            print("LƯU Ý:")
+            for line in wrap(qa.warned, 68):
+                print(f"  {line}")
     return 1 if failed else 0
 
 

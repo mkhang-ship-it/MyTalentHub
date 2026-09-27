@@ -3,19 +3,38 @@
 Đánh dấu `[x]` khi xong. Mục nào chưa làm được thì nêu thẳng ở cuối file —
 không giấu nợ kỹ thuật.
 
-## 1. Biến môi trường bắt buộc
+## 1. Biến môi trường bắt buộc (đồng bộ với code — xem `.env.example` đầy đủ)
 
 - [ ] `CORS_ORIGINS` — danh sách origin frontend cho phép, phân tách dấu phẩy
       (đọc trong `backend/app/security.py`; mặc định chỉ có
       `http://localhost:5173` và `http://127.0.0.1:5173`). Production phải đặt
       đúng domain thật, **không** để `*` (lưu ý: `main.py` hiện vẫn
       `allow_origins=["*"]` — phải sửa trước khi public).
-- [ ] `TOKEN_TTL_DAYS` — hạn token (mặc định `7`).
+- [ ] `DATABASE_URL` — chuỗi kết nối SQLAlchemy (đọc trong
+      `backend/app/config.py`; bỏ trống = SQLite). Sang PostgreSQL phải
+      `pip install "psycopg[binary]"` thêm vì chưa có trong `requirements.txt`.
+- [ ] `FRONTEND_URL` — URL frontend thật để dựng link mail (mặc định
+      `http://127.0.0.1:5174` trong `routers/auth.py`).
+- [ ] `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` —
+      SMTP thật để gửi mail (mặc định rỗng = chế độ outbox, chỉ dùng dev/test).
+- [ ] `MAIL_TO_OUTBOX` — production **bắt buộc `false`** (mặc định `true` khi
+      không có `SMTP_HOST`). Để `true` ở production thì link đặt lại mật khẩu
+      nằm trong `backend/outbox/` cho bất kỳ ai đọc đĩa/log cũng thấy.
+- [ ] `ALLOW_PUBLIC_REGISTER` — production đặt **`false`** (mặc định `true`;
+      `false` thì `POST /auth/register` trả 403).
+- [ ] `ALLOW_UNVERIFIED_EMAIL` — production cân nhắc `false` (mặc định `true`
+      để dev/CI không bị chặn).
+- [ ] `ACCESS_TOKEN_TTL_MINUTES` (`60`) / `REFRESH_TOKEN_TTL_DAYS` (`30`) /
+      `TOKEN_TTL_DAYS` (`7`, tương thích ngược) — hạn token.
+- [ ] `VERIFY_TOKEN_TTL_MINUTES` (`1440`) / `RESET_TOKEN_TTL_MINUTES` (`30`) —
+      hạn link xác minh email / đặt lại mật khẩu.
 - [ ] `LOG_LEVEL` — mức log (mặc định `INFO`; truyền vào compose qua
       `${LOG_LEVEL:-INFO}`, service đọc ở entrypoint uvicorn `--log-level`).
 - [ ] `PBKDF2_ITERATIONS` — vòng băm mật khẩu (mặc định `240000`; máy yếu có
       thể hạ, máy khoẻ có thể tăng — đổi giá trị không làm vỡ hash cũ vì số
       vòng được lưu cùng hash).
+- [ ] `CONTACT_EMAIL` — email liên hệ hiển thị trong app (mặc định
+      `bgh@ftalenthub.edu.vn`).
 - [ ] `VITE_API_PROXY` — (chỉ lúc dev) URL backend cho Vite proxy `/api`
       (ví dụ `http://127.0.0.1:8001`); khi chạy qua nginx trong Docker thì
       không cần vì nginx đã proxy `/api` về service `api`.
@@ -31,7 +50,6 @@ không giấu nợ kỹ thuật.
       mang lên production.
 
 ## 3. Cơ sở dữ liệu
-
 - [x] Sao lưu `backend/talenthub.db` trước mỗi lần nâng cấp: dùng
       `scripts/backup.sh` (sqlite3 `.backup` online + nén `.db.gz` vào
       `backend/backups/`, giữ 7 bản mới nhất, tự kiểm integrity sau khi sao
@@ -43,7 +61,12 @@ không giấu nợ kỹ thuật.
       nguyên, không nới quyền; **không commit file backup lên kho mã, không
       đưa lên nơi chia sẻ công khai** (lưu ý: `*.db.gz` hiện chưa có trong
       `.gitignore` — đừng `git add` thư mục `backend/backups/`).
-- [ ] Cân nhắc đổi SQLite sang PostgreSQL, vì:
+- [ ] `DATABASE_URL` hỗ trợ PostgreSQL (P4 vòng 3): code đã đọc biến này
+      (`config.py`: bỏ trống = SQLite, đặt URL là chuyển qua, `CONNECT_ARGS`
+      tách riêng cho SQLite) — nhưng production còn thiếu: `pip install
+      "psycopg[binary]"` (chưa có trong `requirements.txt`), chuyển migration
+      nhẹ `_run_migrations()` sang Alembic, và backup point-in-time thay vì
+      copy file. Chưa kiểm chứng chạy thật với Postgres.
   - SQLite chỉ cho 1 writer tại một thời điểm — nhiều giáo viên chấm điểm cùng
     lúc dễ gặp `database is locked`;
   - Không có migration quản lý phiên bản (hiện chỉ có `_run_migrations()` dạng
@@ -54,11 +77,21 @@ không giấu nợ kỹ thuật.
 
 ## 4. Vận hành
 
-- [ ] Chạy sau HTTPS (TLS terminate ở reverse proxy/load balancer, không để
-      uvicorn nghe trực tiếp Internet).
+- [x] HTTPS (P4 vòng 3): TLS kết thúc ở reverse proxy ngoài hoặc ở chính nginx
+      bằng `frontend/nginx.tls.conf` (redirect 80→443, chứng thư mount ngoài,
+      HSTS + đủ security header, `client_max_body_size 5m` cho import CSV);
+      bản dev `frontend/nginx.conf` giữ chạy HTTP trần + rate limit login.
+      Chi tiết chọn mô hình + kiểm tra header xem `docs/DEPLOY.md` mục 1 và 4.
+- [x] Quên mật khẩu / xác minh email (vòng 3, đã có trong code — P4 kiểm chứng
+      luồng): `POST /auth/forgot-password` (email không tồn tại vẫn 200 chung
+      chung, không lộ), `POST /auth/reset-password` (hạn `RESET_TOKEN_TTL_MINUTES`
+      = 30 phút), `GET /auth/verify-email` + `POST /auth/verify-email/resend`.
+      Production phải đặt SMTP thật + `MAIL_TO_OUTBOX=false` + `FRONTEND_URL`
+      đúng domain (xem CẢNH BÁO ở mục 1 và `docs/DEPLOY.md` mục 3–4).
 - [ ] Giới hạn tài khoản đăng ký công khai: endpoint `POST /auth/register`
-      hiện cho phép tự đăng ký mọi vai trò (kể cả `school`, `enterprise`) —
-      production nên tắt đăng ký mở, duyệt tay, hoặc thêm captcha/email xác thực.
+      cho phép tự đăng ký mọi vai trò — production đặt
+      `ALLOW_PUBLIC_REGISTER=false` (trả 403) rồi duyệt tay, hoặc thêm
+      captcha/email xác thực.
 - [x] Đặt rate limit ở tầng reverse proxy cho `/auth/login`:
       `frontend/nginx.conf` có `limit_req_zone` 5 req/phút/IP + burst 5,
       vượt quá trả **429** (`limit_req_status 429`), chỉ áp cho

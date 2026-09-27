@@ -42,7 +42,10 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/.playwright/
 
-# Sao lưu SQLite chứa mật khẩu băm — tuyệt đ�ối không commit
+# Sao lưu SQLite chứa mật khẩu băm — tuyệt đối không commit
 backend/backups/
 *.db.gz
 *.db-journal
+
+# Thư đặt lại mật khẩu chứa link truy cập — tuyệt đối không commit
+backend/outbox/

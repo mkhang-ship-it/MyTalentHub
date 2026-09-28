@@ -93,3 +93,28 @@ export async function assertNoRawTemplateLiteral(page: Page) {
     );
   }
 }
+
+/**
+ * Bắt lỗi "dấu $ lọt ra màn hình", KHÁC với lỗi trên.
+ *
+ * Lỗi thật đã xảy ra ở Dashboard.tsx: dòng `· $${data.education_level} ·`
+ * trong một template literal. `$$` nghĩa là ký tự `$` thật, nên trang hiện ra
+ * chữ "· $THPT ·" — vô nghĩa với tiếng Việt. Điều này KHÔNG khớp mẫu của
+ * assertNoRawTemplateLiteral (mẫu đó cần `{data.x}` thiếu dấu $), nên suite
+ * vẫn xanh mà người dùng vẫn thấy chữ rác.
+ *
+ * Cách nhận diện: `$` đứng ngay trước một từ CHỮ HOA ≥ 2 ký tự ($THPT,
+ * $CDDH). Mọi mức giá hợp lệ trong dự án đều là `$` + chữ số, nên không sợ báo
+ * nhầm với tiền tệ.
+ */
+export async function assertNoStrayDollarBeforeWord(page: Page) {
+  const text = await page.evaluate(() => document.body.innerText);
+  const found = text.match(/\$\s?[A-ZĐÁÀÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯ]{2,}/g);
+  if (found) {
+    throw new Error(
+      "Trang hiển thị dấu $ đứng trước một từ — gần như chắc chắn là `$$` thừa " +
+        "trong template string (ví dụ `$${data.x}`):\n  " +
+        [...new Set(found)].join("\n  ")
+    );
+  }
+}

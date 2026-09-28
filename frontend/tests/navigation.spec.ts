@@ -3,6 +3,7 @@ import {
   loginAs,
   guardConsole,
   assertNoRawTemplateLiteral,
+  assertNoStrayDollarBeforeWord,
   type Role,
 } from "./helpers";
 
@@ -44,6 +45,10 @@ for (const flow of FLOWS) {
       // Bắt lỗi quên dấu $ trong template string: tsc và eslint không thấy,
       // nhưng người dùng thấy nguyên chữ {data.xxx} thay vì giá trị.
       await assertNoRawTemplateLiteral(page);
+      // Bắt lỗi `$$` thừa: `$${data.x}` cho ra ký tự $ thật nên trang hiện
+      // "· $THPT ·" — mẫu của assertNoRawTemplateLiteral KHÔNG bắt được loại
+      // này (mẫu đó cần `{data.x}` thiếu dấu $), nên phải kiểm riêng.
+      await assertNoStrayDollarBeforeWord(page);
       // Project mobile: phát hiện lỗi bố cục (tràn ngang màn hình 390px)
       if (test.info().project.name === "mobile") {
         const overflow = await page.evaluate(

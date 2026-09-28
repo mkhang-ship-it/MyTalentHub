@@ -69,17 +69,35 @@ def _free_port() -> int:
 
 
 def _prepare_db() -> None:
-    """Tạo bản sao DB dev để test có dữ liệu thật mà không sửa dữ liệu gốc.
+    """Chuẩn bị DB cho test, không bao giờ phụ thuộc file cục bộ.
 
-    Bỏ qua khi `DATABASE_URL` đã được đặt từ bên ngoài (job CI PostgreSQL):
-    không có file SQLite nào để copy, và tạo bản sao cũng vô nghĩa.
+    Trước đây hàm này copy `backend/talenthub.db`. File đó bị `.gitignore` loại
+    (`*.db`) nên KHÔNG có trong kho mã — nghĩa là bộ test chỉ chạy được trên
+    máy của người đã từng chạy seed. Trên CI nó chạy với một file rỗng: mọi
+    đăng nhập trả 401, đủ 5 lần là 429, và 20 test trong ba lớp không có dữ
+    liệu để chạy. Đây là loại hỏng mà không thấy nếu chỉ chạy test ở máy mình.
+
+    Vì vậy nay có hai nhánh, tự đủ:
+      1. Có `talenthub.db` (máy dev) → copy, nhanh và có dữ liệu thật.
+      2. Không có → dựng DB mới bằng chính `app.seed` của dự án. Kết quả có thể
+         khác bản dev, nhưng test chỉ cần dữ liệu nhất quán và đủ tài khoản
+         demo để đăng nhập.
     """
     if USE_GIVEN_DB:
+        # Job CI PostgreSQL: dùng đúng DB được cấp, không tạo gì thêm.
         return
     if DEV_DB.exists():
         shutil.copy2(DEV_DB, TEST_DB)
-    else:
-        TEST_DB.touch()
+        return
+
+    # Không có file dev: dựng từ seed của chính dự án.
+    # `app.seed` đọc DATABASE_URL lúc import, nên phải đặt biến TRƯỚC.
+    os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB}"
+    from app.seed import run as seed_run
+
+    seed_run()
+    if not TEST_DB.exists():
+        raise RuntimeError(f"không dựng được DB test tại {TEST_DB}")
 
 
 _prepare_db()

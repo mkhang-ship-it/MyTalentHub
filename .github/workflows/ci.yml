@@ -62,22 +62,22 @@ jobs:
           python-version: "3.12"
       - name: Cài phụ thuộc backend
         run: pip install -r backend/requirements.txt
-      - name: Tạo lược đồ trên PostgreSQL
-        # Database CI này rỗng hoàn toàn, không seed. Nhiệm vụ của job chỉ là
-        # chứng minh DDL và truy vấn chạy được trên PostgreSQL, không phải
-        # kiểm tra dữ liệu nghiệp vụ — việc đó job `backend` đã lo với SQLite.
+      - name: Tạo lược đồ + dữ liệu mẫu trên PostgreSQL
+        # Phải CÓ dữ liệu mẫu, không chỉ DDL. Bộ test đăng nhập vào 5 tài khoản
+        # demo; DB rỗng thì mọi đăng nhập trả 401, đủ 5 lần là 429 và phần lớn
+        # test hỏng — đó chính là lỗi xảy ra ở lần chạy đầu tiên. Dùng chính
+        # `app.seed` của dự án nên dữ liệu ở CI khớp với máy dev.
         run: |
           cd backend
           python -c "
-          from app.database import Base, engine
-          import app.models  # noqa: F401  - để model được đăng ký vào Base
-          from app.security import (
-              create_refresh_token_table, create_verification_token_table,
-          )
-          Base.metadata.create_all(bind=engine)
-          create_refresh_token_table()
-          create_verification_token_table()
-          print('DDL OK trên', engine.dialect.name)
+          from app.main import prepare_database
+          prepare_database()
+          print('DDL OK')
+          "
+          python -c "
+          from app.seed import run as seed_run
+          seed_run()
+          print('SEED OK')
           "
       - name: Chạy unittest trên PostgreSQL
         run: python -m unittest discover -s backend/tests -t backend -v

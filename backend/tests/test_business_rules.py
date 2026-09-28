@@ -114,6 +114,13 @@ class BusinessRulesTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Chụp baseline NGAY khi lớp bắt đầu, rồi test cuối cùng kiểm DB đã
+        # trở về đúng baseline đó. Trước đây test so với một danh sách cứng,
+        # trong đó có lớp "12" chỉ tồn tại vì từng được tạo tay trên máy dev —
+        # nên test hỏng ngay khi chạy trên DB sạch (CI, hay máy mới).
+        cls.baseline_classes = [r[0] for r in db_fetch(
+            "SELECT name FROM class_groups ORDER BY id"
+        )]
         try:
             status, _ = call("GET", "/health", timeout=5)
         except (urllib.error.URLError, OSError) as exc:
@@ -319,10 +326,14 @@ class BusinessRulesTest(unittest.TestCase):
         names = [r[0] for r in db_fetch("SELECT name FROM class_groups ORDER BY id")]
         self.assertEqual(
             names,
-            ORIGINAL_CLASS_GROUPS,
-            f"class_groups phải về đúng 7 dòng gốc, nhận được: {names}",
+            self.baseline_classes,
+            "class_groups phải trở về đúng trạng thái lúc bắt đầu; "
+            f"trước={self.baseline_classes} sau={names}",
         )
-        self.assertEqual(db_fetch("SELECT count(*) FROM class_groups")[0][0], 7)
+        self.assertEqual(
+            db_fetch("SELECT count(*) FROM class_groups")[0][0],
+            len(self.baseline_classes),
+        )
         self.assertEqual(
             db_fetch("SELECT name FROM class_groups WHERE name LIKE ?", (f"{PREFIX_CLASS}%",)),
             [],

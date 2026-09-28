@@ -44,10 +44,9 @@ services:
     plan: free
     healthCheckPath: /api/v1/health
     envVars:
-      # Free instance: Render tự gán PORT. Cố định 8001 sẽ khiến service không
-      # nhận traffic, vì Render chỉ chuyển traffic tới đúng cổng nó gán.
-      - key: PORT
-        value: "8001"
+      # KHÔNG đặt PORT: Render tự gán (mặc định 10000) và cần ta nghe đúng cổng
+      # đó. Dockerfile đọc $PORT nên không cần cấu hình gì ở đây. Cố định
+      # 8001 là nguyên nhân kinh điển của 502 ngay lần deploy đầu.
       - key: DATABASE_URL
         value: sqlite:////app/data/talenthub.db
       # Bật auto-seed vì đĩa là hệ thống file tạm. Xem mục giới hạn ở trên.

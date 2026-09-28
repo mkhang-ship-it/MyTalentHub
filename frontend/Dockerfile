@@ -24,14 +24,19 @@ FROM nginx:alpine
 # không khai báo. `docker-entrypoint.d/20-envsubst-on-templates.sh` của image là
 # nơi làm việc này.
 ENV NGINX_ENVSUBST_TEMPLATE_SUFFIX=.conf
-# Chỉ thay DUY NHẤT biến này. Mặc định image nginx thay mọi biến môi trường có
+# Chỉ thay đúng hai biến này. Mặc định image nginx thay mọi biến môi trường có
 # tồn tại, nên nếu container lỡ có biến trùng tên với biến nginx ($host, $uri,
-# $scheme…) thì cấu hình bị hỏng một cách rất khó đoán. Giới hạn danh sách thì
-# envsubst chỉ đụng đúng biến ta muốn.
-ENV NGINX_ENVSUBST_VARS=FTH_API_UPSTREAM
+# $scheme…) thì cấu hình bị hỏng rất khó đoán. Giới hạn danh sách thì envsubst
+# chỉ đụng đúng biến ta muốn.
+ENV NGINX_ENVSUBST_VARS=FTH_API_UPSTREAM:PORT
 ENV FTH_API_UPSTREAM=api:8001
+# Cổng nghe mặc định cho chạy docker/compose. Render gán PORT riêng (10000) và
+# biến đó đè lên giá trị này khi chạy container — nên deploy thì nginx nghe đúng
+# cổng Render mong đợi, mà chạy local vẫn là 80.
+ENV PORT=80
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /web/dist /usr/share/nginx/html
 EXPOSE 80
+# Probe theo cùng cổng đang nghe, nếu không sẽ báo unhealthy oan khi PORT khác 80.
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-80}/" || exit 1

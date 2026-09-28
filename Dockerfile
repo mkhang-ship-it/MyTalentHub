@@ -23,7 +23,18 @@ RUN useradd -r -u 10001 -m appuser \
     && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8001
-# HEALTHCHECK không cần curl: dùng urllib của thư viện chuẩn.
+
+# CỔNG ĐỌC TỪ BIẾN MÔI TRƯỜNG `PORT`, KHÔNG hard-code.
+#
+# Render gán PORT (mặc định 10000) rồi chuyển traffic tới đúng cổng đó; tài liệu
+# của họ khuyến nghị ràng buộc theo biến này. Ghi cứng 8001 thì ở máy chạy được
+# nhưng trên Render sẽ 502 — và lỗi 502 khi deploy lần đầu rất dễ bị hiểu nhầm
+# thành lỗi ứng dụng. `${PORT:-8001}` giữ nguyên cổng 8001 ở máy dev/compose
+# (biến không set) và dùng cổng Render chỉ định khi deploy.
+#
+# `sh -c` cần thiết vì dấu `${...}` phải được shell mở rộng lúc chạy.
+# `exec` để uvicorn thành tiến trình chính (PID 1) — nhờ vậy tín hiệu dừng của
+# Render tới được đúng tiến trình cần dừng.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=4).status == 200 else 1)"
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+  CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=4).status == 200 else 1)"
+CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}"]

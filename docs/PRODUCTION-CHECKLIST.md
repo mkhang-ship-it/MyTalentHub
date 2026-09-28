@@ -208,3 +208,34 @@ không giấu nợ kỹ thuật.
 - [x] Vòng 1 (Dockerfile multi-stage + compose + nginx proxy, CI 3 job, README
       viết lại, `docs/ARCHITECTURE.md`, `.gitignore` bổ sung) đã xong; riêng
       mục 7 Docker vẫn chưa build thử (máy không có Docker).
+
+## PHẠM VI KIỂM CHỨNG PostgreSQL (đọc trước khi lên production)
+
+CI có job `Backend (PostgreSQL)`. **Job đó KHÔNG chạy toàn bộ 66 test.** Nó
+chạy đúng hai phần:
+
+1. `prepare_database()` + `app.seed` — toàn bộ DDL, migration, index và dữ liệu
+   mẫu trên PostgreSQL 16 thật. Đây là phần hay vỡ nhất khi đổi CSDL, vì
+   `ALTER TABLE ... ADD COLUMN` không có `IF NOT EXISTS` và không tồn tại ở
+   SQLite.
+2. `tests.test_api_smoke` — đường HTTP thật: đăng nhập cả 5 vai trò và gọi các
+   endpoint chính.
+
+**Còn lại, chưa được chứng minh:** 65 test còn lại chỉ chạy trên SQLite. Khi
+chạy cả bộ trên PostgreSQL, tiến trình test và server test cùng ghi vào một
+CSDL nên tranh khoá dây chuyền — đã xác nhận cơ chế (đặt `DB_LOCK_TIMEOUT=3s`
+thì test fail đúng 3 giây thay vì treo), nhưng chưa sửa được tận gốc.
+
+Nếu bạn định dùng PostgreSQL ở production, hãy chạy toàn bộ bộ test trên đó
+TRƯỚC khi tin cậy:
+
+```bash
+cd backend
+DATABASE_URL=postgresql+psycopg://user:pass@host:5432/fth_test \
+  python -c "from app.main import prepare_database; prepare_database()"
+DATABASE_URL=postgresql+psycopg://user:pass@host:5432/fth_test python -c "from app.seed import run; run()"
+DATABASE_URL=postgresql+psycopg://user:pass@host:5432/fth_test \
+  python -m unittest discover -s tests -t . -v
+```
+
+Đây là giới hạn đã biết, ghi ra đây thay vì để job xanh rồi tưởng đã phủ hết.

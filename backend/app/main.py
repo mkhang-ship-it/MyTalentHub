@@ -1,4 +1,5 @@
 """FastAPI app — mount 6 routers (student/teacher/school/enterprise/passport/ai)."""
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,10 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from starlette.routing import Mount
 
-from .database import Base, engine, _run_migrations, ensure_indexes
+from .database import Base, SessionLocal, engine, _run_migrations, ensure_indexes
 from .routers import auth, enterprise, passport, school, student, teacher
 from .ai.router import router as ai_router
 from .core.errors import install_error_handlers, request_logging_middleware
+from .core.logging_conf import setup_logging  # noqa: F401
 from .core.logging_conf import setup_logging
 from .security import (
     cors_origins,
@@ -20,8 +22,11 @@ from .security import (
     purge_used_verification_tokens,
 )
 from .core.audit import purge_old_audit_logs
+from .models import User
 
 setup_logging()
+
+log = logging.getLogger("ftalenthub")
 
 
 def prepare_database() -> None:
@@ -50,10 +55,52 @@ def prepare_database() -> None:
     create_audit_log_table()
     # Index cho các cột khóa ngoại / hay lọc.
     ensure_indexes()
+    _auto_seed_if_empty()
     # Dọn dữ liệu hết hạn một lần lúc khởi phục, bảng không phình vô hạn.
     purge_expired_tokens()
     purge_used_verification_tokens()
     purge_old_audit_logs()
+
+
+def _auto_seed_if_empty() -> None:
+    """Tự seed khi CSDL còn trống, chỉ khi được bật tường minh.
+
+    VÌ SAO CẦN
+    ----------
+    Nền tảng miễn phí (Render free) dùng hệ thống file TẠM: mọi thay đổi cục
+    bộ trên đĩa mất khi service ngủ hoặc redeploy. Với SQLite, nghĩa là CSDL
+    bị xoá sạch và mỗi lần khởi động lại sẽ là một database rỗng — ứng dụng
+    trả 500 vì thiếu bảng dữ liệu.
+
+    Dữ liệu của dự án này hoàn toàn sinh được từ `app.seed`, nên tái tạo lại
+    lúc khởi động là giải pháp đúng thay vì cố gắng giữ đĩa.
+
+    AN TOÀN — ba điều kiện phải đồng thời đúng:
+      1. `AUTO_SEED_ON_EMPTY` phải được bật (mặc định TẮT). Nếu mặc định bật
+         thì lỡ quên xoá file ở máy dev, lần chạy kế tiếp sẽ âm thầm dựng lại
+         dữ liệu mẫu — một kiểu mất dữ liệu tinh vi, khó phát hiện.
+      2. Bảng `users` phải RỖNG. Có dữ liệu rồi thì tuyệt đối không đụng tới,
+         kể cả dữ liệu thật do người dùng nhập.
+      3. Chỉ chạy một lần lúc khởi động, trong lifespan.
+    """
+    from .config import AUTO_SEED_ON_EMPTY
+
+    if not AUTO_SEED_ON_EMPTY:
+        return
+    try:
+        count = SessionLocal().query(User).count()
+    except Exception:  # noqa: BLE001 - bảng chưa sẵn sàng thì thử lại sau
+        log.exception("không đọc được số user để kiểm tra seed tự động")
+        return
+    if count > 0:
+        return
+    log.warning(
+        "CSDL trống và AUTO_SEED_ON_EMPTY=true → chạy app.seed. "
+        "Mọi thay đổi sẽ mất khi khởi động lại vì đĩa là hệ thống file tạm."
+    )
+    from .seed import run as seed_run
+
+    seed_run()
 
 
 @asynccontextmanager

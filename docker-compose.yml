@@ -52,6 +52,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:80"
+    environment:
+      # nginx cần biết backend ở đâu. Dockerfile khai báo sẵn giá trị mặc định
+      # `api:8001` nên chỉ cần dòng này khi muốn trỏ sang nơi khác (ví dụ chạy
+      # image này ngoài compose). Xem frontend/nginx.conf để biết vì sao.
+      FTH_API_UPSTREAM: api:8001
     depends_on:
       api:
         condition: service_healthy

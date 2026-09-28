@@ -54,6 +54,19 @@ DB_STATEMENT_TIMEOUT = os.environ.get("DB_STATEMENT_TIMEOUT", "60s")
 # --- hành vi ứng dụng --------------------------------------------------------
 # Bật ở CI hoặc test: không được chặn tài khoản chưa xác minh email.
 ALLOW_UNVERIFIED_EMAIL = _env_flag("ALLOW_UNVERIFIED_EMAIL", default=True)
+
+# Tự chạy `app.seed` khi CSDL còn trống.
+#
+# Mặc định TẮT, và đó là chủ ý: nếu mặc định bật thì lỡ xoá nhầm file DB ở máy
+# dev, lần chạy kế tiếp sẽ âm thầm dựng lại dữ liệu mẫu — một kiểu mất dữ
+# liệu tinh vi, khó phát hiện hơn nhiều so với lỗi rõ ràng.
+#
+# Bật ở nơi đĩa là hệ thống file TẠM (Render free), nơi mọi thứ mất sau mỗi
+# lần service ngủ hoặc redeploy. Dữ liệu của dự án này hoàn toàn sinh được
+# từ `app.seed` nên tái tạo lại lúc khởi động là giải pháp đúng.
+# Bổ sung: chỉ seed khi bảng `users` còn RỖNG — đã có dữ liệu thì không đụng.
+AUTO_SEED_ON_EMPTY = _env_flag("AUTO_SEED_ON_EMPTY", default=False)
+
 # Cho phép đăng ký công khai. Production nên đặt "false".
 ALLOW_PUBLIC_REGISTER = _env_flag("ALLOW_PUBLIC_REGISTER", default=True)
 

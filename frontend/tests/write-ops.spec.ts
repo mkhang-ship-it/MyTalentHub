@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 import { guardConsole, loginAs } from "./helpers";
 
 /**

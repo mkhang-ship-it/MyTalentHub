@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -43,11 +44,37 @@ const ISOLATED_TMPDIR = path.join(os.tmpdir(), "fth-pw-isolated");
 
 function prepareIsolatedDb(): void {
   const src = path.resolve(process.cwd(), "../backend/talenthub.db");
-  if (!fs.existsSync(src)) {
-    throw new Error(`Không thấy DB dev để sao chép: ${src}`);
-  }
   fs.mkdirSync(ISOLATED_TMPDIR, { recursive: true });
-  fs.copyFileSync(src, path.join(ISOLATED_TMPDIR, "test.db"));
+  const dst = path.join(ISOLATED_TMPDIR, "test.db");
+
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, dst);
+  } else {
+    // KHÔNG có backend/talenthub.db. File đó bị .gitignore loại (`*.db`) nên
+    // không bao giờ có trong kho mã — job CI chạy trên máy sạch sẽ không thấy
+    // nó. Trước đây hàm này ném lỗi và toàn bộ bộ test Playwright dừng ngay
+    // ở bước nạp config.
+    // Nay tự dựng bằng chính `app.seed` của dự án, giống hệt cách
+    // backend/tests/base.py làm cho bộ unittest. Nhờ vậy test chạy được ở
+    // máy mới và trên CI mà không cần dữ liệu thủ công.
+    console.log(
+      "[playwright] Không có backend/talenthub.db — dựng DB test bằng app.seed"
+    );
+    const res = spawnSync(
+      "python3",
+      ["-c", "from app.seed import run as s; s()"],
+      {
+        cwd: path.resolve(process.cwd(), "../backend"),
+        env: { ...process.env, DATABASE_URL: `sqlite:///${dst}` },
+        encoding: "utf8",
+      }
+    );
+    if (res.status !== 0 || !fs.existsSync(dst)) {
+      throw new Error(
+        `Không dựng được DB test tại ${dst}.\n${res.stderr || res.stdout || ""}`
+      );
+    }
+  }
   // globalTeardown đọc biến này để dọn thư mục tạm.
   process.env.FTH_PW_TMPDIR = ISOLATED_TMPDIR;
 }

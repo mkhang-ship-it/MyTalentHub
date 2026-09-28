@@ -6,6 +6,9 @@ import {
   type Role,
 } from "./helpers";
 
+/** Mật khẩu chung của các tài khoản demo và tài khoản test do bộ test dựng. */
+const DEMO_PASSWORD = "demo123";
+
 test("trang chủ (/) không đỏ console", async ({ page }) => {
   const guard = guardConsole(page);
   await page.goto("/");
@@ -56,10 +59,44 @@ for (const flow of FLOWS) {
 
 test("trang Chấm điểm khi chưa phụ trách sân chơi nào hiện hướng dẫn (không treo loading)", async ({
   page,
+  request,
 }) => {
   // Hồi quy: giáo viên không có sân chơi từng bị kẹt 'Đang tải...' vô hạn.
+  //
+  // Dùng tài khoản GIÁO VIÊN DỰNG RIÊNG, không dùng tài khoản demo. Bản cũ
+  // đăng nhập nguyen.van.hung rồi GIẢ ĐỊNH ông không có sân chơi nào — điều
+  // đúng với DB trên máy tôi, nhưng seed tạo ra 9 sân chơi nên trên CI ông có
+  // sân chơi và test fail. Test gắn vào trạng thái dữ liệu ngẫu nhiên thì
+  // không kiểm được gì trên môi trường nào khác.
   const guard = guardConsole(page);
-  await loginAs(page, "teacher");
+  const email = `giao-vien-khong-son-choi@test.vn`;
+
+  // Tạo nếu chưa có. Đăng ký lỗi 409 nghĩa là đã tồn tại — vẫn dùng được.
+  const reg = await request.post("/api/v1/auth/register", {
+    data: {
+      full_name: "Giáo Viên Không Sân Chơi",
+      email,
+      password: DEMO_PASSWORD,
+      role: "teacher",
+      subject: "Toán",
+      education_level_teacher: "THPT",
+    },
+  });
+  expect([200, 201, 409], `đăng ký GV test: ${reg.status()}`).toContain(reg.status());
+
+  const login = await request.post("/api/v1/auth/login", {
+    data: { email, password: DEMO_PASSWORD },
+  });
+  const token = ((await login.json()) as { token: string }).token;
+  expect(token, "phải đăng nhập được bằng GV test").toBeTruthy();
+
+  // Gắn token rồi mở trang — tránh đi qua form đăng nhập để test này chỉ
+  // kiểm chuyện hiển thị, không kiểm chuyện đăng nhập.
+  await page.goto("/login");
+  await page.evaluate((t: string) => {
+    window.localStorage.setItem("fth_token", t);
+  }, token);
+
   await page.goto("/teacher/grading");
   await expect(page.locator("body")).toContainText(/chưa phụ trách sân chơi nào/i);
   guard.assertClean();

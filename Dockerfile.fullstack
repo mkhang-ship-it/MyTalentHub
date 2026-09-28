@@ -22,10 +22,13 @@
 # ---------- Stage 1: build frontend ----------
 FROM node:20-alpine AS webbuild
 WORKDIR /web
-COPY frontend/package.json ./
-# Repo chưa có package-lock.json nên dùng `npm install` thay vì `npm ci`
-# (khi nào có lockfile thì đổi lại `npm ci` cho build lặp lại được).
-RUN npm install --no-audit --no-fund
+COPY frontend/package.json frontend/package-lock.json ./
+# `npm ci` cài đúng thứ đã khoá trong package-lock.json đã commit, nên build lặp lại được.
+# Trước đây dùng `npm install` (không có lockfile) và đã hỏng thật trên CI:
+# không lockfile thì mỗi lần build tự chọn phiên bản mới nhất, một lần nó chọn
+# @typescript-eslint/eslint-plugin@8.71.0 đúng lúc registry chưa có bản đó →
+#   npm error notarget No matching version found
+RUN npm ci --no-audit --no-fund
 COPY frontend/ .
 RUN npm run build
 

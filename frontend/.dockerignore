@@ -1,0 +1,20 @@
+# Build context của frontend/Dockerfile là chính thư mục này (lệnh build:
+#   docker build -f frontend/Dockerfile -t fth-web ./frontend
+#
+# Không có file này thì `COPY . .` ở Dockerfile sẽ CHÉP node_modules của máy dev
+# vào image, đè lên bộ gói vừa cài ở tầng trên. Hậu quả: image bị phình to và
+# build ở máy khác có thể khác hẳn image ở máy bạn — đúng thứ ta muốn tránh khi
+# đã khoá phiên bản bằng package-lock.json.
+node_modules/
+dist/
+test-results/
+playwright-report/
+blob-report/
+.vite/
+
+# Kết quả build và ảnh chụp test không được đưa vào image.
+screenshots.spec.ts
+
+# Tệp rác của editor và hệ điều hành.
+.DS_Store
+*.log

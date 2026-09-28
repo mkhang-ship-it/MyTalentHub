@@ -119,9 +119,9 @@ jobs:
           node-version: "20"
       - name: Cài phụ thuộc frontend
         working-directory: frontend
-        # Repo chưa có package-lock.json nên chưa dùng được `npm ci`
-        # (khi nào có lockfile thì đổi lại `npm ci` để build lặp lại được).
-        run: npm install --no-audit --no-fund
+        # `npm ci` cài đúng thứ trong package-lock.json → CI và máy dev cài ra
+        # CÙNG một bộ gói, không còn chuyện "máy chạy được nhưng CI hỏng".
+        run: npm ci --no-audit --no-fund
       - name: TypeScript
         working-directory: frontend
         run: npx tsc --noEmit
@@ -155,10 +155,10 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Cài phụ thuộc frontend
         working-directory: frontend
-        # `npm install` chứ không phải `npm ci`: repo chưa có package-lock.json
-        # nên `npm ci` sẽ báo lỗi ngay. Khi nào commit package-lock.json thì
-        # đổi lại sang `npm ci` để cài đúng phiên bản đã khoá.
-        run: npm install --no-audit --no-fund
+        # Cùng package-lock.json với job Frontend → hai job chạy đúng một bộ gói.
+        # Nhờ vậy lỗi "chạy ở máy được, lên CI thì hỏng" không tái diễn nữa.
+        # Cần sửa cả Dockerfile.fullstack và frontend/Dockerfile cùng lúc.
+        run: npm ci --no-audit --no-fund
       - name: Tải chromium cho Playwright
         working-directory: frontend
         # Chỉ tải chromium, bỏ qua firefox/webkit và toàn bộ driver hệ thống

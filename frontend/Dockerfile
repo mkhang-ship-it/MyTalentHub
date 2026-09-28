@@ -5,11 +5,11 @@
 # ---------- Stage 1: build ----------
 FROM node:20-alpine AS build
 WORKDIR /web
-COPY package.json ./
-# Repo hiện chưa có package-lock.json nên dùng `npm install` thay vì `npm ci`
-# (khi nào có lockfile thì đổi lại `npm ci --no-audit --no-fund` cho build lặp lại được).
-RUN npm install --no-audit --no-fund
-COPY . .
+  COPY package.json package-lock.json ./
+  # `npm ci` BẮT BUỘC copy kèm package-lock.json, nếu thiếu nó báo lỗi ngay.
+  # Nó cài đúng thứ đã khoá nên build lặp lại được (xem Dockerfile.fullstack:
+  # vì sao không dùng `npm install` — lỗi registry thật đã xảy ra).
+  RUN npm ci --no-audit --no-fund
 RUN npm run build
 
 # ---------- Stage 2: chạy bằng nginx ----------

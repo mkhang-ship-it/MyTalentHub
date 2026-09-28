@@ -80,6 +80,13 @@ jobs:
           print('SEED OK')
           "
       - name: Chạy unittest trên PostgreSQL
+        # Timeout ngắn cho CI: mỗi test đang mất trọn 30s rồi lỗi, và 66 test
+        # thì vượt giới hạn của job nên bị giết trước khi unittest kịp in
+        # traceback — không có traceback thì không biết lỗi gì.
+        # Giới hạn 8s khiến cả lượt chạy kết thúc và in đủ traceback.
+        env:
+          DB_LOCK_TIMEOUT: 3s
+          DB_STATEMENT_TIMEOUT: 8s
         run: python -m unittest discover -s backend/tests -t backend -v
 
   # Job 2: kiểm tra chất lượng frontend (đúng 3 lệnh trong scripts/README.md).

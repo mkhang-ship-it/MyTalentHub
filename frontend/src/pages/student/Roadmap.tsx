@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
+import { AiAnalyzeButton } from "../../components/ai";
 
 interface Overview {
+  id: number;
   roadmap: { title: string; content: string }[];
   ai_analysis: string | null;
 }
@@ -25,6 +27,14 @@ export default function Roadmap() {
         title="Lộ trình AI cá nhân hóa"
         subtitle="AI phân tích kết quả test năng khiếu + quá trình trải nghiệm, gợi ý lộ trình phát triển từng tháng (slide 16)."
       />
+
+      <Card className="mb-6">
+        <h2 className="mb-1 font-semibold text-ink">Phân tích mới bằng AI</h2>
+        <p className="mb-3 text-sm text-muted">
+          Nhấn nút để gọi AI phân tích lại hồ sơ hiện tại của bạn (điểm năng lực, kỹ năng, đánh giá, hoạt động).
+        </p>
+        <AiAnalyzeButton studentId={data.id} />
+      </Card>
 
       {data.ai_analysis && (
         <Card interactive reveal revealDelay={0.1} className="rounded-2xl hero-gradient p-5 text-white mb-6 shadow-lg transition-responsive">

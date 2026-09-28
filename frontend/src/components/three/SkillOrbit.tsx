@@ -115,29 +115,39 @@ function SkillOrbitFallback({ data }: { data?: SkillOrbitData }) {
     );
   }
 
+  // Chú thích tiếng Việt: khung dự phòng 2D, mọi node nằm gọn trong khung tròn.
   return (
     <div role="img" aria-label={`Skill Orbit với ${skills.length} kỹ năng`} className="relative flex h-full items-center justify-center p-4">
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[250px] w-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50 shadow-[0_12px_40px_rgb(51_50_77/0.12)] backdrop-blur-sm" />
+      {/* Nền trắng giới hạn đúng bằng khung trong, không tràn ra ngoài */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50 shadow-[0_12px_40px_rgb(51_50_77/0.12)]" />
       <div className="relative h-[220px] w-[220px]">
-        <div className="absolute inset-0 rounded-full border border-dashed border-portal/30" />
-        <div className="absolute inset-7 rounded-full border border-line-strong/60" />
+        <div className="absolute inset-0 rounded-full border border-dashed border-portal/30" aria-hidden="true" />
+        <div className="absolute inset-7 rounded-full border border-line-strong/60" aria-hidden="true" />
         <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-gradient-to-br from-portal to-portal-dark text-sm font-bold text-white shadow-lg">
           {data?.talent_score ?? "—"}
         </div>
-        {skills.map((skill, index) => {
-          const angle = (Math.PI * 2 * index) / skills.length - Math.PI / 2;
-          const radius = 82 + Math.max(0, Math.min(10, skill.level)) * 2;
-          return (
-            <div
-              key={skill.name}
-              className="absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-portal/30 bg-portal-soft text-center text-[8px] font-semibold leading-tight text-portal-dark"
-              style={{ left: `${110 + Math.cos(angle) * radius}px`, top: `${110 + Math.sin(angle) * radius}px` }}
-              title={`${skill.name}: ${skill.level}/10`}
-            >
-              {skill.name.slice(0, 6)}
-            </div>
-          );
-        })}
+        {/* Danh sách kỹ năng: bán kính tính theo % để không tràn khung ở mọi level */}
+        <div role="list" aria-label="Danh sách kỹ năng" className="absolute inset-0">
+          {skills.map((skill, index) => {
+            const angle = (Math.PI * 2 * index) / skills.length - Math.PI / 2;
+            // Bán kính quỹ đạo tối đa 38% + nửa node ~8,2% = 46,2% < 50% nên luôn nằm trong khung
+            const orbitPct = 30 + (Math.max(0, Math.min(10, skill.level)) / 10) * 8;
+            const leftPct = 50 + Math.cos(angle) * orbitPct;
+            const topPct = 50 + Math.sin(angle) * orbitPct;
+            return (
+              <div
+                key={skill.name}
+                role="listitem"
+                aria-label={`${skill.name}: ${skill.level}/10`}
+                className="absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-portal/30 bg-portal-soft text-center text-[8px] font-semibold leading-tight text-portal-dark"
+                style={{ left: `${leftPct}%`, top: `${topPct}%` }}
+                title={`${skill.name}: ${skill.level}/10`}
+              >
+                {skill.name.slice(0, 6)}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -150,17 +160,16 @@ export function SkillOrbit({ data, className = "" }: SkillOrbitProps) {
     [data, hasData]
   );
 
+  // Chú thích tiếng Việt: 3D hiện qua SceneCanvas, 2D chỉ hiện khi WebGL hỏng (prop fallback).
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: 320, minHeight: 280 }}>
       <SceneCanvas
-        className="absolute inset-0 z-0 opacity-70"
+        className="absolute inset-0"
         config={{ sceneId: "skill-orbit-scene", dprCap: 1.5, failIfMajorPerformanceCaveat: true, prefersReducedMotion: true }}
         buildScene={buildScene}
+        fallback={<SkillOrbitFallback data={data} />}
         decorative
       />
-      <div className="absolute inset-0 z-10">
-        <SkillOrbitFallback data={data} />
-      </div>
     </div>
   );
 }

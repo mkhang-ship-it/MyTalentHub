@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { GraduationCap } from "lucide-react";
 import { get, post } from "../../api/client";
 import { Card, ErrorBox, PageHeader } from "../../components/ui";
+import { DiscoverScene } from "../../components/three/DiscoverScene";
 
 interface Question {
   id: number;
@@ -108,21 +109,43 @@ export default function Discover() {
     return (
       <div>
         <PageHeader title="Khám phá năng khiếu" subtitle="Bộ test khoa học giúp bạn hiểu chính mình hơn (slide 12)." />
+        {/* Bản đồ kết quả 3D từ endpoint /student/assessments có sẵn */}
+        <Card className="mb-6 overflow-hidden">
+          <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-extrabold text-ink">Bản đồ kết quả 3D</h2>
+              <p className="text-sm text-muted">Mỗi cột là một bài test bạn đã làm, cao dần theo điểm số.</p>
+            </div>
+            <span className="rounded-full bg-portal-soft px-3 py-1 text-xs font-semibold text-portal-dark">
+              {assessments && assessments.length > 0 ? `${assessments.length} bài đã làm` : "Chưa có kết quả"}
+            </span>
+          </div>
+          <DiscoverScene assessments={assessments} className="w-full" />
+        </Card>
         <section aria-labelledby="tests-heading">
           <h2 id="tests-heading" className="sr-only">Chọn bài test năng khiếu</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger-children" role="list">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-stretch stagger-children" role="list">
             {TESTS.map((t, idx) => {
               const done = assessments?.some((a) => a.test_type === t.key);
               return (
-                <article key={t.key} className="text-center reveal-up" role="listitem" style={{ animationDelay: `${0.06 * (idx + 1)}s` }}>
-                  <Card interactive reveal revealDelay={0.05}>
+                <article key={t.key} className="text-center reveal-up h-full" role="listitem" style={{ animationDelay: `${0.06 * (idx + 1)}s` }}>
+                  <Card interactive reveal revealDelay={0.05} className="flex h-full flex-col text-center">
                     <div className={`mx-auto h-14 w-14 rounded-2xl ${t.chip} text-white flex items-center justify-center text-2xl shadow`} aria-hidden="true">{t.icon}</div>
                     <h3 className="mt-2 font-bold text-ink">{t.name}</h3>
-                    <div className="text-xs text-muted mt-1">{t.desc}</div>
-                    {done && <span className="mt-2 inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium" aria-label={`${t.name} đã hoàn thành`}>✓ Đã làm</span>}
-                    <button onClick={() => startTest(t.key)} className="mt-3 w-full text-xs px-3 py-2 rounded-full cta-gradient text-white font-semibold" aria-label={done ? `Làm lại bài test ${t.name}` : `Bắt đầu bài test ${t.name}`}>
-                      {done ? "Làm lại" : "Bắt đầu"}
-                    </button>
+                    {/* Mô tả chiếm chỗ linh hoạt để mọi card cao bằng nhau */}
+                    <div className="text-xs text-muted mt-1 min-h-[2rem] flex-1">{t.desc}</div>
+                    {/* Giữ chỗ badge để nút không lệch khi có/không có "Đã làm" */}
+                    {done ? (
+                      <span className="mt-2 inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium" aria-label={`${t.name} đã hoàn thành`}>✓ Đã làm</span>
+                    ) : (
+                      <span className="mt-2 inline-block text-[11px] px-2 py-0.5 rounded-full invisible" aria-hidden="true">✓ Đã làm</span>
+                    )}
+                    {/* Nút luôn nằm cùng một đường ngang nhờ mt-auto */}
+                    <div className="mt-auto pt-3">
+                      <button onClick={() => startTest(t.key)} className="w-full text-xs px-3 py-2 rounded-full cta-gradient text-white font-semibold" aria-label={done ? `Làm lại bài test ${t.name}` : `Bắt đầu bài test ${t.name}`}>
+                        {done ? "Làm lại" : "Bắt đầu"}
+                      </button>
+                    </div>
                   </Card>
                 </article>
               );

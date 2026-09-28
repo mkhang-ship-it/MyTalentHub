@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import { QrCode } from "../qr/QrCode";
 import { SceneCanvas } from "./SceneCanvas";
 import type { SceneBuildResult, SceneBuilder } from "./types";
 
@@ -86,14 +87,6 @@ function createPassportScene(three: typeof import("three"), data: PassportData):
   };
 }
 
-function qrModules(seed = 0): boolean[] {
-  const corners = [0, 4, 20, 24, 2, 22];
-  return Array.from({ length: 25 }, (_, i) => {
-    const randomish = (i * 7 + seed * 13) % 3 !== 0;
-    return corners.includes(i) || randomish;
-  });
-}
-
 function PassportCardFace({ data, size, interactive }: { data?: PassportData; size: "thumb" | "dialog"; interactive?: boolean }) {
   if (!data) {
     return (
@@ -114,7 +107,6 @@ function PassportCardFace({ data, size, interactive }: { data?: PassportData; si
     { label: "Trải nghiệm", value: `${s.experience_hours ?? 0}h` },
     { label: "Huy hiệu", value: data.badges?.length ?? 0 },
   ];
-  const modules = qrModules(data.qr_code.length);
 
   return (
     <div className="flex h-full w-full flex-col justify-between gap-4">
@@ -142,13 +134,14 @@ function PassportCardFace({ data, size, interactive }: { data?: PassportData; si
         ))}
       </div>
 
-      {/* QR compact */}
+      {/* QR thật quét được (dùng chung bộ mã hoá với trang check-in) */}
       <div className={`flex items-center gap-3 rounded-xl bg-white/95 p-2.5 ${dialog ? "max-w-sm" : ""}`}>
-        <div className={`grid shrink-0 grid-cols-5 gap-px rounded-md bg-white p-1 ${dialog ? "h-24 w-24" : "h-20 w-20"}`}>
-          {modules.map((filled, i) => (
-            <div key={i} className={filled ? "rounded-[1px] bg-ink" : "bg-transparent"} />
-          ))}
-        </div>
+        <QrCode
+          ma={data.qr_code}
+          kichThuoc={dialog ? 88 : 72}
+          className="shrink-0"
+          nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
+        />
         <div className="min-w-0">
           <p className="break-all font-mono text-[11px] font-semibold text-ink">{data.qr_code}</p>
           <p className="mt-0.5 text-[10px] leading-snug text-muted">

@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { PassportHoloCard } from "../../components/three/PassportHoloCard";
+import { QrCode } from "../../components/qr/QrCode";
 import { FIELD_NAMES, type Passport } from "./shared";
 
 export interface PassportDetailDialogProps {
@@ -27,17 +28,8 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 type Rot = { x: number; y: number };
 const HOME_ROT: Rot = { x: -8, y: 0 };
 
-function qrModules(seed = 0): boolean[] {
-  const corners = [0, 4, 20, 24, 2, 22];
-  return Array.from({ length: 25 }, (_, i) => {
-    const randomish = (i * 7 + seed * 13) % 3 !== 0;
-    return corners.includes(i) || randomish;
-  });
-}
-
 /** Mặt sau thẻ — hiện khi xoay qua 180°, thiết kế riêng (thẻ vật lý kiểu xác thực). */
 function PassportCardBack({ data }: { data: Passport }) {
-  const modules = qrModules(data.qr_code.length);
   return (
     <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#1B2A5E] via-[#284B8C] to-[#1B2A5E] p-6 shadow-[0_24px_60px_rgb(30_27_46/0.35)]">
       {/* Brand */}
@@ -51,15 +43,15 @@ function PassportCardBack({ data }: { data: Passport }) {
         </div>
       </div>
 
-      {/* Trung tâm: tiêu đề + QR + mã */}
+      {/* Trung tâm: tiêu đề + QR thật quét được + mã */}
       <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <p className="text-base font-extrabold tracking-wide text-white">Talent Passport</p>
-        <div className="grid h-28 w-28 grid-cols-5 gap-px rounded-lg bg-white p-1.5 ring-1 ring-white/40 shadow-inner">
-          {modules.map((filled, i) => (
-            <div key={i} className={filled ? "rounded-[1px] bg-ink" : "bg-transparent"} />
-          ))}
-        </div>
-        <p className="break-all font-mono text-xs font-semibold text-white/90">{data.qr_code}</p>
+        <QrCode
+          ma={data.qr_code}
+          kichThuoc={112}
+          hienChu
+          nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
+        />
         <p className="max-w-[260px] text-[11px] leading-snug text-white/70">
           Quét mã để xác thực hồ sơ — khi xin học bổng, thực tập hoặc tuyển dụng.
         </p>
@@ -244,7 +236,6 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
       ? data.skills.reduce((sum, k) => sum + k.level, 0) / data.skills.length
       : 0;
   const interests = (s.interests ?? "").split(", ").filter(Boolean);
-  const modules = qrModules(data.qr_code.length);
 
   return createPortal(
     <Fragment>
@@ -293,14 +284,14 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
               )}
             </div>
 
-            {/* QR lớn + mã định danh */}
+            {/* QR thật quét được + mã định danh */}
             <div className="rounded-xl border border-line bg-white p-3 text-center">
-              <div className="mx-auto grid h-28 w-28 grid-cols-5 gap-px rounded-lg bg-white p-1.5 shadow-inner ring-1 ring-line">
-                {modules.map((filled, i) => (
-                  <div key={i} className={filled ? "rounded-[1px] bg-ink" : "bg-transparent"} />
-                ))}
-              </div>
-              <div className="mt-2.5 break-all font-mono text-xs font-semibold text-ink">{data.qr_code}</div>
+              <QrCode
+                ma={data.qr_code}
+                kichThuoc={112}
+                hienChu
+                nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
+              />
               <div className="mt-1 text-[11px] text-muted-light">Cập nhật {data.updated_at}</div>
               <div className="mt-2 text-[11px] leading-snug text-muted">
                 Quét mã để xác thực hồ sơ — khi xin học bổng, thực tập hoặc tuyển dụng.

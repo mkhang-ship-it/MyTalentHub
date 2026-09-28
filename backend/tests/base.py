@@ -84,7 +84,15 @@ def _prepare_db() -> None:
          demo để đăng nhập.
     """
     if USE_GIVEN_DB:
-        # Job CI PostgreSQL: dùng đúng DB được cấp, không tạo gì thêm.
+        # Job CI / proof chạy trên DB được cấp: dùng đúng DB đó, không tạo gì.
+        # Trường hợp riêng: DB được cấp là file SQLite (proof cục bộ) thì các
+        # test cũ đọc DB trực tiếp bằng sqlite3 qua `TEST_DB` phải trỏ đúng
+        # file đó — nếu không chúng mở một file rỗng và lỗi `no such table`.
+        # Gán lại TRƯỚC khi các module test import `TEST_DB` (import `base`
+        # chạy trước mọi module test, xem `tests/__init__.py`).
+        if _GIVEN_DB.startswith("sqlite:///"):
+            global TEST_DB
+            TEST_DB = Path(_GIVEN_DB.removeprefix("sqlite:///"))
         return
     if DEV_DB.exists():
         shutil.copy2(DEV_DB, TEST_DB)

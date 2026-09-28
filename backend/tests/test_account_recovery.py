@@ -21,7 +21,6 @@ from pathlib import Path
 from .base import FTHttpTestCase, db_session
 
 from app import mailer
-from app.database import SessionLocal
 from app.models import AuthToken, RefreshToken, User, VerificationToken
 from app.security import _new_reset_pair, _new_verify_pair, hash_password, verify_password
 
@@ -375,15 +374,14 @@ class MailerTests(unittest.TestCase):
 
             original_fn = auth_mod.send_reset_email
             auth_mod.send_reset_email = boom
-            db = SessionLocal()
-            email = "test-mailer-fail@ftalenthub.edu.vn"
-            db.query(User).filter(User.email == email).delete()
-            db.add(User(
-                email=email, full_name="T", role="student",
-                password_hash=hash_password("MatKhauCu2026"),
-            ))
-            db.commit()
-            db.close()
+            with db_session() as db:
+                email = "test-mailer-fail@ftalenthub.edu.vn"
+                db.query(User).filter(User.email == email).delete()
+                db.add(User(
+                    email=email, full_name="T", role="student",
+                    password_hash=hash_password("MatKhauCu2026"),
+                ))
+                db.commit()
             try:
                 from .base import FTClient
 
@@ -394,10 +392,9 @@ class MailerTests(unittest.TestCase):
                     status, 200, "lỗi gửi thư phải bị giấu, không được phép lộ email"
                 )
             finally:
-                db = SessionLocal()
-                db.query(User).filter(User.email == email).delete()
-                db.commit()
-                db.close()
+                with db_session() as db:
+                    db.query(User).filter(User.email == email).delete()
+                    db.commit()
                 auth_mod.send_reset_email = original_fn
         finally:
             mailer._write_to_outbox = original

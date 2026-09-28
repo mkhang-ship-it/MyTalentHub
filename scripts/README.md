@@ -64,6 +64,31 @@ python3 scripts/loadtest.py --p95-max 800                  # đổi ngưỡng p9
 - **Số đo phụ thuộc dữ liệu seed (~40 học sinh), KHÔNG đại diện production**
   — script luôn in cảnh báo này; đừng trích bảng số làm cam kết hiệu năng.
 
+## 3c. Chạy trọn bộ như CI (`scripts/ci-local.sh`)
+
+```bash
+./scripts/ci-local.sh             # đủ 6 bước, dừng ngay khi bước đầu đỏ
+./scripts/ci-local.sh --fast      # bỏ qua Playwright để lặp nhanh
+./scripts/ci-local.sh --clean-env # mô phỏng "máy sạch" (giấu tạm backend/talenthub.db)
+```
+
+- Chạy đúng thứ tự CI: backend unittest → `qa.py` → `tsc` → `eslint src tests`
+  → `vite build` → `playwright test` (chế độ cách ly `CI=true`, server riêng
+  `:8101`/`:5175`, không đụng server dev `:8001`/`:5174`).
+- Mỗi bước in thời gian chạy; cuối cùng in bảng tổng kết; exit khác 0 nếu bước
+  nào đỏ. Trước bước Playwright, script kiểm tra không có tiến trình
+  `playwright test` nào khác (hai bộ song song giẫm `test-results`).
+- Cờ `--clean-env` dùng để bắt lỗi "chạy được trên máy tôi nhưng fail trên CI"
+  (test phụ thuộc file `backend/talenthub.db` mà file đó bị `.gitignore` nên
+  không có trong kho mã). Script cảnh báo trước khi giấu, và LUÔN khôi phục
+  file + kiểm md5 kể cả khi có bước đỏ (trap). Chế độ này bỏ qua `qa.py` vì
+  `qa.py` cần DB thật đang chạy (vừa gọi server vừa đọc trực tiếp file).
+- Đã dùng cờ này để xác nhận bản sửa trong dự án: `backend/tests/base.py` tự
+  seed DB tạm bằng `app.seed` khi thiếu file, Playwright cách ly cũng tự seed
+  — nên `--clean-env` phải xanh; đỏ nghĩa là lại có test mới phụ thuộc file
+  cục bộ (ví dụ hiện tại: `tests/test_audit_log.py` đỏ do bug `self.user`
+  trong chính test, không phải do thiếu DB — `ci-local.sh` chỉ báo, không sửa).
+
 ## 4. Endpoint nào cần token / không cần token
 
 **Không cần token (công khai / demo):**

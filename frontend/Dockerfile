@@ -5,11 +5,16 @@
 # ---------- Stage 1: build ----------
 FROM node:20-alpine AS build
 WORKDIR /web
-  COPY package.json package-lock.json ./
-  # `npm ci` BẮT BUỘC copy kèm package-lock.json, nếu thiếu nó báo lỗi ngay.
-  # Nó cài đúng thứ đã khoá nên build lặp lại được (xem Dockerfile.fullstack:
-  # vì sao không dùng `npm install` — lỗi registry thật đã xảy ra).
-  RUN npm ci --no-audit --no-fund
+# `npm ci` BẮT BUỘC copy kèm package-lock.json, nếu thiếu nó báo lỗi ngay.
+# Nó cài đúng thứ đã khoá nên build lặp lại được (xem Dockerfile.fullstack để biết
+# vì sao không dùng `npm install` — lỗi registry đã xảy ra thật).
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+# Sao chép mã nguồn SAU khi cài gói, để thay đổi .tsx không làm mất cache của
+# `npm ci`. Bỏ dòng này thì image KHÔNG có mã nguồn: `tsc` không tìm thấy
+# tsconfig.json nên in ra màn hình trợ giúp rồi exit 1, còn `vite build` sẽ ra
+# trang trắng — lỗi rất dễ bị tưởng là "vite hỏng".
+COPY . .
 RUN npm run build
 
 # ---------- Stage 2: chạy bằng nginx ----------

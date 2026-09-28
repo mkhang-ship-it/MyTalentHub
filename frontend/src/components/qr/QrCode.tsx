@@ -1,13 +1,17 @@
 // Component React DÙNG CHUNG để hiện mã QR quét được (SVG sắc nét, không cần thư viện).
 // Mọi nơi hiện mã QR trong ứng dụng đều phải dùng component này.
+// Nội dung mã hoá là URL công khai (qua noiDungMaQR): camera điện thoại thường
+// quét là mở được trang xác minh/điểm danh, không cần đăng nhập.
 
 import { useMemo } from "react";
+import { noiDungMaQR } from "./maCheckin";
 import { maHoaQR, type MaTranQR } from "./qrEncode";
 import { maTranSangSvg } from "./qrSvg";
 import type { MucSuaLoi } from "./qrTables";
 
 export interface QrCodeProps {
-  /** Chuỗi cần mã hoá (ví dụ mã check-in "FTH:TP-1001:123456"). */
+  /** Mã nguồn cần mã hoá (mã thô "FTH:TP-1001:123456", mã passport "TP-1001",
+   *  hoặc URL đầy đủ). Component tự nâng mã thô thành URL công khai. */
   ma: string;
   /** Chiều rộng SVG mong muốn (px). Ô module luôn ≥ 2px để quét được. */
   kichThuoc?: number;
@@ -17,7 +21,7 @@ export interface QrCodeProps {
   /** Nhãn tiếng Việt cho trợ năng và hướng dẫn quét. */
   nhan?: string;
   className?: string;
-  /** Hiện chuỗi gốc dưới mã để nhập tay khi không quét được. */
+  /** Hiện nội dung QR dưới mã để nhập tay khi không quét được (luôn là URL đầy đủ). */
   hienChu?: boolean;
 }
 
@@ -37,11 +41,13 @@ export function QrCode({
 }: QrCodeProps) {
   const ketQua = useMemo(() => {
     try {
-      const maTran = tinhMaTranQR(ma, mucSuaLoi);
+      // Nâng mã thô thành URL công khai TRƯỚC khi mã hoá để camera mở được ngay.
+      const noiDung = noiDungMaQR(ma);
+      const maTran = tinhMaTranQR(noiDung, mucSuaLoi);
       // Ô module tối thiểu 2px; phóng to theo kích thước yêu cầu.
       const oVuong = Math.max(2, Math.floor(kichThuoc / (maTran.kichThuoc + leTrang * 2)));
       const svg = maTranSangSvg(maTran.maTran, { oVuongPx: oVuong, leTrang, nhan });
-      return { ok: true as const, svg, rong: (maTran.kichThuoc + leTrang * 2) * oVuong };
+      return { ok: true as const, svg, rong: (maTran.kichThuoc + leTrang * 2) * oVuong, noiDung };
     } catch (e) {
       const loi = e instanceof Error ? e.message : String(e);
       return { ok: false as const, loi: `Không tạo được mã QR: ${loi}` };
@@ -65,9 +71,9 @@ export function QrCode({
       />
       <figcaption className="mt-2 max-w-full text-center text-[11px] leading-snug text-slate-500">
         {hienChu ? (
-          <span className="block break-all font-mono text-xs font-semibold text-slate-700">{ma}</span>
+          <span className="block break-all font-mono text-xs font-semibold text-slate-700">{ketQua.noiDung}</span>
         ) : null}
-        Dùng camera điện thoại để quét mã
+        Dùng camera điện thoại để quét mã — mở ra trang xác minh, không cần đăng nhập
       </figcaption>
     </figure>
   );

@@ -48,9 +48,9 @@ export default function Passport() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cột trái - thẻ hologram tương tác */}
-        <div className="space-y-4">
-          <PassportHoloCard data={data} onRequestOpen={() => setDetailOpen(true)} />
+        {/* Cột trái - thẻ 2D bấm để mở chi tiết */}
+        <div className="space-y-4 h-full">
+          <PassportHoloCard data={data} onRequestOpen={() => setDetailOpen(true)} className="h-full" />
         </div>
 
         {/* Cột phải - nội dung chi tiết */}

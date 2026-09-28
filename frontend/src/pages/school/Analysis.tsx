@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BarChart3, Trophy } from "lucide-react";
-import DataNetwork from "../../components/three/DataNetwork";
+import BieuDoCot from "../../components/chart/BieuDoCot";
+import ThanhXepHang from "../../components/chart/ThanhXepHang";
 import { get } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
 
@@ -46,6 +47,20 @@ export default function Analysis() {
 
   // Accessibility description for radar chart
   const radarAriaLabel = `Bản đồ radar năng khiếu toàn trường: ${data.skill_map.map(s => `${s.name} ${s.avg_score} điểm`).join(", ")}`;
+
+  // Tóm tắt bằng chữ từ số liệu API thật: tổng HS, điểm TB có trọng số, kỹ năng cao nhất.
+  const tongHS = data.grade_ranking.reduce((tong, g) => tong + g.count, 0);
+  const diemTB = tongHS > 0
+    ? data.grade_ranking.reduce((tong, g) => tong + g.avg_score * g.count, 0) / tongHS
+    : 0;
+  const kyNangCaoNhat = [...data.skill_map].sort((a, b) => b.avg_score - a.avg_score)[0];
+  const kyNangThapNhat = [...data.skill_map].sort((a, b) => a.avg_score - b.avg_score)[0];
+  const khoiChinh = data.grade_ranking.filter((g) => g.grade >= 10 && g.grade <= 12).map((g) => g.grade).sort((a, b) => a - b);
+  // Khối ngoài 10–12 (ví dụ "Khối 6" 1 HS điểm 0) là dấu hiệu dữ liệu lỗi: phơi bày, không giấu.
+  const khoiLa = data.grade_ranking.filter((g) => g.grade < 10 || g.grade > 12);
+  const tomTatTruong = `${tongHS} học sinh${khoiChinh.length > 0 ? ` (Khối ${khoiChinh.join(", ")})` : ""}, ` +
+    `điểm năng lực trung bình ${diemTB.toFixed(1)}; kỹ năng trung bình cao nhất toàn trường: ` +
+    `${kyNangCaoNhat ? `${kyNangCaoNhat.name} (${kyNangCaoNhat.avg_score} điểm)` : "chưa đủ dữ liệu"}.`;
 
   return (
     <div>
@@ -225,18 +240,42 @@ export default function Analysis() {
           </table>
         </div>
       </Card>
-      <section className="mt-6" aria-label="Mạng dữ liệu lớp — kỹ năng">
-        <DataNetwork
-          mode="school"
-          ariaLabel="Liên kết lớp và kỹ năng dựa trên dữ liệu phân tích năng lực"
-          nodes={[
-            ...data.grade_ranking.map((g) => ({ id: `grade-${g.grade}`, label: `Khối ${g.grade}`, group: "grade", size: 2, color: "#8B5CF6" })),
-            ...data.skill_map.map((s) => ({ id: s.code, label: s.name, group: "skill", size: 1 + Math.round(s.avg_score / 20), color: "#F97316" })),
-          ]}
-          links={data.grade_ranking.flatMap((g) =>
-            data.skill_map.map((s) => ({ source: `grade-${g.grade}`, target: s.code, value: Math.round(s.avg_score / 10) }))
-          )}
-          height={260}
+      {/* Phân bố khối + xếp hạng kỹ năng: mỗi cột/thanh là một con số thật, không phải đồ thị đầy đủ vô nghĩa */}
+      <section className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6" aria-label="Phân bố khối và kỹ năng toàn trường">
+        <BieuDoCot
+          tieuDe="Phân bố học sinh theo khối"
+          tomTat={tomTatTruong}
+          donViY="Số học sinh"
+          cot={[...data.grade_ranking]
+            .sort((a, b) => a.grade - b.grade)
+            .map((g) => ({
+              nhan: `Khối ${g.grade}`,
+              giaTri: g.count,
+              nhanGiaTri: `${g.count} HS`,
+              phuDe: `TB ${g.avg_score} · ${g.hours}h`,
+            }))}
+          thongBaoRong="Chưa có dữ liệu khối để vẽ biểu đồ."
+          ghiChu={
+            khoiLa.length > 0
+              ? `Lưu ý dữ liệu: ${khoiLa.map((g) => `Khối ${g.grade} chỉ có ${g.count} học sinh, điểm trung bình ${g.avg_score}`).join("; ")} — ` +
+                `có thể thiếu dữ liệu, cần kiểm tra lại nguồn trước khi kết luận.`
+              : undefined
+          }
+        />
+        <ThanhXepHang
+          tieuDe="Kỹ năng trung bình toàn trường"
+          tomTat={
+            kyNangCaoNhat && kyNangThapNhat
+              ? `${kyNangCaoNhat.name} cao nhất (${kyNangCaoNhat.avg_score} điểm), ` +
+                `${kyNangThapNhat.name} thấp nhất (${kyNangThapNhat.avg_score} điểm) — ` +
+                `chênh lệch ${(kyNangCaoNhat.avg_score - kyNangThapNhat.avg_score).toFixed(1)} điểm, ` +
+                `nhà trường nên ưu tiên bồi dưỡng kỹ năng còn yếu.`
+              : "Chưa đủ dữ liệu kỹ năng."
+          }
+          hang={data.skill_map.map((s) => ({ ten: s.name, diem: s.avg_score }))}
+          donVi="điểm"
+          thangToiDa={100}
+          thongBaoRong="Chưa có dữ liệu kỹ năng để xếp hạng."
         />
       </section>
     </div>

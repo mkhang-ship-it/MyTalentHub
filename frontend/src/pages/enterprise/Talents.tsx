@@ -107,6 +107,27 @@ export default function Talents() {
   if (error) return <ErrorBox message={error} />;
   if (!data) return <Loading />;
 
+  // 5 nhân tài điểm cao nhất trong kết quả + kỹ năng THẬT của từng người (không nối đồ thị đầy đủ).
+  const top5 = [...data.items].sort((a, b) => b.talent_score - a.talent_score).slice(0, 5);
+  const demKyNangPhoBien = new Map<string, number>();
+  for (const t of data.items) {
+    for (const skill of t.top_skills.slice(0, 3)) {
+      demKyNangPhoBien.set(skill, (demKyNangPhoBien.get(skill) ?? 0) + 1);
+    }
+  }
+  const kyNangPhoBienNhat = [...demKyNangPhoBien.entries()].sort((a, b) => b[1] - a[1])[0];
+  const diemTrungBinh = data.items.length > 0
+    ? data.items.reduce((tong, t) => tong + t.talent_score, 0) / data.items.length
+    : 0;
+  const tomTatNhanTai = data.items.length > 0
+    ? `Trong ${data.items.length} hồ sơ đang hiện (tổng ${data.total} hồ sơ phù hợp): ` +
+      `điểm năng lực trung bình ${diemTrungBinh.toFixed(1)}` +
+      `${kyNangPhoBienNhat ? `; kỹ năng phổ biến nhất: ${kyNangPhoBienNhat[0]} (${kyNangPhoBienNhat[1]} người)` : ""}. ` +
+      `Biểu đồ dưới hiện 5 nhân tài điểm cao nhất và kỹ năng thật của từng người — ` +
+      `đường nối nghĩa là "người này thực sự có kỹ năng đó".`
+    : "Chưa có hồ sơ nào để tóm tắt.";
+  const kyNangTop5 = [...new Set(top5.flatMap((t) => t.top_skills.slice(0, 3)))];
+
   return (
     <div>
       <style>{`
@@ -371,32 +392,20 @@ export default function Talents() {
           </div>
         </nav>
       )}
-      <section className="mt-6" aria-label="Mạng dữ liệu nhân tài — kỹ năng — dự án" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
+      <section className="mt-6" aria-label="Mạng nhân tài và kỹ năng thật" style={{ animation: "fadeUp 0.7s ease-out 0.15s both" }}>
         <DataNetwork
           mode="enterprise"
-          ariaLabel="Liên kết nhân tài, kỹ năng và dự án dựa trên dữ liệu tìm kiếm"
+          ariaLabel="Mạng 5 nhân tài điểm cao nhất và kỹ năng thật của từng người"
+          tieuDe="Ai giỏi kỹ năng nào"
+          tomTat={tomTatNhanTai}
           nodes={[
-            ...[...new Map(
-              data.items.slice(0, 12).map((t) => [
-                `talent-${t.id}`,
-                { id: `talent-${t.id}`, label: t.full_name.length > 14 ? t.full_name.slice(0, 12) + "…" : t.full_name, group: "talent", size: 2, color: "#C44296" },
-              ])
-            ).values()].map((n) => n as DataNode),
-            ...[...new Map(
-              Array.from(new Set(data.items.flatMap((t) => t.top_skills.slice(0, 3)))).map((skill) => [
-                `skill-${String(skill)}`,
-                { id: `skill-${String(skill)}`, label: String(skill), group: "skill", size: 1, color: "#F97316" },
-              ])
-            ).values()].map((n) => n as DataNode),
-            { id: "project-main", label: "Tuyển thực tập", group: "project", size: 3, color: "#EC4899" },
-          ].filter(Boolean) as DataNode[]}
-          links={[
-            ...data.items.slice(0, 12).flatMap((t) =>
-              t.top_skills.slice(0, 3).map((skill) => ({ source: `talent-${t.id}`, target: `skill-${String(skill)}`, value: t.talent_score / 20 } as DataLink))
-            ),
-            ...data.items.slice(0, 8).map((t) => ({ source: `talent-${t.id}`, target: "project-main", value: t.talent_score / 20 } as DataLink)),
+            ...top5.map((t) => ({ id: `talent-${t.id}`, label: t.full_name, group: "talent", size: 2 } as DataNode)),
+            ...kyNangTop5.map((skill) => ({ id: `skill-${String(skill)}`, label: String(skill), group: "skill", size: 1 } as DataNode)),
           ]}
-          height={260}
+          links={top5.flatMap((t) =>
+            t.top_skills.slice(0, 3).map((skill) => ({ source: `talent-${t.id}`, target: `skill-${String(skill)}` } as DataLink))
+          )}
+          height={280}
         />
       </section>
     </div>

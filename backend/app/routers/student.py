@@ -931,8 +931,33 @@ def checkin(
 
     Bắt buộc token. `registration_id` (nếu truyền) phải là đăng ký CỦA học sinh trong token,
     nếu không → bỏ qua và lấy đăng ký hợp lệ của chính học sinh đó (không check-in giùm người khác).
+
+    Mã được XÁC THỰC thật (không còn nhận chuỗi bất kỳ):
+    - sai định dạng → 400; hết hạn (lệch quá 1 cửa sổ 120s) → 400;
+    - mã đã dùng rồi → 409; mã của học sinh khác → 403.
+    Chấp nhận cả mã thô `FTH:...` lẫn URL đầy đủ khi dán tay.
     """
+    from ..core.qrcheckin import (
+        danh_gia_cua_so,
+        ma_da_dung,
+        phan_tich_ma,
+        tach_ma_tho,
+        tim_hoc_sinh_theo_ma,
+    )
+
     s = _get_student_from_token(authorization, db)
+    ma_tho = tach_ma_tho(qr_code)
+    phan_tich = phan_tich_ma(ma_tho)
+    if not phan_tich:
+        raise HTTPException(400, "Mã check-in không đúng định dạng. Vui lòng quét lại mã mới trên màn hình.")
+    ma_nguon, cua_so = phan_tich
+    if danh_gia_cua_so(cua_so) == "het_han":
+        raise HTTPException(400, "Mã đã hết hạn. Mã mới đang hiển thị trên màn hình, vui lòng quét lại.")
+    if ma_da_dung(db, ma_tho):
+        raise HTTPException(409, "Mã này đã được dùng để check-in rồi. Vui lòng chờ mã mới.")
+    chu_ma = tim_hoc_sinh_theo_ma(db, ma_nguon)
+    if not chu_ma or chu_ma.id != s.id:
+        raise HTTPException(403, "Mã này không thuộc về tài khoản của bạn.")
     reg = None
     if registration_id:
         reg = (
@@ -953,13 +978,71 @@ def checkin(
 
     old = reg.hours
     reg.hours += 1.0
-    db.add(CheckIn(registration_id=reg.id, qr_code=qr_code, hours_added=1.0))
+    # Lưu mã thô đã chuẩn hoá (dán URL hay quét QR đều ra một chuỗi) để chống tái sử dụng.
+    db.add(CheckIn(registration_id=reg.id, qr_code=ma_tho, hours_added=1.0))
     # cập nhật tổng giờ học sinh
     stu = db.query(Student).filter(Student.id == reg.student_id).first()
     if stu:
         stu.experience_hours += 1.0
     db.commit()
     return {"ok": True, "message": "Check-in thành công +1 giờ", "registration_id": reg.id, "hours": reg.hours, "chk_total": stu.experience_hours if stu else None}
+
+
+class MaQuetIn(BaseModel):
+    """Mã quét được gửi từ trang điểm danh công khai (ban tổ chức không đăng nhập)."""
+
+    code: str
+
+
+@router.post("/checkin/scan")
+def checkin_scan(payload: MaQuetIn, db: Session = Depends(get_db)):
+    """Điểm danh công khai cho ban tổ chức — KHÔNG cần token.
+
+    Mở được bằng camera điện thoại thường: quét QR trên màn hình học sinh sẽ
+    tới trang `/checkin?code=...`, trang đó gọi endpoint này khi bấm xác nhận.
+    Cùng luật xác thực như check-in có token (định dạng, cửa sổ, chống tái sử
+    dụng), nhưng học sinh được suy ra TỪ MÃ thay vì từ token. Chỉ trả về tên
+    và lớp để ban tổ chức đối chiếu, không lộ dữ liệu khác.
+    """
+    from ..core.qrcheckin import (
+        danh_gia_cua_so,
+        ma_da_dung,
+        phan_tich_ma,
+        tach_ma_tho,
+        tim_hoc_sinh_theo_ma,
+    )
+
+    ma_tho = tach_ma_tho(payload.code)
+    phan_tich = phan_tich_ma(ma_tho)
+    if not phan_tich:
+        raise HTTPException(400, "Mã check-in không đúng định dạng. Vui lòng quét lại mã mới trên màn hình.")
+    ma_nguon, cua_so = phan_tich
+    if danh_gia_cua_so(cua_so) == "het_han":
+        raise HTTPException(400, "Mã đã hết hạn. Mã mới đang hiển thị trên màn hình, vui lòng quét lại.")
+    if ma_da_dung(db, ma_tho):
+        raise HTTPException(409, "Mã này đã được dùng để check-in rồi. Vui lòng chờ mã mới.")
+    hoc_sinh = tim_hoc_sinh_theo_ma(db, ma_nguon)
+    if not hoc_sinh:
+        raise HTTPException(404, "Không tìm thấy đăng ký hợp lệ cho mã này.")
+    reg = (
+        db.query(ActivityRegistration)
+        .join(Activity, Activity.id == ActivityRegistration.activity_id)
+        .filter(ActivityRegistration.student_id == hoc_sinh.id, Activity.status == "open")
+        .first()
+    )
+    if reg is None:
+        raise HTTPException(404, "Không tìm thấy đăng ký hợp lệ cho mã này.")
+    reg.hours += 1.0
+    db.add(CheckIn(registration_id=reg.id, qr_code=ma_tho, hours_added=1.0))
+    hoc_sinh.experience_hours = (hoc_sinh.experience_hours or 0.0) + 1.0
+    db.commit()
+    ten = hoc_sinh.user.full_name if hoc_sinh.user else "Học sinh"
+    return {
+        "ok": True,
+        "message": "Điểm danh thành công +1 giờ",
+        "hoc_sinh": {"ho_ten": ten, "lop": hoc_sinh.class_name},
+        "hours": reg.hours,
+    }
 
 
 @router.get("/badges")

@@ -8,6 +8,11 @@ Hợp đồng:
 - /enterprise/* → không token: 401; sai vai trò (student): 403; đúng vai trò: 200.
 - /passport/*   → không token: 401; BẤT KỲ token nào cũng 200 (hồ sơ công khai
   theo ý tưởng QR — quyết định từ lô 4, không có khái niệm "sai vai trò").
+  NGOẠI LỆ (quyết định pane 2, có chủ đích): GET /passport/verify là endpoint
+  CÔNG KHAI cho camera điện thoại (người quét không đăng nhập) nên không token
+  vẫn 200 với mã đúng / 404 với mã sai, chứ không phải 401. Vòng lặp dưới đây
+  bỏ qua route này; hợp đồng công khai được kiểm riêng ở test_qr_verify.py và
+  test_passport_verify_is_public_by_design bên dưới.
 
 Với POST/PUT/DELETE chỉ kiểm 401/403 (không gửi token đúng vai trò để tránh
 ghi/xoá dữ liệu thật). Body gửi kèm là dict dùng chung, đủ field bắt buộc của
@@ -167,7 +172,11 @@ class RbacGuardTest(unittest.TestCase):
                     self.assertEqual(status, 200, "token enterprise phải là 200")
 
     def test_passport_requires_login_but_open_to_all_roles(self):
-        routes = [(m, p) for m, p in self.routes if p.startswith("/api/v1/passport")]
+        routes = [
+            (m, p)
+            for m, p in self.routes
+            if p.startswith("/api/v1/passport") and p != "/api/v1/passport/verify"
+        ]
         self.assertTrue(routes, "phải có ít nhất 1 route /passport/*")
         for method, template in routes:
             path = concrete_path(template)
@@ -180,6 +189,21 @@ class RbacGuardTest(unittest.TestCase):
                         status, 200,
                         f"token {role} phải xem được passport (hồ sơ công khai QR)",
                     )
+
+    def test_passport_verify_is_public_by_design(self):
+        """GET /passport/verify cố ý công khai: camera quét không cần đăng nhập.
+
+        Không token + mã đúng → 200; không token + mã sai → 404 (chứ KHÔNG 401).
+        Có token + mã đúng → 200 (token bị bỏ qua, không bắt buộc)."""
+        status, ho_chieu = call("GET", "/passport/1", self.tokens["student"])
+        self.assertEqual(status, 200)
+        ma_dung = ho_chieu["qr_code"]
+        status, _ = call("GET", f"/passport/verify?code={ma_dung}", None)
+        self.assertEqual(status, 200, "mã đúng không cần token phải là 200")
+        status, _ = call("GET", "/passport/verify?code=MA-KHONG-TON-TAI", None)
+        self.assertEqual(status, 404, "mã sai không cần token phải là 404, không phải 401")
+        status, _ = call("GET", f"/passport/verify?code={ma_dung}", self.tokens["teacher"])
+        self.assertEqual(status, 200, "mã đúng kèm token vẫn là 200")
 
     def test_role_map_covers_all_prefixes(self):
         for _, template in self.routes:

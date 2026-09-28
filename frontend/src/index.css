@@ -255,17 +255,8 @@ body {
   transition: opacity var(--transition-fast);
 }
 
-/* Passport floating card — lơ lửng nhẹ khi idle */
-@keyframes card-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
-}
-.card-float {
-  animation: card-float 6.5s ease-in-out infinite;
-  will-change: transform;
-}
+/* Thẻ Passport 2D — không dùng animation float 3D (giữ tĩnh để nhẹ GPU) */
 
-/* Reduced motion safety */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -279,9 +270,6 @@ body {
     opacity: 1 !important;
     transform: none !important;
     transition-duration: 0ms !important;
-  }
-  .card-float {
-    animation: none !important;
   }
   .hover-lift:hover,
   .hover-glow:hover,

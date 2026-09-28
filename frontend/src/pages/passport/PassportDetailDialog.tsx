@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   Award,
   Briefcase,
@@ -8,7 +7,6 @@ import {
   FileCheck2,
   Lightbulb,
   Maximize2,
-  RotateCcw,
   Star,
   Target,
   X,
@@ -23,12 +21,47 @@ export interface PassportDetailDialogProps {
   onClose: () => void;
 }
 
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+interface The2DProps {
+  data: Passport;
+  /** Bấm vào thẻ → phóng to toàn màn hình. */
+  onActivate?: () => void;
+  /** Nhãn trợ năng khi thẻ bấm được. */
+  label?: string;
+}
 
-type Rot = { x: number; y: number };
-const HOME_ROT: Rot = { x: -8, y: 0 };
+/** Chú thích tiếng Việt: thẻ 2D tĩnh — mặt trước và mặt sau xếp chồng, không xoay 3D. */
+function The2D({ data, onActivate, label }: The2DProps) {
+  return (
+    <div className="w-full">
+      <div
+        className={onActivate ? "cursor-zoom-in select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2" : "select-none"}
+        role={onActivate ? "button" : undefined}
+        tabIndex={onActivate ? 0 : undefined}
+        aria-label={label}
+        onClick={onActivate}
+        onKeyDown={
+          onActivate
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onActivate();
+                }
+              }
+            : undefined
+        }
+      >
+        {/* Mặt trước */}
+        <PassportHoloCard data={data} size="dialog" />
+        {/* Mặt sau — hiện tĩnh bên dưới, không lật 3D */}
+        <div className="mt-4">
+          <PassportCardBack data={data} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-/** Mặt sau thẻ — hiện khi xoay qua 180°, thiết kế riêng (thẻ vật lý kiểu xác thực). */
+/** Mặt sau thẻ — hiện tĩnh bên dưới mặt trước, thiết kế riêng (thẻ vật lý kiểu xác thực). */
 function PassportCardBack({ data }: { data: Passport }) {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#1B2A5E] via-[#284B8C] to-[#1B2A5E] p-6 shadow-[0_24px_60px_rgb(30_27_46/0.35)]">
@@ -65,135 +98,11 @@ function PassportCardBack({ data }: { data: Passport }) {
   );
 }
 
-interface RotatableCardProps {
-  data: Passport;
-  rot: Rot;
-  onRotate: (rot: Rot) => void;
-  reduced: boolean;
-  /** Bấm (không kéo) vào thẻ → phóng to toàn màn hình. */
-  onActivate?: () => void;
-  /** Glow holo phía sau thẻ. */
-  glow?: boolean;
-  /** Nhãn trợ năng khi thẻ bấm được. */
-  label?: string;
-}
-
-/** Thẻ xoay 360° 2 mặt — dùng trong popup chi tiết lẫn chế độ toàn màn hình. */
-function RotatableCard({ data, rot, onRotate, reduced, onActivate, glow = true, label }: RotatableCardProps) {
-  const drag = useRef({
-    active: false,
-    moved: false,
-    startX: 0,
-    startY: 0,
-    startRx: HOME_ROT.x,
-    startRy: HOME_ROT.y,
-  });
-
-  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (reduced) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    drag.current = {
-      active: true,
-      moved: false,
-      startX: e.clientX,
-      startY: e.clientY,
-      startRx: rot.x,
-      startRy: rot.y,
-    };
-  };
-  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active || reduced) return;
-    const dx = e.clientX - drag.current.startX;
-    const dy = e.clientY - drag.current.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 6) drag.current.moved = true;
-    onRotate({
-      x: clamp(drag.current.startRx - dy * 0.4, -90, 90),
-      y: drag.current.startRy + dx * 0.4,
-    });
-  };
-  const handlePointerEnd = () => {
-    drag.current.active = false;
-  };
-  const handleClick = () => {
-    if (drag.current.moved) return;
-    onActivate?.();
-  };
-
-  return (
-    <div className="micro-slot w-full" style={{ position: "relative", overflow: "visible" }}>
-      <div style={{ perspective: reduced ? "none" : 1200 }}>
-        <div
-          className="touch-none select-none"
-          role={onActivate ? "button" : undefined}
-          tabIndex={onActivate ? 0 : undefined}
-          aria-label={label}
-          onClick={handleClick}
-          onKeyDown={
-            onActivate
-              ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onActivate();
-                  }
-                }
-              : undefined
-          }
-          style={{
-            position: "relative",
-            transform: reduced ? undefined : `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
-            transformStyle: "preserve-3d",
-            transition: drag.current.active ? "none" : "transform 200ms ease-out",
-            cursor: reduced ? "default" : onActivate ? "zoom-in" : "grab",
-          }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerEnd}
-          onPointerCancel={handlePointerEnd}
-        >
-          {/* Mặt trước */}
-          <div className="[backface-visibility:hidden]" style={{ transformStyle: "preserve-3d" }}>
-            <PassportHoloCard data={data} size="dialog" />
-          </div>
-          {/* Mặt sau — hiện khi lật 180° */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 [backface-visibility:hidden]"
-            style={{ transform: "rotateY(180deg)", transformStyle: "preserve-3d" }}
-          >
-            <PassportCardBack data={data} />
-          </div>
-          {!reduced && glow && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -inset-5"
-              style={{
-                transform: "translateZ(34px)",
-                background: "radial-gradient(48% 48% at 50% 42%, rgb(196 66 150 / 0.14), transparent 70%)",
-              }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PassportDetailDialog({ data, open, onClose }: PassportDetailDialogProps) {
   const s = data.student;
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const focusCloseRef = useRef<HTMLButtonElement | null>(null);
-  const [rot, setRot] = useState<Rot>(HOME_ROT);
-  const [reduced, setReduced] = useState(false);
   const [focus, setFocus] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (!media) return;
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener?.("change", update);
-    return () => media.removeEventListener?.("change", update);
-  }, []);
 
   // Khóa scroll nền + focus vào nút đóng, restore khi đóng
   useEffect(() => {
@@ -249,27 +158,15 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
         <div className="absolute inset-0 bg-ink/75 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
 
         <div className="relative z-10 grid max-h-[92vh] w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-white/15 bg-white shadow-2xl lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-          {/* ── Cột trái: thẻ hologram xoay được → panel dọc riêng ── */}
+          {/* ── Cột trái: thẻ 2D → panel dọc riêng ── */}
           <div className="flex flex-col gap-4 overflow-y-auto overflow-x-hidden border-b border-line bg-canvas-soft/40 p-5 lg:max-h-[92vh] lg:border-b-0 lg:border-r lg:p-6">
-            <RotatableCard
+            <The2D
               data={data}
-              rot={rot}
-              onRotate={setRot}
-              reduced={reduced}
               onActivate={() => setFocus(true)}
               label={`Talent Passport của ${s.full_name} — bấm để xem toàn màn hình`}
             />
 
             <div className="flex flex-wrap items-center gap-2">
-              {!reduced && (
-                <button
-                  type="button"
-                  onClick={() => setRot(HOME_ROT)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-canvas-soft hover:border-line-strong"
-                >
-                  <RotateCcw size={13} aria-hidden="true" /> Đặt lại góc
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => setFocus(true)}
@@ -277,11 +174,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
               >
                 <Maximize2 size={13} aria-hidden="true" /> Xem toàn màn hình
               </button>
-              {!reduced ? (
-                <p className="text-xs text-muted-light">Kéo để xoay 360° — lật thẻ để xem mặt sau.</p>
-              ) : (
-                <p className="text-xs text-muted-light">Thẻ hiển thị tĩnh (chế độ giảm chuyển động).</p>
-              )}
+              <p className="text-xs text-muted-light">Thẻ 2D — mặt trước và mặt sau hiện liền nhau.</p>
             </div>
 
             {/* QR thật quét được + mã định danh */}
@@ -487,7 +380,7 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
         </div>
       </div>
 
-      {/* ── Chế độ toàn màn hình: chỉ còn thẻ lớn ở chính giữa, xoay 360° ── */}
+      {/* ── Chế độ toàn màn hình: chỉ còn thẻ lớn 2D ở chính giữa ── */}
       {focus &&
         createPortal(
           <div
@@ -517,16 +410,14 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
                 </button>
               </div>
               <div className="pointer-events-auto w-full max-w-[460px]" onClick={(e) => e.stopPropagation()}>
-                <RotatableCard data={data} rot={rot} onRotate={setRot} reduced={reduced} />
+                <The2D data={data} />
               </div>
-              {!reduced && (
-                <p
-                  className="pointer-events-auto text-center text-xs text-white/60"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Kéo để xoay 360° — lật thẻ để xem mặt sau.
-                </p>
-              )}
+              <p
+                className="pointer-events-auto text-center text-xs text-white/60"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Thẻ Talent Passport 2D — mặt trước và mặt sau.
+              </p>
             </div>
           </div>,
           document.body

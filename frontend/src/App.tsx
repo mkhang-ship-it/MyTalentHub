@@ -10,6 +10,9 @@ import Landing from "./pages/Landing";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
+// Trang công khai cho người quét QR (không cần đăng nhập) — pane 2 sở hữu.
+import VerifyPassport from "./pages/passport/VerifyPassport";
+import CheckinScan from "./pages/passport/CheckinScan";
 
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentDiscover from "./pages/student/Discover";
@@ -77,6 +80,9 @@ export default function App() {
           <Route path="/quen-mat-khau" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/dat-lai-mat-khau" element={<PageTransition><ResetPassword /></PageTransition>} />
           <Route path="/xac-minh-email" element={<PageTransition><VerifyEmail /></PageTransition>} />
+          {/* QR công khai: camera quét mã trên thẻ/màn hình sẽ tới đây, KHÔNG cần đăng nhập */}
+          <Route path="/passport/verify" element={<PageTransition><VerifyPassport /></PageTransition>} />
+          <Route path="/checkin" element={<PageTransition><CheckinScan /></PageTransition>} />
 
           <Route
             path="/"

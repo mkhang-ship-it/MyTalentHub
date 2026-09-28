@@ -1,5 +1,5 @@
 """TALENT PASSPORT — QR định danh, hồ sơ, chứng chỉ, dự án, hoạt động, kỹ năng, CV (slide 19, 32)."""
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
@@ -19,6 +19,43 @@ from ..models import (
 from ..security import resolve_token_user
 
 router = APIRouter(prefix="/passport", tags=["passport"])
+
+# Thông điệp chung cho mọi mã sai: không tiết lộ mã nào còn hợp lệ,
+# cũng không tiết lộ hồ sơ có tồn tại hay không.
+_MA_SAI = "Mã xác minh không đúng. Vui lòng kiểm tra lại mã trên thẻ."
+
+
+@router.get("/verify")
+def verify_public(code: str = Query(default=""), db: Session = Depends(get_db)):
+    """Xác minh Talent Passport CÔNG KHAI — không cần token.
+
+    Người quét (giáo viên, doanh nghiệp, nhà trường) thường không đăng nhập,
+    nên endpoint này cố ý đứng ngoài mọi kiểm tra Authorization. Đặt TRƯỚC
+    route `/{student_id}` để Starlette khớp đúng (route động có tham số int
+    sẽ nuốt mất path tĩnh nếu đứng trước).
+
+    RIÊNG TƯ: chỉ trả tên, lớp, khối, tên trường và trạng thái xác minh.
+    KHÔNG trả email, điểm năng lực, giờ trải nghiệm, kỹ năng hay huy hiệu.
+    Mã sai trả cùng một thông điệp 404, không lộ gì thêm.
+    """
+    from ..core.qrcheckin import MA_NGUON_RE
+
+    ma = (code or "").strip()
+    hop = db.query(TalentPassport).filter(TalentPassport.qr_code == ma).first() if MA_NGUON_RE.match(ma) else None
+    if not hop:
+        raise HTTPException(404, _MA_SAI)
+    s = db.query(Student).filter(Student.id == hop.student_id).first()
+    if not s or not s.user:
+        raise HTTPException(404, _MA_SAI)
+    return {
+        "qr_code": hop.qr_code,
+        "full_name": s.user.full_name,
+        "class_name": s.class_name,
+        "grade": s.grade,
+        "school_name": "Trường THPT FTI Cần Thơ",
+        "verified": True,
+        "updated_at": str(hop.updated_at)[:10],
+    }
 
 
 @router.get("/{student_id}")

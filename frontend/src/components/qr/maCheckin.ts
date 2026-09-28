@@ -1,5 +1,7 @@
 // Nguồn dữ liệu DÙNG CHUNG cho mọi mã QR check-in trong ứng dụng.
-// Nội dung mã: FTH:<mã gốc>:<cửa sổ thời gian> — ngắn gọn để vừa phiên bản QR nhỏ.
+// Mã THÔ: FTH:<mã gốc>:<cửa sổ thời gian> — ngắn gọn để vừa phiên bản QR nhỏ.
+// Nội dung THẬT trong QR là URL công khai (xem noiDungMaQR): camera thường quét
+// là mở được trang xác minh/điểm danh, không cần đăng nhập.
 
 // Chu kỳ đổi mã (giây). 120 giây: đủ nhanh để mã cũ hết giá trị trình diễn,
 // đủ chậm để ban tổ chức kịp quét trong buổi sinh hoạt.
@@ -43,6 +45,75 @@ export function giayConLai(gioUnixGiay: number, chuKyGiay: number = CHU_KY_MA_GI
 /** Ghép mã check-in đầy đủ từ mã nguồn và cửa sổ thời gian. */
 export function taoMaCheckin(maNguon: string, cuaSo: number): string {
   return `FTH:${maNguon}:${cuaSo}`;
+}
+
+// ---------- Nội dung QR dạng ĐƯỜNG DẪN (quét bằng camera thường là mở được) ----------
+// VÌ SAO: mã thô `FTH:...` hay `TP-1001` quét ra chỉ hiện chữ, người dùng không
+// làm được gì ("quét ra chưa có hoạt động"). Mã phải là URL mở bằng trình duyệt,
+// không cần đăng nhập, đúng hai loại phân biệt bằng đường dẫn:
+//   - mã passport  → /passport/verify?code=... (xem tối thiểu để xác minh)
+//   - mã check-in  → /checkin?code=... (trang điểm danh công khai)
+
+/** Kiểu khai báo tối thiểu cho biến môi trường Vite (tsconfig không nạp vite/client). */
+interface EnvCongKhai {
+  VITE_PUBLIC_URL?: string;
+  VITE_FRONTEND_URL?: string;
+}
+
+/** Gốc công khai để dựng URL trong QR: ưu tiên biến môi trường, rồi tới domain đang mở. */
+export function layGocCongKhai(): string {
+  const env = (import.meta as unknown as { env?: EnvCongKhai }).env;
+  const tuEnv = (env?.VITE_PUBLIC_URL ?? env?.VITE_FRONTEND_URL ?? "").trim().replace(/\/+$/, "");
+  if (tuEnv) return tuEnv;
+  if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
+  return "http://127.0.0.1:5174";
+}
+
+/** Dựng URL điểm danh công khai từ mã check-in thô (mã ngắn để vừa QR nhỏ). */
+export function taoLienKetCheckin(maCheckin: string): string {
+  return `${layGocCongKhai()}/checkin?code=${encodeURIComponent(maCheckin.trim())}`;
+}
+
+/** Dựng URL xác minh passport công khai từ mã nguồn (ví dụ TP-1001). */
+export function taoLienKetPassport(maNguon: string): string {
+  return `${layGocCongKhai()}/passport/verify?code=${encodeURIComponent(maNguon.trim())}`;
+}
+
+/** Trích mã thô từ dữ liệu nhập/dán: chấp nhận URL đầy đủ lẫn mã thô. */
+export function trichMaTuLienKet(dauVao: string): string {
+  const gon = (dauVao ?? "").trim();
+  if (!gon) return "";
+  const timCode = gon.match(/[?&]code=([^&#]*)/);
+  if (timCode) {
+    try {
+      return decodeURIComponent(timCode[1]).trim();
+    } catch {
+      return timCode[1].trim();
+    }
+  }
+  if (/^https?:\/\//i.test(gon)) {
+    const duoi = gon.split("?")[0].replace(/\/+$/, "").split("/").pop() ?? "";
+    try {
+      return decodeURIComponent(duoi).trim();
+    } catch {
+      return duoi.trim();
+    }
+  }
+  return gon;
+}
+
+/**
+ * Nội dung thật được mã hoá vào QR: mã thô FTalentHub được nâng thành URL
+ * công khai để camera điện thoại mở được ngay. Đã là URL thì giữ nguyên,
+ * chuỗi lạ giữ nguyên để QrCode báo lỗi rõ ràng thay vì đoán mò.
+ */
+export function noiDungMaQR(ma: string): string {
+  const gon = (ma ?? "").trim();
+  if (!gon) return gon;
+  if (/^https?:\/\//i.test(gon)) return gon;
+  if (MA_CHECKIN_HOP_LE.test(gon)) return taoLienKetCheckin(gon);
+  if (MA_NGUON_HOP_LE.test(gon)) return taoLienKetPassport(gon);
+  return gon;
 }
 
 /** Phân tích mã check-in thành mã nguồn và cửa sổ. Null nếu sai định dạng. */

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { HandCoins, Rocket, Filter, X, Edit, Trash2, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
 import { get, post, put, del } from "../../api/client";
 import { Card, ErrorBox, Loading, PageHeader } from "../../components/ui";
+import SponsorProjectCard, { dinhDangTien, tinhPhanTram } from "../../components/SponsorProjectCard";
 
 interface Toast {
   id: number;
@@ -43,10 +44,6 @@ const FIELD_NAMES: Record<string, string> = {
 
 const PROJECT_STATUSES = ["active", "completed", "pending", "archived"];
 
-// Virtualization threshold
-const VIRTUALIZATION_THRESHOLD = 50;
-const ITEM_HEIGHT = 320; // approximate height of a project card in pixels
-
 export default function Sponsorships() {
   const [data, setData] = useState<Sponsorship[] | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -63,12 +60,9 @@ export default function Sponsorships() {
   const [confirmAction, setConfirmAction] = useState<"create" | "edit" | null>(null);
   const confirmDialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  // Trạng thái tải danh sách dự án (tách khỏi lỗi form để hiện nút thử lại trong lưới).
+  const [loiDuAn, setLoiDuAn] = useState("");
   const sponsorFormRef = useRef<HTMLDivElement>(null);
-
-  // Virtualization state
-  const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight] = useState(600);
-  const projectListRef = useRef<HTMLDivElement>(null);
 
   const showToast = (type: "success" | "error", message: string) => {
     const id = Date.now();
@@ -92,12 +86,16 @@ export default function Sponsorships() {
   }, []);
 
   const loadProjects = useCallback(() => {
+    setLoiDuAn("");
     const params = new URLSearchParams();
     if (filterField) params.append("field", filterField);
     if (filterStatus) params.append("status", filterStatus);
     get<Project[]>(`/enterprise/projects?${params.toString()}`)
       .then(setProjects)
-      .catch(() => setProjects([]));
+      .catch((e) => {
+        setProjects([]);
+        setLoiDuAn(String((e as Error).message || e));
+      });
   }, [filterField, filterStatus]);
 
   useEffect(() => {
@@ -141,34 +139,12 @@ export default function Sponsorships() {
     }
   }, [showConfirmDialog]);
 
-  // Filtered projects (used for virtualization)
+  // Dự án sau lọc (lưới CSS tự dàn đều, không virtualization).
   const filteredProjects = projects.filter((p) => {
     if (filterField && p.field !== filterField) return false;
     if (filterStatus && p.status !== filterStatus) return false;
     return true;
   });
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  };
-
-  // Calculate visible items for virtualization
-  const visibleProjects = useMemo(() => {
-    if (filteredProjects.length <= VIRTUALIZATION_THRESHOLD) {
-      return { items: filteredProjects, startIndex: 0, totalHeight: 0, offsetY: 0 };
-    }
-    
-    const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT));
-    const visibleCount = Math.ceil(containerHeight / ITEM_HEIGHT) + 2;
-    const endIndex = Math.min(filteredProjects.length, startIndex + visibleCount);
-    
-    return {
-      items: filteredProjects.slice(startIndex, endIndex),
-      startIndex,
-      totalHeight: filteredProjects.length * ITEM_HEIGHT,
-      offsetY: startIndex * ITEM_HEIGHT,
-    };
-  }, [filteredProjects, scrollTop, containerHeight]);
 
   const resetForm = () => {
     setProjectId("");
@@ -229,13 +205,19 @@ export default function Sponsorships() {
 
   const handleSponsorClick = () => {
     if (!validateSponsorForm()) return;
-    
+
     const selectedProject = projects.find((p) => String(p.id) === projectId);
     if (!selectedProject) {
       showToast("error", "Dự án không tồn tại");
       return;
     }
-    
+
+    // Nghiệp vụ: dự án đã đạt 100% mục tiêu thì không cho tài trợ thêm.
+    if (tinhPhanTram(selectedProject.sponsored_total, selectedProject.funding_goal) >= 100) {
+      showToast("error", "Dự án đã đạt mục tiêu, không thể tài trợ thêm");
+      return;
+    }
+
     if (editingSponsorship) {
       setConfirmAction("edit");
     } else {
@@ -260,7 +242,13 @@ export default function Sponsorships() {
 
   const total = data.reduce((s, d) => s + (d.status === "approved" ? d.amount : 0), 0);
   const selected = projects.find((p) => String(p.id) === projectId);
-  const maxFunded = Math.max(1, ...projects.map((p) => p.sponsored_total));
+
+  // Chọn dự án từ thẻ: điền vào form tài trợ rồi cuộn tới form.
+  const handleChonDuAn = (id: number) => {
+    setProjectId(String(id));
+    setEditingSponsorship(null);
+    sponsorFormRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div>
@@ -317,7 +305,7 @@ export default function Sponsorships() {
             <p className="text-sm text-muted mb-6">
               {editingSponsorship
                 ? `Bạn sắp cập nhật tài trợ cho dự án "${selected?.title || ""}".`
-                : `Xác nhận tài trợ ${(amount / 1_000_000).toFixed(1)} triệu VNĐ cho dự án "${selected?.title || ""}"?`}
+                : `Xác nhận tài trợ ${dinhDangTien(amount)} cho dự án "${selected?.title || ""}"?`}
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -355,7 +343,7 @@ export default function Sponsorships() {
             Tổng đã tài trợ
           </div>
           <div className="text-2xl sm:text-xl md:text-2xl font-extrabold tabular-nums leading-tight">
-            {(total / 1_000_000).toFixed(0)} triệu VNĐ
+            {dinhDangTien(total)}
           </div>
           <div className="text-xs text-white/80">
             trên {projects.length} dự án — tác động đến học sinh sinh viên
@@ -408,75 +396,37 @@ export default function Sponsorships() {
           ) : null}
         </div>
 
-        {visibleProjects.items.length === 0 && projects.length > 0 ? (
-          <Card className="lg:col-span-2">
+        {loiDuAn ? (
+          <Card>
+            <div className="py-6 text-center" role="alert">
+              <p className="text-sm font-semibold text-red-700">Chưa tải được danh sách dự án.</p>
+              <p className="mt-1 text-xs text-muted">Vui lòng kiểm tra mạng rồi thử lại.</p>
+              <button
+                type="button"
+                onClick={loadProjects}
+                className="mt-3 rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              >
+                Tải lại danh sách
+              </button>
+            </div>
+          </Card>
+        ) : filteredProjects.length === 0 && projects.length > 0 ? (
+          <Card>
             <p className="text-sm text-muted text-center py-6" role="status">Không tìm thấy dự án phù hợp với bộ lọc.</p>
           </Card>
         ) : projects.length === 0 ? (
-          <Card className="lg:col-span-2">
+          <Card>
             <p className="text-sm text-muted text-center py-6" role="status">Chưa có dự án nào kêu gọi tài trợ.</p>
           </Card>
         ) : (
           <div
-            ref={projectListRef}
-            onScroll={handleScroll}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-            style={{ height: containerHeight, overflow: "auto" }}
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch"
             role="list"
             aria-label="Danh sách dự án"
           >
-            <div style={{ height: visibleProjects.totalHeight, position: "relative" }}>
-              {visibleProjects.items.map((p, index) => {
-                const pct = Math.min(100, Math.round((p.sponsored_total / maxFunded) * 100));
-                return (
-                  <article
-                    key={p.id}
-                    className="card-item"
-                    style={{
-                      position: "absolute",
-                      top: visibleProjects.offsetY + index * ITEM_HEIGHT,
-                      width: "100%",
-                      height: ITEM_HEIGHT,
-                    }}
-                    role="listitem"
-                  >
-                    <Card className="hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(51_50_77/0.08)] transition-all duration-200 ease-out">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-bold text-ink">{p.title}</h3>
-                          <div className="text-xs text-muted mt-0.5">
-                            {p.owner_name} · Nhóm {p.member_count} thành viên
-                          </div>
-                        </div>
-                        <span className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-pink-50 text-pink-600 font-semibold" aria-label="Dự án tiềm năng">
-                          ✨ Tiềm năng
-                        </span>
-                      </div>
-                      <div className="mt-3 flex justify-between text-xs">
-                        <span className="font-semibold text-ink tabular-nums">
-                          {(p.sponsored_total / 1_000_000).toFixed(0)}M / {(p.funding_goal / 1_000_000).toFixed(0)}M
-                        </span>
-                        <span className="font-bold text-emerald-600 tabular-nums">{pct}%</span>
-                      </div>
-                      <div className="mt-1.5 h-2 rounded-full bg-canvas-soft overflow-hidden shadow-inner" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Tiến độ tài trợ ${pct}%`}>
-                        <div className="h-full rounded-full hero-gradient transition-all duration-700 ease-out hover:brightness-110" style={{ width: `${pct}%`, animation: "scaleIn 0.8s ease-out both" }} />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProjectId(String(p.id));
-                          setEditingSponsorship(null);
-                          sponsorFormRef.current?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        className="mt-3 w-full text-sm py-2 rounded-full cta-gradient text-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 hover:brightness-105 transition-all duration-150"
-                      >
-                        Tài trợ ngay
-                      </button>
-                    </Card>
-                  </article>
-                );
-              })}
-            </div>
+            {filteredProjects.map((p) => (
+              <SponsorProjectCard key={p.id} duAn={p} onChon={handleChonDuAn} />
+            ))}
           </div>
         )}
       </section>
@@ -571,7 +521,7 @@ export default function Sponsorships() {
           )}
           {selected && (
             <p className="mt-3 text-xs text-muted" aria-live="polite">
-              {selected.owner_name} · {selected.member_count} thành viên · đã nhận {(selected.sponsored_total / 1_000_000).toFixed(1)}M₫ tài trợ đã duyệt.
+              {selected.owner_name} · {selected.member_count} thành viên · đã nhận {dinhDangTien(selected.sponsored_total)} tài trợ đã duyệt.
             </p>
           )}
           <p className="mt-3 text-xs text-muted-light">
@@ -608,7 +558,7 @@ export default function Sponsorships() {
                       <td className="py-2.5 font-medium text-ink">{d.project_title}</td>
                       <td className="py-2.5 text-muted capitalize">{d.field.replace("_", " ")}</td>
                       <td className="py-2.5 text-right font-semibold text-ink tabular-nums">
-                        <DollarSign size={12} className="inline mr-1" aria-hidden="true" /> {(d.amount / 1_000_000).toFixed(1)}M₫
+                        <DollarSign size={12} className="inline mr-1" aria-hidden="true" /> {dinhDangTien(d.amount)}
                       </td>
                       <td className="py-2.5 text-muted-light max-w-xs truncate" title={d.conditions || "—"}>
                         {d.conditions || "—"}

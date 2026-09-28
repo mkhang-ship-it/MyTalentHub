@@ -15,7 +15,7 @@ export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Simple scroll-triggered reveal using IntersectionObserver
+    // Giữ nguyên cơ chế hiện dần khi cuộn bằng IntersectionObserver (đặc tả 01 phần A).
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -41,15 +41,15 @@ export default function Landing() {
         }
         @keyframes fadeIn {
           from { opacity: 0; }
-          to   { opacity: 1; }
+          to { opacity: 1; }
         }
         @keyframes slideInLeft {
           from { opacity: 0; transform: translateX(-24px); }
-          to   { opacity: 1; transform: translateX(0); }
+          to { opacity: 1; transform: translateX(0); }
         }
         @keyframes scaleIn {
           from { opacity: 0; transform: scale(0.96); }
-          to   { opacity: 1; transform: scale(1); }
+          to { opacity: 1; transform: scale(1); }
         }
         @keyframes pulseSlow {
           0%, 100% { transform: scale(1); }
@@ -82,18 +82,21 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-line/50 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80 shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3">
+      {/* Thanh điều hướng sticky: cao 64 desktop / 56 mobile (đặc tả 01 B1) */}
+      <nav className="sticky top-0 z-50 border-b border-line bg-[color-mix(in_srgb,var(--canvas)_92%,transparent)] backdrop-blur-[12px] shadow-[0_1px_3px_rgba(51,50,77,.06)]">
+        <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between px-5 md:px-6">
           <Link
             to="/"
-            className="group inline-flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-transform duration-150 ease-out hover:scale-[1.01]"
+            className="group inline-flex items-center gap-2 rounded-[10px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 transition-transform duration-150 ease-out hover:scale-[1.01]"
             aria-label="FTalentHub home"
           >
-            <LogoMark size={40} />
+            {/* Logo 32px mobile / 40px desktop mà không sửa Logo.tsx */}
+            <span className="[&>svg]:h-8 [&>svg]:w-8 md:[&>svg]:h-10 md:[&>svg]:w-10 [&>svg]:shrink-0">
+              <LogoMark size={40} />
+            </span>
             <LogoWordmark compact />
           </Link>
-          <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-ink-soft">
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-ink-soft">
             <a
               href="#vai-tro"
               className="relative py-2 rounded-md transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 after:absolute after:bottom-1 after:left-0 after:h-0.5 after:w-0 after:rounded-full after:bg-portal after:transition-all after:duration-150 after:ease-out hover:after:w-full"
@@ -113,16 +116,17 @@ export default function Landing() {
               Giá trị
             </a>
           </div>
-          <div className="hidden md:flex items-center gap-2">
+          {/* D1: mobile chỉ giữ nút Đăng nhập (bản cũ không có CTA nào) */}
+          <div className="flex items-center gap-2">
             <Link
               to="/register"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-transparent px-3.5 sm:px-4 py-2 text-sm font-semibold text-ink transition-all duration-150 ease-out hover:border-portal hover:text-portal hover:scale-[1.015] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-line-control bg-transparent h-10 px-4 text-sm font-semibold text-ink transition-all duration-150 ease-out hover:border-portal hover:text-portal active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
             >
               Đăng ký
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-portal px-3.5 sm:px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/10 transition-all duration-150 ease-out hover:shadow-md hover:scale-[1.015] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-portal h-9 px-3.5 text-[13px] md:h-10 md:px-4 md:text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/10 transition-all duration-150 ease-out hover:bg-portal-dark active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
             >
               Đăng nhập
             </Link>
@@ -131,53 +135,55 @@ export default function Landing() {
       </nav>
 
       <main>
-        {/* Hero */}
+        {/* Hero: gradient giữ nguyên dải màu + scrim bắt buộc (01 B2, 00 mục 7.3) */}
         <section
           ref={heroRef}
-          className="relative overflow-hidden bg-gradient-to-br from-[#1B2A5E] via-[#27308E] to-[#C44296] text-white"
+          className="relative overflow-hidden bg-[linear-gradient(105deg,#1B2A5E_0%,#27308E_46%,#C44296_100%)] text-white"
         >
-          {/* Decorative blobs */}
+          {/* Lớp scrim navy để chữ 14–18px đạt tương phản trên điểm sáng nhất */}
+          <div className="scrim-navy pointer-events-none absolute inset-0" aria-hidden="true" />
+          {/* Đốm trang trí */}
           <div className="pointer-events-none absolute -top-32 -left-32 h-[28rem] w-[28rem] rounded-full opacity-30 blur-3xl bg-[#F97316]" aria-hidden="true" />
           <div className="pointer-events-none absolute -bottom-24 -right-24 h-[24rem] w-[24rem] rounded-full opacity-30 blur-3xl bg-[#FFC107]" aria-hidden="true" />
           <div className="pointer-events-none absolute top-1/3 right-10 h-32 w-32 rounded-full opacity-20 bg-white" aria-hidden="true" />
 
-          <div className="relative mx-auto max-w-6xl px-6 pt-28 pb-20 md:pt-36 md:pb-28">
-            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+          <div className="relative mx-auto max-w-6xl px-5 md:px-6 pt-14 pb-[72px] md:pt-[72px] md:pb-[88px] lg:pt-24 lg:pb-28">
+            <div className="grid grid-cols-1 lg:grid-cols-[7fr_5fr] gap-12 items-start">
               <div className="max-w-3xl flex-1">
-              <div className="anim-fade-up inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm mb-6 border border-white/10">
+              <div className="anim-fade-up inline-flex h-8 items-center gap-2 rounded-full bg-[rgba(255,255,255,.12)] px-3.5 text-xs font-bold text-white backdrop-blur-sm mb-6 border border-[rgba(255,255,255,.28)]">
                 <Sparkles size={14} /> Hệ sinh thái tài năng đa lĩnh vực
               </div>
-              <h1 className="anim-fade-up anim-fade-up-delay-1 text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6 drop-shadow-sm">
+              <h1 className="anim-fade-up anim-fade-up-delay-1 text-4xl md:text-[44px] lg:text-[56px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-6">
                 Discover Talent <br />
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FFC107] to-[#F97316]">Develop Skills</span> <br />
                 Create Future
               </h1>
-              <p className="anim-fade-up anim-fade-up-delay-2 text-lg md:text-xl text-white/80 leading-relaxed max-w-2xl mb-8">
+              <p className="anim-fade-up anim-fade-up-delay-2 text-lg text-white leading-[1.65] max-w-2xl mb-8">
                 FTalentHub kết nối học sinh — giáo viên — nhà trường — doanh nghiệp trong một nền tảng duy nhất: từ khám phá năng khiếu đến chứng chỉ số và kết nối nghề nghiệp.
               </p>
-              <div className="anim-fade-up anim-fade-up-delay-3 flex flex-wrap gap-4">
+              <div className="anim-fade-up anim-fade-up-delay-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-[#1B2A5E] bg-white shadow-2xl hover:scale-[1.03] transition-transform"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl h-[52px] px-8 text-[15px] font-bold text-[#1B2A5E] bg-white shadow-[0_12px_28px_rgba(0,0,0,.22)] hover:-translate-y-0.5 transition-transform focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 >
                   Bắt đầu ngay <ArrowRight size={18} />
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-white bg-white/10 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl h-[52px] px-8 text-[15px] font-bold text-white bg-[rgba(27,42,94,.45)] backdrop-blur-sm border border-[rgba(255,255,255,.4)] hover:bg-[rgba(27,42,94,.62)] transition-colors focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 >
                   Đăng ký tài khoản
                 </Link>
                 <a
                   href="#vai-tro"
-                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-white border border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl h-[52px] px-8 text-[15px] font-bold text-white border border-[rgba(255,255,255,.4)] bg-transparent backdrop-blur-sm hover:bg-[rgba(27,42,94,.62)] transition-colors focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 >
                   Khám phá vai trò
                 </a>
               </div>
             </div>
             <div className="w-full lg:w-[380px] flex-shrink-0 hidden lg:block" aria-label="3D scene preview">
-              <div className="rounded-2xl overflow-hidden border border-white/20 bg-white/5 backdrop-blur-md shadow-2xl h-[420px] md:h-[480px]">
+              <div className="rounded-3xl overflow-hidden border border-[rgba(255,255,255,.25)] bg-[rgba(255,255,255,.08)] backdrop-blur-md shadow-[0_24px_60px_rgba(0,0,0,.30)] h-[460px]">
                 <TalentConstellation className="w-full h-full" />
               </div>
             </div>
@@ -185,19 +191,20 @@ export default function Landing() {
         </div>
         </section>
 
-        {/* Role Cards — Holographic 3D */}
-        <section id="vai-tro" className="mx-auto max-w-6xl px-6 -mt-8 relative z-10 scroll-mt-24">
+        {/* 4 thẻ cổng — tràn lên hero 72px (01 B3). Component giữ nguyên. */}
+        <section id="vai-tro" className="mx-auto max-w-6xl px-5 md:px-6 -mt-10 md:-mt-[72px] relative z-10 scroll-mt-[88px]">
           <PortalCard3D />
         </section>
 
-        {/* Product Showcase */}
-        <section id="tinh-nang" className="mx-auto max-w-6xl px-6 pt-28 pb-4 scroll-mt-24">
-          <div className="text-center mb-16 reveal">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-ink mb-3">Nền tảng đa cổng</h2>
-            <p className="text-muted max-w-xl mx-auto">Tích hợp từ khám phá năng khiếu đến hồ sơ năng lực số và kết nối doanh nghiệp.</p>
+        {/* Khối tính năng */}
+        <section id="tinh-nang" className="mx-auto max-w-6xl px-5 md:px-6 pt-16 md:pt-24 scroll-mt-[88px]">
+          <div className="text-center mb-12 reveal">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-portal-dark mb-3">Tính năng nổi bật</p>
+            <h2 className="text-[26px] md:text-[32px] font-extrabold leading-[1.2] tracking-[-0.02em] text-ink mb-3">Nền tảng đa cổng</h2>
+            <p className="text-[15px] leading-relaxed text-muted-strong max-w-xl mx-auto">Tích hợp từ khám phá năng khiếu đến hồ sơ năng lực số và kết nối doanh nghiệp.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {[
               {
                 title: "Khám phá năng khiếu",
@@ -221,85 +228,89 @@ export default function Landing() {
                 gradient: "linear-gradient(100deg, #F4417E 0%, #C345A9 50%, #7C57DB 100%)",
               },
             ].map((item) => (
-              <div key={item.title} className="reveal rounded-3xl overflow-hidden bg-surface border border-line shadow-soft hover:shadow-lift transition-all hover:-translate-y-1">
+              <div key={item.title} className="reveal group rounded-[20px] overflow-hidden bg-surface border border-line shadow-soft hover:shadow-[0_16px_36px_rgba(51,50,77,.12)] transition-all hover:-translate-y-1">
                 <div
-                  className="h-48 flex items-center justify-center relative overflow-hidden"
+                  className="h-40 md:h-48 flex items-center justify-center relative overflow-hidden"
                   style={{ background: item.gradient }}
                 >
                   <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_60%_30%,_white_0%,_transparent_60%)]" aria-hidden="true" />
-                  <item.icon size={56} className="text-white drop-shadow-lg" />
+                  <item.icon size={56} className="text-white drop-shadow-lg transition-transform duration-200 group-hover:scale-[1.03]" />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-extrabold text-ink mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted leading-relaxed">{item.desc}</p>
+                  <h3 className="text-lg font-bold tracking-[-0.01em] text-ink mb-2">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-ink-soft">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Value Propositions */}
-        <section id="gia-tri" className="mx-auto max-w-6xl px-6 pt-28 pb-8 scroll-mt-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        {/* Khối giá trị */}
+        <section id="gia-tri" className="mx-auto max-w-6xl px-5 md:px-6 pt-16 md:pt-24 scroll-mt-[88px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div className="reveal">
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-ink mb-6">Tại sao FTalentHub?</h2>
-              <div className="space-y-6">
+              <h2 className="text-[26px] md:text-[32px] font-extrabold leading-[1.2] tracking-[-0.02em] text-ink mb-6">Tại sao FTalentHub?</h2>
+              <div className="space-y-4">
                 {[
                   { title: "Đa lĩnh vực — một nền tảng", body: "Từ học thuật, nghệ thuật, kỹ thuật đến thể thao và doanh nghiệp — mọi năng lực đều có chỗ đứng." },
                   { title: "Chứng chỉ số xác thực", body: "Talent Passport với mã QR tích hợp giúp xác thực hồ sơ nhanh chóng khi xin học bổng hoặc thực tập." },
                   { title: "AI cá nhân hóa", body: "Không phải một lộ trình chung — AI phân tích dữ liệu cá nhân để gợi ý đúng người, đúng thời điểm." },
                 ].map((v) => (
-                  <div key={v.title} className="rounded-2xl border border-line bg-canvas-soft/60 p-5 shadow-soft">
-                    <h4 className="font-extrabold text-ink mb-1">{v.title}</h4>
-                    <p className="text-sm text-muted leading-relaxed">{v.body}</p>
+                  <div key={v.title} className="rounded-2xl border border-line bg-[color-mix(in_srgb,var(--canvas-soft)_60%,transparent)] p-5 shadow-soft">
+                    <h3 className="text-base font-bold text-ink mb-1">{v.title}</h3>
+                    <p className="text-sm leading-relaxed text-ink-soft">{v.body}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="reveal rounded-3xl bg-gradient-to-tr from-[#1B2A5E] via-[#27308E] to-[#C44296] text-white p-8 shadow-2xl relative overflow-hidden">
+            <div className="reveal rounded-3xl text-white p-8 shadow-[0_24px_60px_rgba(51,50,77,.25)] relative overflow-hidden bg-[linear-gradient(45deg,#A1458F_0%,#9B6AB5_52%,#27308E_100%)]">
+              <div className="scrim-navy pointer-events-none absolute inset-0" aria-hidden="true" />
               <div className="absolute top-0 right-0 h-48 w-48 rounded-full bg-white/5 blur-2xl -translate-y-1/3 translate-x-1/4" aria-hidden="true" />
-              <h3 className="text-2xl font-extrabold mb-4">Số liệu nổi bật</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: "Vai trò", value: "4 cổng" },
-                  { label: "Bài test", value: "4 bộ" },
-                  { label: "Lĩnh vực", value: "6+" },
-                  { label: "Hồ sơ số", value: "QR tích hợp" },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl bg-white/10 backdrop-blur-sm p-4 border border-white/10">
-                    <div className="text-2xl font-extrabold">{s.value}</div>
-                    <div className="text-xs text-white/70 font-medium">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 pt-6 border-t border-white/10 text-sm text-white/80 leading-relaxed">
-                FTalentHub được xây dựng dựa trên 35 slide thiết kế và tiêu chuẩn Awwwards — kết hợp giữa thẩm mỹ và khả năng sử dụng.
+              <div className="relative">
+                <h3 className="text-xl font-extrabold mb-5">Số liệu nổi bật</h3>
+                <div className="grid grid-cols-2 gap-4 max-md:gap-3">
+                  {[
+                    { label: "Vai trò", value: "4 cổng" },
+                    { label: "Bài test", value: "4 bộ" },
+                    { label: "Lĩnh vực", value: "6+" },
+                    { label: "Hồ sơ số", value: "QR tích hợp" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-2xl bg-[rgba(27,42,94,.50)] backdrop-blur-sm p-4 border border-[rgba(255,255,255,.22)]">
+                      <div className="text-2xl font-extrabold tabular-nums">{s.value}</div>
+                      <div className="text-xs font-semibold text-white">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 pt-6 border-t border-[rgba(255,255,255,.22)] text-sm leading-relaxed text-white">
+                  FTalentHub được xây dựng dựa trên 35 slide thiết kế và tiêu chuẩn Awwwards — kết hợp giữa thẩm mỹ và khả năng sử dụng.
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="mx-auto max-w-6xl px-6 pt-16 pb-28">
-          <div className="reveal relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#A1458F] via-[#9B6AB5] to-[#27308E] p-10 md:p-14 text-white shadow-2xl">
+        {/* CTA cuối */}
+        <section className="mx-auto max-w-6xl px-5 md:px-6 pt-12 md:pt-16 pb-16 md:pb-24">
+          <div className="reveal relative overflow-hidden rounded-[2rem] text-white shadow-[0_24px_60px_rgba(51,50,77,.22)] p-6 md:p-10 lg:p-14 bg-[linear-gradient(120deg,#A1458F_0%,#9B6AB5_50%,#27308E_100%)]">
+            <div className="scrim-navy pointer-events-none absolute inset-0" aria-hidden="true" />
             <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
             <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-[1.4fr_1fr] md:items-end gap-8">
               <div>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Sẵn sàng khám phá năng lực?</h2>
-                <p className="text-white/80 max-w-lg">Đăng ký để bắt đầu hành trình: từ bài test năng khiếu đến hồ sơ số và kết nối nghề nghiệp.</p>
+                <h2 className="text-[26px] md:text-[32px] font-extrabold leading-[1.2] tracking-[-0.02em] mb-3">Sẵn sàng khám phá năng lực?</h2>
+                <p className="text-base leading-relaxed text-white max-w-[520px]">Đăng ký để bắt đầu hành trình: từ bài test năng khiếu đến hồ sơ số và kết nối nghề nghiệp.</p>
               </div>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-[#1B2A5E] bg-white shadow-xl hover:scale-[1.03] transition-transform shrink-0"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl h-[52px] px-8 text-[15px] font-bold text-[#1B2A5E] bg-white shadow-[0_12px_28px_rgba(0,0,0,.22)] hover:-translate-y-0.5 transition-transform shrink-0 focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 >
                   Đăng nhập ngay <ArrowRight size={18} />
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-2xl px-8 py-4 text-base font-extrabold text-white bg-white/10 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors shrink-0"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl h-[52px] px-8 text-[15px] font-bold text-white bg-[rgba(27,42,94,.45)] backdrop-blur-sm border border-[rgba(255,255,255,.4)] hover:bg-[rgba(27,42,94,.62)] transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 >
                   Đăng ký tài khoản
                 </Link>
@@ -309,10 +320,15 @@ export default function Landing() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-line bg-canvas-soft/40">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted">Team FPI Cần Thơ · Hệ sinh thái tài năng đa lĩnh vực</p>
+      {/* Footer: 1 dòng + 3 link giữ chỗ (01 B7) */}
+      <footer className="border-t border-line bg-[color-mix(in_srgb,var(--canvas-soft)_40%,transparent)]">
+        <div className="mx-auto max-w-6xl px-5 md:px-6 py-10 flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
+          <p className="text-xs font-medium text-muted-strong text-center">Team FPI Cần Thơ · Hệ sinh thái tài năng đa lĩnh vực</p>
+          <nav className="hidden md:flex items-center gap-6" aria-label="Liên kết pháp lý">
+            <a href="#" className="text-xs font-semibold text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">Điều khoản</a>
+            <a href="#" className="text-xs font-semibold text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">Quyền riêng tư</a>
+            <a href="#" className="text-xs font-semibold text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded">Liên hệ</a>
+          </nav>
         </div>
       </footer>
     </div>

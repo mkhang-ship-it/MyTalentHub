@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
 
 export function Card({
   children,
@@ -92,11 +93,13 @@ export function PageHeader({
   return (
     <div className={`mb-6 flex items-start justify-between gap-4 ${revealClass}`} style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}>
       <div className="min-w-0 flex-1">
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+        {/* H1 24px/800, mobile 22px (file 00 mục 2 + file 02 B1) */}
+        <h1 className="text-[22px] md:text-2xl font-extrabold leading-[1.25] tracking-[-0.015em] text-ink">
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1 text-sm text-muted">{subtitle}</p>
+          /* Sub 14px dùng --muted-strong 5,01:1 thay --muted 3,46:1 (file 00 mục 7.2) */
+          <p className="mt-1 text-sm leading-relaxed text-muted-strong">{subtitle}</p>
         )}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -144,20 +147,75 @@ export function Loading({ label = "Đang tải...", reveal = false, revealDelay 
   );
 }
 
-export function ErrorBox({ message, reveal = false, revealDelay = 0 }: { message: string; reveal?: boolean; revealDelay?: number }) {
+export function ErrorBox({
+  message,
+  retryLabel,
+  onRetry,
+  reveal = false,
+  revealDelay = 0,
+}: {
+  message: string;
+  /** Nhãn + hàm cho nút "Thử lại" (file 00 mục 4.10). Không truyền thì không hiện nút. */
+  retryLabel?: string;
+  onRetry?: () => void;
+  reveal?: boolean;
+  revealDelay?: number;
+}) {
   const revealClass = reveal ? "reveal-up" : "";
   return (
-    <div className={`rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 transition-responsive ${revealClass}`} style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}>
-      {message}
+    <div
+      className={`rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-ink transition-responsive ${revealClass}`}
+      style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}
+      role="alert"
+    >
+      {/* Chữ chính --ink (không đỏ toàn câu), icon đỏ 18px kèm tín hiệu chữ (mục 4.10 + 7.7) */}
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={18} className="shrink-0 text-red-700" aria-hidden="true" />
+        <p className="min-w-0 flex-1">{message}</p>
+      </div>
+      {retryLabel && onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn-secondary mt-3 h-9 px-3.5 text-[13px]"
+        >
+          {retryLabel}
+        </button>
+      )}
     </div>
   );
 }
 
-export function Empty({ text = "Chưa có dữ liệu", reveal = false, revealDelay = 0 }: { text?: string; reveal?: boolean; revealDelay?: number }) {
+export function Empty({
+  text = "Chưa có dữ liệu",
+  icon,
+  action,
+  reveal = false,
+  revealDelay = 0,
+}: {
+  text?: string;
+  /** Icon 32px phía trên (file 00 mục 4.8). Không truyền thì không hiện. */
+  icon?: ReactNode;
+  /** Nút hành động dưới chữ (secondary sm, mt-4). Không truyền thì không hiện. */
+  action?: ReactNode;
+  reveal?: boolean;
+  revealDelay?: number;
+}) {
   const revealClass = reveal ? "reveal-fade" : "";
   return (
-    <div className={`rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-10 text-center text-sm text-muted transition-responsive ${revealClass}`} style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}>
-      {text}
+    <div
+      className={`rounded-2xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-10 text-center transition-responsive ${revealClass}`}
+      style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}
+    >
+      {icon && <div className="mb-2 flex justify-center text-muted" aria-hidden="true">{icon}</div>}
+      {/* Dòng chính 14/600 --ink-soft (mục 4.8); giữ prop text cũ để caller hiện tại không vỡ */}
+      <p className="text-sm font-semibold text-ink-soft">{text}</p>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
+}
+
+/** Khung xương chờ tải (file 00 mục 4.9): chỉ là div shimmer, caller tự xếp đúng bố cục trang thật. */
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`} aria-hidden="true" />;
 }

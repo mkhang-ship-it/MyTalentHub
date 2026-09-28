@@ -47,6 +47,12 @@
   --transition-fast: 120ms ease;
   --transition-base: 200ms cubic-bezier(0.22, 1, 0.36, 1);
   --transition-slow: 400ms ease;
+
+  /* ── Token mới đợt 1 (file 00 mục 8 — nguồn sự thật duy nhất) ── */
+  --muted-strong: #6F6C8A;   /* chữ phụ 12–15px; 5,01:1 trên trắng (cũ: --muted 3,46:1) */
+  --line-control: #968D82;   /* viền ô nhập/nút phụ; 3,27:1 (cũ: --line-strong 1,39:1) */
+  --scrim-navy: linear-gradient(105deg, rgba(27,42,94,.62) 0%, rgba(27,42,94,.40) 55%, rgba(27,42,94,.18) 100%);
+  --btn-primary-bg: linear-gradient(rgba(0,0,0,.12), rgba(0,0,0,.12)), var(--cta-gradient); /* 4,61:1 */
 }
 
 html {
@@ -93,7 +99,8 @@ body {
     font-size: 0.875rem;
     font-weight: 600;
     color: #fff;
-    background: var(--cta-gradient, var(--portal));
+    /* Phủ 12% đen lên cta-gradient để chữ trắng 14px đạt 4,61:1 (file 00 mục 7.4) */
+    background: var(--btn-primary-bg, var(--cta-gradient, var(--portal)));
     transition: filter var(--transition-fast), box-shadow var(--transition-base), transform var(--transition-fast);
     will-change: filter, box-shadow;
   }
@@ -102,6 +109,16 @@ body {
     box-shadow: var(--shadow-glow-portal);
     transform: translateY(-1px);
   }
+  .btn-primary:active {
+    transform: translateY(0);
+    filter: brightness(.97);
+  }
+  .btn-primary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
   .btn-secondary {
     display: inline-flex;
     height: 2.75rem;
@@ -109,7 +126,8 @@ body {
     justify-content: center;
     gap: 0.5rem;
     border-radius: 0.75rem;
-    border: 1px solid var(--line);
+    /* Viền control 3,27:1 thay line-strong 1,39:1 (file 00 mục 7.5) */
+    border: 1px solid var(--line-control);
     background: var(--surface);
     padding: 0 1.25rem;
     font-size: 0.875rem;
@@ -123,15 +141,31 @@ body {
     box-shadow: var(--shadow-card);
     transform: translateY(-1px);
   }
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+  .btn-secondary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  /* Lớp phủ navy cho chữ nhỏ trên nền gradient (file 00 mục 7.3) */
+  .scrim-navy {
+    background-image: var(--scrim-navy);
+  }
   .input-control {
     height: 2.75rem;
     width: 100%;
     border-radius: 0.75rem;
-    border: 1px solid var(--line-strong);
+    border: 1px solid var(--line-control);
     background: var(--surface);
     padding: 0 0.875rem;
     font-size: 0.875rem;
     color: var(--ink);
+  }
+  .input-control::placeholder {
+    color: var(--muted-strong);
   }
   .input-control:focus {
     outline: none;
@@ -324,4 +358,24 @@ body {
   transition-property: transform, opacity, box-shadow, background-color, border-color;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   transition-duration: var(--transition-base);
+}
+
+/* Khung xương chờ tải (file 00 mục 4.9): cùng màu canvas để không chớp sáng */
+.skeleton {
+  background: linear-gradient(90deg, #f3ece3 25%, #faf3ea 37%, #f3ece3 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .6; }
 }

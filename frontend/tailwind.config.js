@@ -11,8 +11,10 @@ export default {
         "ink-soft": "var(--ink-soft)",
         muted: "var(--muted)",
         "muted-light": "var(--muted-light)",
+        "muted-strong": "var(--muted-strong)",
         line: "var(--line)",
         "line-strong": "var(--line-strong)",
+        "line-control": "var(--line-control)",
         brand: {
           DEFAULT: "var(--brand)",
           dark: "var(--brand-dark)",

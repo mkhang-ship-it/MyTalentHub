@@ -58,23 +58,28 @@ RUN chmod +x /usr/local/bin/start-all-in-one
 ENV NGINX_ENVSUBST_VARS=FTH_API_UPSTREAM:PORT
 
 # nginx + entrypoint + thư mục dữ liệu
+# `gettext-base` cung cấp lệnh `envsubst`: stage cuối là python:3.12-slim chứ
+# không phải nginx:alpine, nên không có /docker-entrypoint.sh của image nginx để
+# dùng lại. Entrypoint của ta tự làm phép thay biến.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx \
+    && apt-get install -y --no-install-recommends nginx gettext-base \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/conf.d/default.conf
 
 RUN useradd -r -u 10001 -m appuser \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
+# nginx chạy dưới appuser nên cần quyền ghi vào các thư mục tạm của nó
+# (client_body, proxy, fastcgi…). Sau khi cài từ gói Debian, chúng thuộc root và
+# nginx sẽ không khởi động được.
+RUN chown -R appuser:appuser /var/lib/nginx /var/log/nginx /var/cache/nginx 2>/dev/null || true
 USER appuser
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=4).status == 200 else 1)"
 
-# Entrypoint của image nginx sẽ chạy envsubst lúc khởi động, nên ta gọi nó
-# (20-envsubst-on-templates.sh) RỒI mới chạy entrypoint của mình. Nhờ vậy
-# FTH_API_UPSTREAM do entrypoint đặt cũng được thay kịp trước khi nginx nạp
-# cấu hình.
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["/usr/local/bin/start-all-in-one"]
+# Entrypoint của riêng ta. Nó tự chạy `envsubst` để dựng config nginx trước khi
+# nginx nạp — thay cho /docker-entrypoint.sh của image nginx không có ở đây.
+ENTRYPOINT ["/usr/local/bin/start-all-in-one"]
+CMD []

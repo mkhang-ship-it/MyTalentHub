@@ -18,8 +18,25 @@ set -e
 
 API_PORT="${API_PORT:-8001}"
 export FTH_API_UPSTREAM="127.0.0.1:${API_PORT}"
+PORT="${PORT:-8001}"
 
-# Dọn pidfile/socket cũ từ lần chạy trước, nếu không uvicorn sẽ báo
+# Dựng cấu hình nginx từ template, thay hai biến trên.
+# Stage cuối của Dockerfile.fullstack là python:3.12-slim chứ không phải
+# image nginx:alpine, nên không có /docker-entrypoint.sh lo việc này — ta tự làm
+# bằng `envsubst` (gói gettext-base đã cài trong Dockerfile).
+#
+# CHỈ liệt kê đúng hai biến: `envsubst` không đối số sẽ thay MỌI biến môi
+# trường, và nếu container lỡ có biến trùng tên với biến nginx ($host, $uri,
+# $scheme…) thì cấu hình bị hỏng rất khó đoán.
+TEMPLATE=/etc/nginx/templates/default.conf.template
+OUTPUT=/etc/nginx/conf.d/default.conf
+if [ -f "$TEMPLATE" ]; then
+    envsubst '$FTH_API_UPSTREAM $PORT' < "$TEMPLATE" > "$OUTPUT"
+else
+    echo "KHÔNG THẤY $TEMPLATE — dùng cấu hình mặc định của nginx" >&2
+fi
+
+# Dọn pidfile cũ từ lần chạy trước, nếu không uvicorn sẽ báo
 # "address already in use" và container restart vòng lặp.
 rm -f /tmp/uvicorn.pid
 

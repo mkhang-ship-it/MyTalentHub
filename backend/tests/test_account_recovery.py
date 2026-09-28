@@ -18,7 +18,7 @@ import re
 import unittest
 from pathlib import Path
 
-from .base import FTHttpTestCase
+from .base import FTHttpTestCase, db_session
 
 from app import mailer
 from app.database import SessionLocal
@@ -50,40 +50,46 @@ def _token_of(link: str) -> str:
 
 
 class RecoveryTestCase(FTHttpTestCase):
-    """Nền: tạo tài khoản riêng, xoá sạch sau mỗi test."""
+    """Nền: tạo tài khoản riêng, xoá sạch sau mỗi test.
+
+    Mọi lần truy cập CSDL dùng `db_session()` (mở rồi đóng ngay) — KHÔNG giữ
+    session mở xuyên suốt test. Lý do: giữ transaction chưa commit sẽ giữ khoá,
+    và trên PostgreSQL nó chặn ghi của server, làm job CI treo. Xem `db_session`.
+    """
 
     def setUp(self):
-        self.db = SessionLocal()
         self.email = "test-recovery@ftalenthub.edu.vn"
-        self.db.query(User).filter(User.email == self.email).delete()
-        self.db.commit()
-        self.user = User(
-            email=self.email,
-            full_name="Người Dùng Thử Nghiệm",
-            role="student",
-            password_hash=hash_password("MatKhauCu2026"),
-            email_verified=False,
-        )
-        self.db.add(self.user)
-        self.db.commit()
-        self.user_id = self.user.id
+        with db_session() as db:
+            db.query(User).filter(User.email == self.email).delete()
+            db.commit()
+            user = User(
+                email=self.email,
+                full_name="Người Dùng Thử Nghiệm",
+                role="student",
+                password_hash=hash_password("MatKhauCu2026"),
+                email_verified=False,
+            )
+            db.add(user)
+            db.commit()
+            self.user_id = user.id
 
     def tearDown(self):
         # Dọn theo thứ tự để không vi phạm khoá ngoại: token -> auth -> user.
-        self.db.query(VerificationToken).filter(
-            VerificationToken.user_id == self.user_id
-        ).delete(synchronize_session=False)
-        self.db.query(AuthToken).filter(AuthToken.user_id == self.user_id).delete(
-            synchronize_session=False
-        )
-        self.db.query(RefreshToken).filter(RefreshToken.user_id == self.user_id).delete(
-            synchronize_session=False
-        )
-        self.db.query(User).filter(User.email == self.email).delete(
-            synchronize_session=False
-        )
-        self.db.commit()
-        self.db.close()
+        with db_session() as db:
+            # Dọn theo thứ tự để không vi phạm khoá ngoại: token -> auth -> user.
+            db.query(VerificationToken).filter(
+                VerificationToken.user_id == self.user_id
+            ).delete(synchronize_session=False)
+            db.query(AuthToken).filter(AuthToken.user_id == self.user_id).delete(
+                synchronize_session=False
+            )
+            db.query(RefreshToken).filter(
+                RefreshToken.user_id == self.user_id
+            ).delete(synchronize_session=False)
+            db.query(User).filter(User.email == self.email).delete(
+                synchronize_session=False
+            )
+            db.commit()
 
     def _request_reset(self) -> str:
         """Gọi forgot-password rồi lấy token từ thư thật trong outbox."""
@@ -157,14 +163,17 @@ class ResetPasswordTests(RecoveryTestCase):
             {"token": token, "new_password": GOOD_PASSWORD},
         )
         self.assertEqual(status, 200, data)
-        self.db.expire_all()
-        u = self.db.query(User).filter(User.id == self.user_id).one()
-        self.assertTrue(verify_password(GOOD_PASSWORD, u.password_hash))
+        # Đọc các giá trị ra khỏi session TRƯỚC khi đóng: sau khi `with` kết
+        # thúc, đối tượng ORM bị detach và truy cận thuộc tính sẽ ném
+        # DetachedInstanceError.
+        with db_session() as db:
+            row = db.query(User).filter(User.id == self.user_id).one()
+            hash_now, verified = row.password_hash, row.email_verified
         self.assertTrue(
-            u.password_hash.startswith("pbkdf2_sha256$"),
+            hash_now.startswith("pbkdf2_sha256$"),
             "mật khẩu mới vẫn lưu bằng hash cũ không salt",
         )
-        self.assertTrue(u.email_verified, "đổi mật khẩu phải xác nhận chủ sở hữu email")
+        self.assertTrue(verified, "đổi mật khẩu phải xác nhận chủ sở hữu email")
 
     def test_dung_lai_link_da_dung_bi_tu_choi(self):
         """Link dùng một lần — dùng lại là dấu hiệu bị đánh cắp."""
@@ -235,11 +244,12 @@ class ResetPasswordTests(RecoveryTestCase):
         from datetime import timedelta
 
         token, token_hash, _ = _new_reset_pair()
-        self.db.add(VerificationToken(
-            purpose="reset", token_hash=token_hash, user_id=self.user_id,
-            expires_at=_utcnow() - timedelta(minutes=1),
-        ))
-        self.db.commit()
+        with db_session() as db:
+            db.add(VerificationToken(
+                purpose="reset", token_hash=token_hash, user_id=self.user_id,
+                expires_at=_utcnow() - timedelta(minutes=1),
+            ))
+            db.commit()
         status, _ = self.api.post(
             "/api/v1/auth/reset-password",
             {"token": token, "new_password": GOOD_PASSWORD},
@@ -249,11 +259,12 @@ class ResetPasswordTests(RecoveryTestCase):
     def test_dung_nhat_reset_cho_xac_minh_bi_tu_choi(self):
         """Hai loại token phải tách bạch, không lấn sang nhau."""
         token, token_hash, expires_at = _new_verify_pair()
-        self.db.add(VerificationToken(
-            purpose="verify", token_hash=token_hash, user_id=self.user_id,
-            expires_at=expires_at,
-        ))
-        self.db.commit()
+        with db_session() as db:
+            db.add(VerificationToken(
+                purpose="verify", token_hash=token_hash, user_id=self.user_id,
+                expires_at=expires_at,
+            ))
+            db.commit()
         status, _ = self.api.post(
             "/api/v1/auth/reset-password",
             {"token": token, "new_password": GOOD_PASSWORD},
@@ -265,30 +276,33 @@ class VerifyEmailTests(RecoveryTestCase):
     def _verify_token(self, purpose: str = "verify") -> str:
         pair = _new_verify_pair() if purpose == "verify" else _new_reset_pair()
         token, token_hash, expires_at = pair
-        self.db.query(VerificationToken).filter(
-            VerificationToken.user_id == self.user_id,
-            VerificationToken.purpose == purpose,
-        ).delete(synchronize_session=False)
-        self.db.add(VerificationToken(
-            purpose=purpose, token_hash=token_hash,
-            user_id=self.user_id, expires_at=expires_at,
-        ))
-        self.db.commit()
+        with db_session() as db:
+            db.query(VerificationToken).filter(
+                VerificationToken.user_id == self.user_id,
+                VerificationToken.purpose == purpose,
+            ).delete(synchronize_session=False)
+            db.add(VerificationToken(
+                purpose=purpose, token_hash=token_hash,
+                user_id=self.user_id, expires_at=expires_at,
+            ))
+            db.commit()
         return token
 
     def test_xac_minh_thanh_cong(self):
         token = self._verify_token()
         status, _ = self.api.get(f"/api/v1/auth/verify-email?token={token}")
         self.assertEqual(status, 200)
-        self.db.expire_all()
-        self.assertTrue(
-            self.db.query(User).filter(User.id == self.user_id).one().email_verified
+        with db_session() as db:
+            db.expire_all()
+            self.assertTrue(
+                db.query(User).filter(User.id == self.user_id).one().email_verified
         )
 
     def test_token_dung_hai_lan_thi_lan_sau_bao_loi(self):
         token = self._verify_token()
         self.api.get(f"/api/v1/auth/verify-email?token={token}")
-        self.db.expire_all()
+        with db_session() as db:
+            db.expire_all()
         # Lần hai vẫn trả 200 nhưng là trang báo lỗi, không phải trang thành công.
         import urllib.request
 
@@ -316,8 +330,11 @@ class VerifyEmailTests(RecoveryTestCase):
         self.assertIsNotNone(_latest_link("verify"))
 
     def test_gui_lai_link_khi_da_xac_minh_thi_bao_da_xac_minh(self):
-        self.user.email_verified = True
-        self.db.commit()
+        with db_session() as db:
+            db.query(User).filter(User.id == self.user_id).update(
+                {"email_verified": True}, synchronize_session=False
+            )
+            db.commit()
         token = self.api.login(self.email, "MatKhauCu2026")
         status, data = self.api.post(
             "/api/v1/auth/verify-email/resend", token=token

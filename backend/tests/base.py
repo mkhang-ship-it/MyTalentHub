@@ -243,6 +243,42 @@ class FTClient:
         return data["token"]
 
 
+class db_session:
+    """Mở một session CSDL, đóng lại ngay khi khối `with` kết thúc.
+
+    VÌ SAO CẦN (và vì sao giữ session mở là sai)
+    ---------------------------------------------
+    Test vừa đọc CSDL trực tiếp vừa gọi HTTP tới server: cả hai cùng dùng một
+    CSDL. Nếu giữ session mở xuyên suốt test, transaction chưa commit đó sẽ
+    GIỮ KHOÁ.
+
+    Trên SQLite việc này vô hại — SQLite không có khoá dòng thật sự. Trên
+    PostgreSQL thì session đó chặn ghi của server, server bị block, test chờ
+    rồi `lock_timeout` bắn lỗi, lặp lại: job CI treo hơn 12 phút rồi bị giết.
+    Chính vì vậy mọi lần đọc/ghi CSDL trong test đều phải mở và đóng tại chỗ,
+    KHÔNG để session sống qua một lời gọi HTTP.
+
+    Dùng:
+        with db_session() as db:
+            n = db.query(X).count()
+    """
+
+    def __enter__(self):
+        from app.database import SessionLocal
+
+        self.session = SessionLocal()
+        return self.session
+
+    def __exit__(self, exc_type, exc, tb):
+        # Luôn rollback, kể cả khi thành công: test chỉ ĐỌC và tự dọn, nên
+        # thay đổi sót thì rollback an toàn hơn là commit rác vào DB.
+        try:
+            self.session.rollback()
+        finally:
+            self.session.close()
+        return False
+
+
 def json_bytes(body: dict) -> bytes:
     import json
 

@@ -19,8 +19,13 @@ COPY --from=deps /install /usr/local
 COPY backend/ /app/
 # Chạy bằng user không phải root.
 RUN useradd -r -u 10001 -m appuser \
-    && mkdir -p /app \
+    && mkdir -p /app/data \
     && chown -R appuser:appuser /app
+# `/app/data` là nơi CSDL nằm khi deploy (DATABASE_URL=sqlite:////app/data/…),
+# tách khỏi `/app` để không lẫn với file trong image. Tạo sẵn ở đây với đúng
+# chủ sở hữu để không phụ thuộc vào việc `app.database` tự makedirs lúc chạy —
+# nếu appuser không tạo được thư mục thì SQLite sẽ không mở được file và app
+# chết ngay lúc khởi động.
 USER appuser
 EXPOSE 8001
 

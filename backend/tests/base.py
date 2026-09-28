@@ -254,8 +254,20 @@ class FTHttpTestCase(unittest.TestCase):
         cls.api = FTClient()
 
     def tearDown(self):
-        # Token tích tụ trong DB test cũng không sao (DB bị xoá khi kết thúc),
-        # nhưng dọn thì lần chạy sau không bị ảnh hưởng bởi rate limit.
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        """Dọn token một lần cho cả lớp, không phải sau mỗi test.
+
+        Trước đây xoá sau mỗi test: 66 lần `DELETE FROM auth_tokens` không điều
+        kiện. Trên SQLite vô hại, nhưng trên PostgreSQL mỗi lần là một lần
+        khóa toàn bảng trong khi server subprocess còn đang dùng bảng đó —
+        đủ để treo. Một lần dọn ở cuối lớp là đủ và rẻ hơn nhiều.
+
+        Lưu ý: việc này KHÔNG đặt lại bộ đếm chống dò mật khẩu, vì bộ đếm đó
+        nằm trong RAM của tiến trình server chứ không nằm trong DB.
+        """
         from app.database import SessionLocal
         from app.models import AuthToken, RefreshToken
 

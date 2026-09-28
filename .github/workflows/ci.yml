@@ -34,6 +34,10 @@ jobs:
   postgres:
     name: Backend (PostgreSQL)
     runs-on: ubuntu-latest
+    # Mặc định của GitHub là 360 phút. Job này đã bị treo 15+ phút ở lần chạy
+    # đầu tiên mà không rõ vì sao; 12 phút là dư cho 66 test, và buộc fail sớm
+    # để lấy được log thay vì giữ runner.
+    timeout-minutes: 12
     services:
       postgres:
         image: postgres:16
@@ -109,6 +113,7 @@ jobs:
   e2e:
     name: Giao diện (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [backend]
     env:
       CI: "true"

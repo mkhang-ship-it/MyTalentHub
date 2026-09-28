@@ -1,4 +1,6 @@
 """FastAPI app — mount 6 routers (student/teacher/school/enterprise/passport/ai)."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
@@ -20,25 +22,48 @@ from .security import (
 from .core.audit import purge_old_audit_logs
 
 setup_logging()
-_run_migrations()
-Base.metadata.create_all(bind=engine)
-# Bảng token làm mới: tạo sau create_all vì không nằm trong Base.metadata của
-# router (nằm ở security.py). Idempotent nên gọi mỗi lần khởi động đều an toàn.
-create_refresh_token_table()
-create_verification_token_table()
-# Nhật ký thao tác nhạy cảm. Nằm trong Base.metadata nên create_all đã tạo,
-# nhưng gọi tường minh để không phụ thuộc vào thứ tự import model.
-create_audit_log_table()
-# Index cho các cột khóa ngoại / hay lọc. Idempotent, không sao khi chạy lại.
-ensure_indexes()
-# Dọn token quá hạn một lần lúc khởi phục, bảng không phình vô hạn.
-purge_expired_tokens()
-# Dọn link xác minh/đặt lại mật khẩu đã dùng hoặc quá hạn.
-purge_used_verification_tokens()
-# Dọn nhật ký cũ hơn AUDIT_RETENTION_DAYS (mặc định 180 ngày).
-purge_old_audit_logs()
 
-app = FastAPI(title="FTalentHub API", version="1.0.0")
+
+def prepare_database() -> None:
+    """Chuẩn bị CSDL: migration, bảng, index, dọn rác. Idempotent toàn bộ.
+
+    VÌ SAO NẰM Ở ĐÂY, KHÔNG CHẠY LÚC IMPORT
+    ---------------------------------------
+    Trước đây khối DDL này chạy ngay ở mức module. Hai hậu quả thật:
+
+    1. `import app.main` đã sửa database. Nhập module vốn phải là thao tác
+       không có tác dụng phụ — làm vậy khiến mọi công cụ đọc mã (test, script,
+       REPL) đều vô tình thay đổi dữ liệu chỉ vì import.
+    2. Trên PostgreSQL, tiến trình thứ hai import `app.main` sẽ chạy
+       `CREATE INDEX` trong khi tiến trình thứ nhất đang giữ khoá trên cùng
+       bảng → chờ khoá vô hạn. Job CI PostgreSQL của dự án đã treo đúng
+       lý do này. SQLite không có mô hình khoá như vậy nên không bao giờ lộ.
+
+    Gọi trong lifespan nghĩa là chỉ server thật mới chuẩn bị CSDL, và chỉ một
+    lần khi khởi động.
+    """
+    _run_migrations()
+    Base.metadata.create_all(bind=engine)
+    # Hai bảng này nằm ở security.py chứ không có trong Base.metadata.
+    create_refresh_token_table()
+    create_verification_token_table()
+    create_audit_log_table()
+    # Index cho các cột khóa ngoại / hay lọc.
+    ensure_indexes()
+    # Dọn dữ liệu hết hạn một lần lúc khởi phục, bảng không phình vô hạn.
+    purge_expired_tokens()
+    purge_used_verification_tokens()
+    purge_old_audit_logs()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Chuẩn bị CSDL lúc khởi động server, không phải lúc import module."""
+    prepare_database()
+    yield
+
+
+app = FastAPI(title="FTalentHub API", version="1.0.0", lifespan=lifespan)
 
 # Lỗi trả về luôn là JSON có cấu trúc {"detail", "code"} bằng tiếng Việt.
 install_error_handlers(app)

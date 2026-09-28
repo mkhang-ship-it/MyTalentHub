@@ -208,6 +208,9 @@ jobs:
           echo "--- đăng nhập demo:"; curl -sf -X POST http://127.0.0.1:18001/api/v1/auth/login \
             -H 'Content-Type: application/json' \
             -d '{"email":"bgh@ftalenthub.edu.vn","password":"demo123"}' | head -c 80
-          echo; docker rm -f fth-smoke
+          echo
+          echo "--- log container (để chẩn đoán khi hỏng):"
+          docker logs fth-smoke 2>&1 | tail -30 || true
+          docker rm -f fth-smoke
       - name: Kiểm tra cú pháp compose
         run: docker compose config --quiet

@@ -49,6 +49,11 @@ COPY --from=pydeps /install /usr/local
 COPY backend/ /app/
 COPY --from=webbuild /web/dist /usr/share/nginx/html
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+# Config chính của nginx: bỏ directive `user` và đưa pid/thư mục tạm sang
+# nơi user thường ghi được. Xem frontend/nginx.main.conf để biết vì sao bắt
+# buộc phải có — config mặc định của Debian làm nginx từ chối chạy dưới
+# user không phải root.
+COPY frontend/nginx.main.conf /etc/nginx/nginx.conf
 COPY scripts/start-all-in-one.sh /usr/local/bin/start-all-in-one
 RUN chmod +x /usr/local/bin/start-all-in-one
 
@@ -73,6 +78,10 @@ RUN useradd -r -u 10001 -m appuser \
 # (client_body, proxy, fastcgi…). Sau khi cài từ gói Debian, chúng thuộc root và
 # nginx sẽ không khởi động được.
 RUN chown -R appuser:appuser /var/lib/nginx /var/log/nginx /var/cache/nginx 2>/dev/null || true
+# Thư mục tạm mà nginx.main.conf trỏ tới trong /tmp.
+RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
+             /tmp/nginx-uwsgi /tmp/nginx-scgi \
+    && chown -R appuser:appuser /tmp/nginx-*
 USER appuser
 EXPOSE 8001
 

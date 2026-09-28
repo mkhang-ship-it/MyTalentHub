@@ -1,8 +1,15 @@
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from .config import CONNECT_ARGS, DB_IS_SQLITE, DB_URL
+from .config import (
+    CONNECT_ARGS,
+    DB_IS_SQLITE,
+    DB_LOCK_TIMEOUT,
+    DB_PRE_PING,
+    DB_STATEMENT_TIMEOUT,
+    DB_URL,
+)
 
 # Chỉ tạo thư mục khi dùng SQLite. Với PostgreSQL, DB_URL không phải đường dẫn
 # nên os.makedirs sẽ tạo ra thư mục rác hoặc ném lỗi.
@@ -14,7 +21,27 @@ if DB_IS_SQLITE:
 engine = create_engine(
     DB_URL,
     connect_args=CONNECT_ARGS,
+    # pool_pre_ping: kết nối cũ có thể đã bị đóng bởi proxy/nhà cung cấp giữa
+    # hai lần yêu cầu. Không có nó, lỗi chỉ lộ ra một cách ngẫu nhiên sau vài
+    # phút chạy — loại lỗi khó tìm nhất trong production.
+    pool_pre_ping=DB_PRE_PING,
 )
+
+if not DB_IS_SQLITE:
+    # Giới hạn thời gian chờ khoá. Mặc định PostgreSQL chờ vô hạn: một câu lệết
+    # bị chặn bởi khoá của tiến trình khác sẽ treo mãi mà không có dấu hiệu gì,
+    # và job CI chỉ biết "hết thời gian" chứ không biết vì sao. Đặt lock_timeout
+    # biến treo thành lỗi nói rõ câu lệết nào bị chặn bởi ai.
+    #
+    # Đây không chỉ để cho test: trong production, một transaction quên commit
+    # sẽ chặn mọi ghi khác vô thời hạn. Giới hạn lại khiến hệ thống báo lỗi
+    # thay vì treo.
+    @event.listens_for(engine, "connect")
+    def _set_postgres_timeouts(dbapi_connection, _record):  # noqa: ANN001
+        with dbapi_connection.cursor() as cur:
+            cur.execute(f"SET lock_timeout = '{DB_LOCK_TIMEOUT}'")
+            cur.execute(f"SET statement_timeout = '{DB_STATEMENT_TIMEOUT}'")
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 

@@ -42,6 +42,15 @@ DB_IS_SQLITE = DB_URL.startswith("sqlite")
 # chuyển đổi, nên tách thẳng thay vì để dev tự phát hiện.
 CONNECT_ARGS = {"check_same_thread": False} if DB_IS_SQLITE else {}
 
+#: Thử ping kết nối cũ trước khi dùng lại (bắt kết nối đã chết bởi proxy).
+DB_PRE_PING = _env_flag("DB_PRE_PING", default=True)
+
+#: Thời gian chờ khoá tối đa (PostgreSQL). Mặc định của PostgreSQL là chờ VÔ HẠN,
+#: nên một transaction quên commit sẽ chặn mọi thao tác ghi khác mà không báo
+#: lỗi. Giới hạn lại để lỗi hiện ra kèm câu lệết bị chặn.
+DB_LOCK_TIMEOUT = os.environ.get("DB_LOCK_TIMEOUT", "10s")
+DB_STATEMENT_TIMEOUT = os.environ.get("DB_STATEMENT_TIMEOUT", "60s")
+
 # --- hành vi ứng dụng --------------------------------------------------------
 # Bật ở CI hoặc test: không được chặn tài khoản chưa xác minh email.
 ALLOW_UNVERIFIED_EMAIL = _env_flag("ALLOW_UNVERIFIED_EMAIL", default=True)

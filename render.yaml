@@ -1,55 +1,39 @@
-# Render Blueprint — deploy FTalentHub.
+# Render Blueprint — FTalentHub, MỘT service duy nhất.
 #
-# Cách dùng: Render Dashboard → "New +" → "Blueprint" → trỏ repo này vào.
+# VÌ SAO MỘT SERVICE
+# ------------------
+# Render có lúc tạo service web của ta thành Static Site dù đã chọn runtime
+# Docker: nginx của Render không có `try_files` (mọi route SPA 404) và không
+# proxy được `/api` — mà `src/api/client.ts` gọi cứng `/api/v1` trên chính
+# origin và file đó không được sửa.
 #
-# ---------------------------------------------------------------------------
-# VÌ SAO HAI SERVICE, VÀ VÌ SAO KHÔNG DÙNG STATIC SITE CHO FRONTEND
-# ---------------------------------------------------------------------------
-# `frontend/src/api/client.ts` gọi CỨNG đường dẫn tương đối `/api/v1/...` trên
-# chính origin của trang. Nếu frontend là một static site riêng (domain khác),
-# thì `/api/v1` sẽ trỏ về static site đó — nơi không có backend — và mọi lời
-# gọi sẽ 404. Sửa client.ts là không được (ràng buộc dự án).
+# Giải pháp: Dockerfile.fullstack gộp FastAPI và React vào cùng một container.
+# Nginx nghe $PORT và chuyển tiếp /api sang 127.0.0.1:$API_PORT. Nhờ vậy:
+#   - chỉ còn MỘT chỗ Render có thể cấu hình sai;
+#   - không cần URL chéo giữa hai service, không cần CORS;
+#   - tiêu thụ một nửa số giờ free-tier (750 giờ/tháng cho cả workspace);
+#   - vẫn giữ đúng cơ chế X-Forwarded-For mà core/audit.py dùng để lấy IP.
 #
-# Vì vậy kiến trúc chọn là: `fth-web` (nginx) là origin DUY NHẤT mà trình
-# duyệt nhìn thấy, và nginx chuyển tiếp `/api` sang `fth-api`. Nhờ vậy:
-#   - không có vấn đề CORS;
-#   - không phải sửa một dòng code frontend nào;
-#   - giữ nguyên cơ chế `X-Forwarded-For` mà `core/audit.py` dùng để lấy IP.
-#
-# LƯU Ý: `fth-web` cũng là web service miễn phí nên cũng ngủ sau 15 phút.
-# Khi ngủ, toàn bộ ứng dụng ngủ theo. Đây là đặc tính của gói miễn phí, không
-# phải lỗi cấu hình. Muốn không ngủ thì phải nâng cấp.
-#
-# ---------------------------------------------------------------------------
-# GIỚI HẠN CẦN BIẾT TRƯỚC KHI DÙNG — nói thẳng, không giấu
-# ---------------------------------------------------------------------------
-# * Đĩa của web service miễn phí là HỆ THỐNG FILE TẠM. Mỗi lần service ngủ hoặc
-#   redeploy là mất sạch thay đổi trên đĩa, nên file SQLite bị xoá. Vì vậy
-#   AUTO_SEED_ON_EMPTY=true: mỗi lần khởi động, CSDL trống sẽ được seed lại từ
-#   `app.seed`. Hệ quả: DỮ LIỆU NGƯỜI DÙNG NHẬP SẼ MẤT sau khi service ngủ.
-#   Chấp nhận được với bản demo, và có lợi thế là mỗi khách vào luôn thấy dữ
-#   liệu mẫu sạch. Muốn giữ dữ liệu thật: mua persistent disk (0,25 USD/GB/tháng)
-#   hoặc dùng PostgreSQL trả phí.
-# * Postgres MIỄN PHÍ của Render hết hạn sau 30 ngày, nên ở đây không dùng.
-# * File này KHÔNG chứa bí mật nào. Khóa SMTP phải đặt tay trong
-#   Dashboard → service → Environment sau khi tạo service.
+# GIỚI HẠN CẦN BIẾT — nói thẳng, không giấu
+# ---------------------------------------
+# Đĩa của web service miễn phí là HỆ THỐNG FILE TẠM: mỗi lần ngủ hoặc redeploy là
+# mất sạch, nên file SQLite bị xoá. AUTO_SEED_ON_EMPTY=true bên dưới sẽ seed lại
+# mỗi lần khởi động. Hệ quả: DỮ LIỆU NGƯỜI DÙNG NHẬP SẼ MẤT khi service ngủ.
+# Với bản demo thì điều này có lợi — mỗi khách vào thấy dữ liệu mẫu sạch — nhưng
+# đừng để ai nhập dữ liệu thật vào bản miễn phí.
+# Muốn giữ dữ liệu: persistent disk (0,25 USD/GB/tháng) hoặc PostgreSQL trả phí.
 
 services:
-  # ------------------------------------------------------------------ API
   - type: web
-    name: fth-api
+    name: fth
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.fullstack
     dockerContext: .
     plan: free
-    healthCheckPath: /api/v1/health
+    # Không đặt healthCheckPath: probe / sẽ 502 khi uvicorn chưa sẵn sàng, và
+    # Dockerfile đã có HEALTHCHECK riêng đúng cổng $PORT.
     envVars:
-      # KHÔNG đặt PORT: Render tự gán (mặc định 10000) và cần ta nghe đúng cổng
-      # đó. Dockerfile đọc $PORT nên không cần cấu hình gì ở đây. Cố định
-      # 8001 là nguyên nhân kinh điển của 502 ngay lần deploy đầu.
-      - key: DATABASE_URL
-        value: sqlite:////app/data/talenthub.db
-      # Bật auto-seed vì đĩa là hệ thống file tạm. Xem mục giới hạn ở trên.
+      # Đĩa tạm nên phải tự seed mỗi lần khởi động.
       - key: AUTO_SEED_ON_EMPTY
         value: "true"
       - key: ALLOW_PUBLIC_REGISTER
@@ -61,11 +45,11 @@ services:
       - key: PBKDF2_ITERATIONS
         value: "240000"
       # Link trong thư (quên mật khẩu, xác minh email) phải trỏ về domain thật.
-      # Đặt sau khi deploy: https://<tên-fth-web>.onrender.com
+      # Đặt sau khi deploy: https://fth-xxxx.onrender.com
       - key: FRONTEND_URL
         sync: false
-      # Không có SMTP thì thư ghi vào outbox/ thay vì gửi đi — xem được link
-      # trong log nhưng người dùng thật không nhận được thư.
+      # Chưa có SMTP thì thư ghi vào outbox/ thay vì gửi đi — xem được link
+      # trong Logs nhưng người dùng thật không nhận được thư.
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -78,8 +62,6 @@ services:
         sync: false
       - key: MAIL_TO_OUTBOX
         sync: false
-      # Danh sách origin được phép, phân tách bằng dấu phẩy. Bắt buộc phải đặt
-      # khi có nhiều domain (ví dụ thêm domain riêng cho API).
       - key: CORS_ORIGINS
         sync: false
       - key: ACCESS_TOKEN_TTL_MINUTES
@@ -90,26 +72,3 @@ services:
         sync: false
       - key: AUDIT_RETENTION_DAYS
         sync: false
-
-  # ------------------------------------------------------- WEB (nginx + SPA)
-  - type: web
-    name: fth-web
-    runtime: docker
-    dockerfilePath: ./frontend/Dockerfile
-    dockerContext: ./frontend
-    plan: free
-    # Không có healthCheckPath vì nginx phục vụ cả SPA lẫn /api; probe
-    # /api/v1/health sẽ bị 502 khi API còn ngủ và làm Render coi service chết.
-    envVars:
-      # Địa chỉ backend mà nginx chuyển tiếp /api tới. Render tự sinh biến
-      # này cho từng service, nên nginx.conf nhận đúng URL công khai của
-      # fth-api mà không cần hard-code.
-      - key: FTH_API_UPSTREAM
-        fromService:
-          type: web
-          name: fth-api
-          property: host
-      # nginx lấy IP thật người dùng từ đây (audit log dùng nó). Render đặt
-      # sẵn, nhưng khai báo để rõ ý định.
-      - key: FTH_PROXY_HEADER
-        value: X-Forwarded-For

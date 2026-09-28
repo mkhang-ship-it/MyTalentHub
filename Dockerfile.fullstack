@@ -1,0 +1,80 @@
+# FTalentHub — image MỘT service: FastAPI + React trong cùng một container.
+#
+# Tại sao có thêm file này khi đã có Dockerfile (backend) và frontend/Dockerfile?
+# ------------------------------------------------------------------------
+# Render có lúc tạo service web của ta thành **Static Site** dù đã chọn runtime
+# Docker. Static Site phục vụ bằng nginx của Render: không có `try_files` nên
+# mọi route SPA trả 404, không có proxy `/api`, và `client.ts` lại gọi cứng
+# `/api/v1` trên chính origin nên không cách nào sửa phía giao diện.
+#
+# Gộp cả hai về MỘT service làm biến mất toàn bộ vấn đề: chỉ còn một chỗ có thể
+# Render cấu hình sai, không cần proxy chéo, không cần CORS, và tiêu thụ một
+# nửa số giờ free-tier.
+#
+# Cách chạy:
+#   docker build -f Dockerfile.fullstack -t fth .
+#   docker run --rm -p 8001:8001 -e AUTO_SEED_ON_EMPTY=true fth
+#
+# Bên trong: nginx nghe $PORT (Render gán) và chuyển tiếp /api sang
+# 127.0.0.1:$API_PORT (mặc định 8001) — nên KHÔNG cần FTH_API_UPSTREAM, và
+# cũng không cần biết URL của backend ở đâu cả.
+
+# ---------- Stage 1: cài dependency Python ----------
+FROM python:3.12-slim AS pydeps
+WORKDIR /deps
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ---------- Stage 2: build frontend ----------
+FROM node:20-alpine AS webbuild
+WORKDIR /web
+COPY frontend/package.json ./
+# Repo chưa có package-lock.json nên dùng `npm install` thay vì `npm ci`
+# (khi nào có lockfile thì đổi lại `npm ci` cho build lặp lại được).
+RUN npm install --no-audit --no-fund
+COPY frontend/ .
+RUN npm run build
+
+# ---------- Stage 3: chạy ----------
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    # Cổng nginx nghe. Render gán PORT riêng và đè lên giá trị này lúc chạy.
+    PORT=8001 \
+    # Cổng FastAPI, CHỈ nghe trong loopback — không có gì từ internet chạm được.
+    API_PORT=8001
+WORKDIR /app
+
+COPY --from=pydeps /install /usr/local
+COPY backend/ /app/
+COPY --from=webbuild /web/dist /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY scripts/start-all-in-one.sh /usr/local/bin/start-all-in-one
+RUN chmod +x /usr/local/bin/start-all-in-one
+
+# NGINX_ENVSUBST_VARS: chỉ thay đúng FTH_API_UPSTREAM và PORT. Mặc định image
+# nginx thay MỌI biến môi trường tồn tại, nên nếu container lỡ có biến trùng tên
+# với biến nginx ($host, $uri, $scheme) thì cấu hình hỏng rất khó đoán.
+ENV NGINX_ENVSUBST_VARS=FTH_API_UPSTREAM:PORT
+
+# nginx + entrypoint + thư mục dữ liệu
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/conf.d/default.conf
+
+RUN useradd -r -u 10001 -m appuser \
+    && mkdir -p /app/data \
+    && chown -R appuser:appuser /app
+USER appuser
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=4).status == 200 else 1)"
+
+# Entrypoint của image nginx sẽ chạy envsubst lúc khởi động, nên ta gọi nó
+# (20-envsubst-on-templates.sh) RỒI mới chạy entrypoint của mình. Nhờ vậy
+# FTH_API_UPSTREAM do entrypoint đặt cũng được thay kịp trước khi nginx nạp
+# cấu hình.
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["/usr/local/bin/start-all-in-one"]

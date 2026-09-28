@@ -186,5 +186,28 @@ jobs:
         run: docker build -f Dockerfile -t fth-api:ci .
       - name: Build image frontend
         run: docker build -f frontend/Dockerfile -t fth-web:ci ./frontend
+      - name: Build image một-service (gộp API + React)
+        # Image này là thứ thực sự deploy lên Render (render.yaml trỏ tới nó),
+        # nên nó phải được build ở đây chứ không chỉ review.
+        run: docker build -f Dockerfile.fullstack -t fth-ci .
+      - name: Smoke test image một-service
+        # Build xong chưa đủ: phải chứng minh nginx thực sự phục vụ SPA VÀ
+        # chuyển tiếp được /api. Đây là đúng thứ đã hỏng 3 lần trên Render, nên
+        # kiểm ở đây rẻ hơn nhiều so với phát hiện trên production.
+        run: |
+          docker run -d --name fth-smoke -e AUTO_SEED_ON_EMPTY=true -p 18001:8001 fth-ci
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:18001/api/v1/health >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "--- health qua chính nginx:"; curl -sf http://127.0.0.1:18001/api/v1/health
+          echo; echo "--- route SPA (/login) phải 200, không phải 404:"
+          curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18001/login
+          echo "--- security header phải có (chứng minh đúng config của ta):"
+          curl -sI http://127.0.0.1:18001/ | grep -i x-frame-options
+          echo "--- đăng nhập demo:"; curl -sf -X POST http://127.0.0.1:18001/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"bgh@ftalenthub.edu.vn","password":"demo123"}' | head -c 80
+          echo; docker rm -f fth-smoke
       - name: Kiểm tra cú pháp compose
         run: docker compose config --quiet

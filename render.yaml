@@ -44,6 +44,14 @@ services:
         value: INFO
       - key: PBKDF2_ITERATIONS
         value: "240000"
+      # ---- AI (Gemini) ----
+      # Lấy key tại https://aistudio.google.com/apikey
+      # Để trống thì các nút AI vẫn hiện nhưng báo "chưa được bật", không lỗi.
+      # TUYỆT ĐỐI không đưa key này xuống frontend — key chỉ nằm ở backend.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
       # Link trong thư (quên mật khẩu, xác minh email) phải trỏ về domain thật.
       # Đặt sau khi deploy: https://fth-xxxx.onrender.com
       - key: FRONTEND_URL

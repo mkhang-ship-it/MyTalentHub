@@ -47,9 +47,12 @@ FROM nginx:stable
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     # Cổng nginx nghe. Render gán PORT riêng và đè lên giá trị này lúc chạy.
+    # PHẢI KHÁC API_PORT: nếu hai biến này bằng nhau, uvicorn giữ cổng trước
+    # rồi nginx không bind được và chết với
+    #   nginx: [emerg] bind() to 0.0.0.0:8001 failed (98: Address already in use)
     PORT=8001 \
     # Cổng FastAPI, CHỈ nghe trong loopback — không có gì từ internet chạm được.
-    API_PORT=8001
+    API_PORT=8002
 
 # python3-venv: bắt buộc vì Debian đánh dấu Python hệ thống là "externally
 # managed" — pip cài thẳng vào đó sẽ bị từ chối. Mọi thư viện nằm trong

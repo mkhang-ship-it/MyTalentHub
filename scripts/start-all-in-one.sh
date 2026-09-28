@@ -17,7 +17,10 @@
 
 set -e
 
-API_PORT="${API_PORT:-8001}"
+# Hai cổng này BẮT BUỘC khác nhau: nginx nghe $PORT, uvicorn nghe $API_PORT.
+# Nếu bằng nhau, uvicorn giữ cổng trước rồi nginx chết với
+# "bind() failed (98: Address already in use)".
+API_PORT="${API_PORT:-8002}"
 PORT="${PORT:-8001}"
 
 # Python nằm trong venv, không phải Python hệ thống: image gốc là nginx:stable

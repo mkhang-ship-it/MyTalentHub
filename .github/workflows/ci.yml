@@ -34,10 +34,12 @@ jobs:
   postgres:
     name: Backend (PostgreSQL)
     runs-on: ubuntu-latest
-    # Mặc định của GitHub là 360 phút. Job này đã bị treo 15+ phút ở lần chạy
-    # đầu tiên mà không rõ vì sao; 12 phút là dư cho 66 test, và buộc fail sớm
-    # để lấy được log thay vì giữ runner.
-    timeout-minutes: 12
+    # Mặc định GitHub là 360 phút. Trần này phải ĐỦ lớn để cả 66 test kịp chạy
+    # và in traceback; trần quá nhỏ thì unittest bị giết giữa chừng và ta mất
+    # đúng thông tin cần nhất là thông báo lỗi.
+    # 25 phút: các test bị khoá hiện fail ở 3s (đúng DB_LOCK_TIMEOUT của job),
+    # nhưng còn một test chạy lâu chưa rõ; trần này để nó kịp xong.
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16

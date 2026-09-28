@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------
 # Render có lúc tạo service web của ta thành **Static Site** dù đã chọn runtime
 # Docker. Static Site phục vụ bằng nginx của Render: không có `try_files` nên
-# mọi route SPA trả 404, không có proxy `/api`, và `client.ts` lại gọi cứng
+# mọi route SPA trả 404, không có proxy `/api`, và `src/api/client.ts` lại gọi cứng
 # `/api/v1` trên chính origin nên không cách nào sửa phía giao diện.
 #
 # Gộp cả hai về MỘT service làm biến mất toàn bộ vấn đề: chỉ còn một chỗ có thể
@@ -19,13 +19,7 @@
 # 127.0.0.1:$API_PORT (mặc định 8001) — nên KHÔNG cần FTH_API_UPSTREAM, và
 # cũng không cần biết URL của backend ở đâu cả.
 
-# ---------- Stage 1: cài dependency Python ----------
-FROM python:3.12-slim AS pydeps
-WORKDIR /deps
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# ---------- Stage 2: build frontend ----------
+# ---------- Stage 1: build frontend ----------
 FROM node:20-alpine AS webbuild
 WORKDIR /web
 COPY frontend/package.json ./
@@ -35,67 +29,76 @@ RUN npm install --no-audit --no-fund
 COPY frontend/ .
 RUN npm run build
 
-# ---------- Stage 3: chạy ----------
-FROM python:3.12-slim
+# ---------- Stage 2: chạy ----------
+#
+# Base là image nginx CHÍNH THỨC, không phải `python:3.12-slim` + `apt install
+# nginx`. Lý do rất cụ thể: script hậu kỳ (postinst) của gói nginx trong Debian
+# cần perl + Term::ReadLine, mà python:3.12-slim không có sẵn; cài thêm thì
+# `libterm-readline-perl` lại không tồn tại trong repo của base đó:
+#   debconf: (Can't locate Term/ReadLine.pm in @INC
+#   E: Package 'libterm-readline-perl' has no installation candidate
+# Image nginx chính thức compile nginx từ source nên không có postinst, không
+# cần perl, và đã kèm sẵn `envsubst`.
+#
+# Hệ quả phải nói rõ: Debian bookworm (nền của nginx:stable) đi kèm Python 3.11,
+# không phải 3.12. Backend không dùng cú pháp/API nào chỉ có ở 3.12 (đã kiểm),
+# và requirements.txt không gói nào bắt buộc 3.12, nên 3.11 chạy được.
+FROM nginx:stable
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     # Cổng nginx nghe. Render gán PORT riêng và đè lên giá trị này lúc chạy.
     PORT=8001 \
     # Cổng FastAPI, CHỈ nghe trong loopback — không có gì từ internet chạm được.
     API_PORT=8001
-WORKDIR /app
 
-COPY --from=pydeps /install /usr/local
-COPY backend/ /app/
-COPY --from=webbuild /web/dist /usr/share/nginx/html
-COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
-# Config chính của nginx: bỏ directive `user` và đưa pid/thư mục tạm sang
-# nơi user thường ghi được. Xem frontend/nginx.main.conf để biết vì sao bắt
-# buộc phải có — config mặc định của Debian làm nginx từ chối chạy dưới
-# user không phải root.
-COPY frontend/nginx.main.conf /etc/nginx/nginx.conf
-COPY scripts/start-all-in-one.sh /usr/local/bin/start-all-in-one
-RUN chmod +x /usr/local/bin/start-all-in-one
-
-# NGINX_ENVSUBST_VARS: chỉ thay đúng FTH_API_UPSTREAM và PORT. Mặc định image
-# nginx thay MỌI biến môi trường tồn tại, nên nếu container lỡ có biến trùng tên
-# với biến nginx ($host, $uri, $scheme) thì cấu hình hỏng rất khó đoán.
-ENV NGINX_ENVSUBST_VARS=FTH_API_UPSTREAM:PORT
-
-# nginx + entrypoint + thư mục dữ liệu
-# `gettext-base` cung cấp lệnh `envsubst`: stage cuối là python:3.12-slim chứ
-# không phải nginx:alpine, nên không có /docker-entrypoint.sh của image nginx để
-# dùng lại. Entrypoint của ta tự làm phép thay biến.
-#
-# `perl` + `libterm-readline-perl` là BẮT BUỘC: script hậu kỳ (postinst) của
-# nginx-common gọi perl và cần Term::ReadLine. Thiếu chúng thì:
-#   debconf: (Can't locate Term/ReadLine.pm in @INC
-#   E: Sub-process /usr/bin/dpkg returned an error code (1)
-# python:3.12-slim không có sẵn các gói perl này.
+# python3-venv: bắt buộc vì Debian đánh dấu Python hệ thống là "externally
+# managed" — pip cài thẳng vào đó sẽ bị từ chối. Mọi thư viện nằm trong
+# /opt/venv, không đụng hệ thống.
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-       nginx gettext-base perl libterm-readline-perl \
+       python3 python3-venv gettext-base ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
+    # Server block mặc định của image nginx nghe cổng 80; giữ lại cũng vô hại
+    # nhưng gây nhiễu khi đọc log.
     && rm -f /etc/nginx/conf.d/default.conf
 
-RUN useradd -r -u 10001 -m appuser \
-    && mkdir -p /app/data \
-    && chown -R appuser:appuser /app
-# nginx chạy dưới appuser nên cần quyền ghi vào các thư mục tạm của nó
-# (client_body, proxy, fastcgi…). Sau khi cài từ gói Debian, chúng thuộc root và
-# nginx sẽ không khởi động được.
-RUN chown -R appuser:appuser /var/lib/nginx /var/log/nginx /var/cache/nginx 2>/dev/null || true
+# Venv cài trước, rồi mới chép mã nguồn vào /app, để `COPY backend/ /app/`
+# không lỡ đè mất.
+COPY backend/requirements.txt /tmp/requirements.txt
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+
+WORKDIR /app
+COPY backend/ /app/
+COPY --from=webbuild /web/dist /usr/share/nginx/html
+
+# nginx.conf của dự án là SERVER BLOCK; image một-service cần thêm cả config
+# gốc (bỏ directive `user`, đưa pid/thư mục tạm sang nơi user thường ghi được,
+# và `include mime.types` — thiếu dòng này thì .js/.css bị gán kiểu text/plain và
+# trình duyệt không nạp được). Xem frontend/nginx.main.conf.
+COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY frontend/nginx.main.conf /etc/nginx/nginx.conf
+COPY scripts/start-all-in-one.sh /usr/local/bin/start-all-in-one
+
 # Thư mục tạm mà nginx.main.conf trỏ tới trong /tmp.
-RUN mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
-             /tmp/nginx-uwsgi /tmp/nginx-scgi \
-    && chown -R appuser:appuser /tmp/nginx-*
+RUN chmod +x /usr/local/bin/start-all-in-one \
+    && mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
+                /tmp/nginx-uwsgi /tmp/nginx-scgi /app/data
+
+# Chạy dưới user KHÔNG phải root. Đây là lý do phải có nginx.main.conf riêng —
+# config gốc của image nginx khai báo `user nginx;` và nginx sẽ không khởi
+# động nếu master process không chạy với quyền super-user.
+RUN useradd -r -u 10001 -m appuser \
+    && chown -R appuser:appuser /app /tmp/nginx-* /var/cache/nginx
 USER appuser
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=4).status == 200 else 1)"
+  CMD /opt/venv/bin/python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8001'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/v1/health', timeout=4).status == 200 else 1)"
 
-# Entrypoint của riêng ta. Nó tự chạy `envsubst` để dựng config nginx trước khi
-# nginx nạp — thay cho /docker-entrypoint.sh của image nginx không có ở đây.
+# Entrypoint của riêng ta, KHÔNG phải /docker-entrypoint.sh của image nginx:
+# script đó chỉ chạy envsubst rồi exec nginx, còn ta cần quản lý cả hai tiến
+# trình. Entrypoint của ta tự gọi envsubst.
 ENTRYPOINT ["/usr/local/bin/start-all-in-one"]
 CMD []

@@ -194,23 +194,54 @@ jobs:
         # Build xong chưa đủ: phải chứng minh nginx thực sự phục vụ SPA VÀ
         # chuyển tiếp được /api. Đây là đúng thứ đã hỏng 3 lần trên Render, nên
         # kiểm ở đây rẻ hơn nhiều so với phát hiện trên production.
+        #
+        # Mỗi bước đều in kết quả VÀ tự fail nếu sai — trước đây chỉ `curl -sf`
+        # nên `/login` trả 404 vẫn coi là xong. Dùng `trap` để container luôn
+        # được dọn dẹp kể cả khi bước nào fail, không để lại container treo.
         run: |
+          set -u
+          trap 'echo "--- log container:"; docker logs fth-smoke 2>&1 | tail -40 || true; docker rm -f fth-smoke >/dev/null 2>&1 || true' EXIT
+
           docker run -d --name fth-smoke -e AUTO_SEED_ON_EMPTY=true -p 18001:8001 fth-ci
-          for i in $(seq 1 40); do
-            if curl -sf http://127.0.0.1:18001/api/v1/health >/dev/null 2>&1; then break; fi
+          ready=0
+          for i in $(seq 1 45); do
+            if curl -sf http://127.0.0.1:18001/api/v1/health >/dev/null 2>&1; then ready=1; break; fi
             sleep 2
           done
-          echo "--- health qua chính nginx:"; curl -sf http://127.0.0.1:18001/api/v1/health
-          echo; echo "--- route SPA (/login) phải 200, không phải 404:"
-          curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18001/login
-          echo "--- security header phải có (chứng minh đúng config của ta):"
-          curl -sI http://127.0.0.1:18001/ | grep -i x-frame-options
-          echo "--- đăng nhập demo:"; curl -sf -X POST http://127.0.0.1:18001/api/v1/auth/login \
-            -H 'Content-Type: application/json' \
-            -d '{"email":"bgh@ftalenthub.edu.vn","password":"demo123"}' | head -c 80
+          if [ "$ready" != 1 ]; then
+            echo "SAI: container không sẵn sàng sau 90 giây"; exit 1
+          fi
+
+          echo "--- 1. health qua chính nginx (chứng minh proxy hoạt động):"
+          curl -sf http://127.0.0.1:18001/api/v1/health || { echo "SAI: health fail"; exit 1; }
           echo
-          echo "--- log container (để chẩn đoán khi hỏng):"
-          docker logs fth-smoke 2>&1 | tail -30 || true
-          docker rm -f fth-smoke
+
+          echo "--- 2. route SPA /login phải 200 (chứng minh try_files có hiệu lực):"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/login)
+          echo "   $code"
+          [ "$code" = "200" ] || { echo "SAI: /login trả $code, mong đợi 200"; exit 1; }
+
+          echo "--- 3. security header (chứng minh đúng config của ta, không phải nginx mặc định):"
+          curl -sI http://127.0.0.1:18001/ | grep -i x-frame-options || { echo "SAI: thiếu x-frame-options"; exit 1; }
+
+          echo "--- 4. Content-Type của file JS phải là javascript (thiếu mime.types thì"
+          echo "       mọi file thành text/plain, trang trắng dù mọi request đều 200):"
+          js=$(curl -s http://127.0.0.1:18001/ | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+          [ -n "$js" ] || { echo "SAI: không tìm thấy bundle JS trong index.html"; exit 1; }
+          ct=$(curl -sI "http://127.0.0.1:18001$js" | grep -i '^content-type' | tr -d '\r')
+          echo "   $js → $ct"
+          echo "$ct" | grep -qiE 'javascript|ecmascript' || { echo "SAI: Content-Type sai"; exit 1; }
+
+          echo "--- 5. đăng nhập demo (chứng minh API thật sự chạy, không chỉ nginx):"
+          curl -sf -X POST http://127.0.0.1:18001/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"bgh@ftalenthub.edu.vn","password":"demo123"}' | head -c 80 \
+            || { echo "SAI: đăng nhập thất bại"; exit 1; }
+          echo
+          echo "--- 6. endpoint cần token phải trả 401 (chứng minh không lộ dữ liệu):"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18001/api/v1/school/classes)
+          echo "   $code"
+          [ "$code" = "401" ] || { echo "SAI: /school/classes trả $code, mong đợi 401"; exit 1; }
+          echo "TẤT CẢ 6 KIỂM TRA ĐỀU ĐẠT."
       - name: Kiểm tra cú pháp compose
         run: docker compose config --quiet

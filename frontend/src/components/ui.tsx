@@ -18,7 +18,7 @@ export function Card({
   const interactiveClass = interactive ? "hover-lift" : "";
   return (
     <div
-      className={`card-surface rounded-xl p-5 ${revealClass} ${interactiveClass} ${className}`}
+      className={`card-surface p-6 ${revealClass} ${interactiveClass} ${className}`}
       style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}
     >
       {children}
@@ -52,12 +52,14 @@ export function StatCard({
     <Card interactive reveal={reveal} revealDelay={revealDelay}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-muted">{label}</div>
+          {/* Nhãn 14px dùng --muted-strong 5,01:1 thay --muted 3,46:1 */}
+          <div className="text-sm font-medium text-muted-strong">{label}</div>
           <div className={`mt-1 text-[28px] font-extrabold leading-tight text-ink tabular-nums ${valueClass} break-words`}>
             {value}
           </div>
           {delta && (
-            <div className="mt-1 text-xs font-semibold text-emerald-600 break-words overflow-wrap-anywhere">
+            /* Phụ chú 12px dùng #047857 5,48:1 thay emerald-600 3,77:1 */
+            <div className="mt-1 text-xs font-semibold text-[#047857] break-words overflow-wrap-anywhere">
               {delta}
             </div>
           )}

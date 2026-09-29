@@ -60,7 +60,7 @@ function PassportCardFace({ data, size, interactive }: { data?: PassportData; si
           <p className={`truncate font-bold text-white ${dialog ? "text-lg" : "text-base"}`}>{s.full_name}</p>
           <p className={`text-white/70 ${dialog ? "text-sm" : "text-xs"}`}>{s.class_name} · Khối {s.grade}</p>
         </div>
-        <span className="ml-auto hidden shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/80 sm:block">
+        <span className="ml-auto hidden shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80 sm:block">
           FTalent
         </span>
       </div>
@@ -70,13 +70,13 @@ function PassportCardFace({ data, size, interactive }: { data?: PassportData; si
         {stats.map((st) => (
           <div key={st.label} className="rounded-xl bg-white/10 px-1 py-2.5 text-center backdrop-blur-sm">
             <div className={`font-extrabold text-white ${dialog ? "text-xl" : "text-lg"}`}>{st.value}</div>
-            <div className="text-[10px] leading-tight text-white/70">{st.label}</div>
+            <div className="text-xs font-medium leading-tight text-white">{st.label}</div>
           </div>
         ))}
       </div>
 
-      {/* QR thật quét được (dùng chung bộ mã hoá với trang check-in) */}
-      <div className={`flex items-center gap-3 rounded-xl bg-white/95 p-2.5 ${dialog ? "max-w-sm" : ""}`}>
+      {/* QR thật quét được (nền đặc trắng để camera đọc được — ràng buộc QR3) */}
+      <div className={`flex items-center gap-3 rounded-xl bg-white p-2.5 ${dialog ? "max-w-sm" : ""}`}>
         <QrCode
           ma={data.qr_code}
           kichThuoc={dialog ? 88 : 72}
@@ -84,16 +84,16 @@ function PassportCardFace({ data, size, interactive }: { data?: PassportData; si
           nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
         />
         <div className="min-w-0">
-          <p className="break-all font-mono text-[11px] font-semibold text-ink">{data.qr_code}</p>
-          <p className="mt-0.5 text-[10px] leading-snug text-ink-soft">
+          <p className="break-all font-mono text-xs font-semibold text-ink">{data.qr_code}</p>
+          <p className="mt-0.5 text-xs leading-snug text-ink-soft">
             Quét mã để xác thực hồ sơ — học bổng, thực tập, tuyển dụng.
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">Cập nhật {data.updated_at ?? "—"}</p>
+          <p className="mt-1 text-xs text-muted-strong">Cập nhật {data.updated_at ?? "—"}</p>
         </div>
       </div>
 
-      {/* Chú thích tiếng Việt: chân thẻ luôn nằm đáy nhờ mt-auto */}
-      <div className="mt-auto flex items-center justify-between text-[10px] text-white/55">
+      {/* Chân thẻ luôn nằm đáy nhờ mt-auto: chữ trắng toàn phần 12px */}
+      <div className="mt-auto flex items-center justify-between text-xs text-white">
         <span>Talent Passport</span>
         {interactive ? (
           <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 font-semibold text-white/90">

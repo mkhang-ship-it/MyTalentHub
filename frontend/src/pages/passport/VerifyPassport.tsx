@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { BadgeCheck, ShieldAlert } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { API_BASE } from "../../api/client";
+import { ErrorBox, Loading } from "../../components/ui";
 
 // Kết quả xác minh tối thiểu từ endpoint công khai (không email, không điểm số).
 interface KetQuaXacMinh {
@@ -58,55 +59,52 @@ export default function VerifyPassport() {
 
   return (
     <div className="min-h-screen bg-canvas flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-white p-6 shadow-soft">
+      <div className="w-full max-w-md rounded-[20px] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
         {/* Đầu trang nêu rõ đây là trang công khai, ai quét cũng mở được. */}
-        <p className="text-xs font-semibold text-muted">FTalentHub · Xác minh công khai</p>
-        <h1 className="mt-1 text-xl font-extrabold text-ink">Xác minh Talent Passport</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-strong">FTalentHub · Xác minh công khai</p>
+        <h1 className="mt-1 text-[22px] md:text-2xl font-extrabold leading-[1.25] text-ink">Xác minh Talent Passport</h1>
+        <p className="mt-1 text-sm leading-relaxed text-muted-strong">
           Quét mã QR trên thẻ sẽ tới trang này — không cần đăng nhập, chỉ hiện thông tin tối thiểu.
         </p>
 
         {dangTai ? (
-          <p data-testid="xac-minh-dang-tai" className="mt-6 text-center text-sm text-muted" aria-live="polite">
-            Đang xác minh mã...
-          </p>
+          <div data-testid="xac-minh-dang-tai" className="mt-6">
+            <Loading label="Đang xác minh mã..." />
+          </div>
         ) : ketQua ? (
-          <div data-testid="xac-minh-thanh-cong" className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="flex items-center gap-2 font-bold text-emerald-700">
+          <div data-testid="xac-minh-thanh-cong" className="mt-6 rounded-xl bg-[#ECFDF5] p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-[#047857]">
               <BadgeCheck size={18} aria-hidden="true" /> Đã xác minh
             </p>
             <dl className="mt-3 space-y-1.5 text-sm">
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Họ tên</dt>
+                <dt className="text-muted-strong">Họ tên</dt>
                 <dd className="font-semibold text-ink">{ketQua.full_name}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Lớp</dt>
+                <dt className="text-muted-strong">Lớp</dt>
                 <dd className="font-semibold text-ink">
                   {ketQua.class_name} · Khối {ketQua.grade}
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Trường</dt>
+                <dt className="text-muted-strong">Trường</dt>
                 <dd className="font-semibold text-ink">{ketQua.school_name}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Mã thẻ</dt>
+                <dt className="text-muted-strong">Mã thẻ</dt>
                 <dd className="font-mono font-semibold text-ink">{ketQua.qr_code}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-muted">Cập nhật</dt>
+                <dt className="text-muted-strong">Cập nhật</dt>
                 <dd className="font-semibold text-ink">{ketQua.updated_at}</dd>
               </div>
             </dl>
           </div>
         ) : (
-          <div data-testid="xac-minh-that-bai" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
-            <p className="flex items-center gap-2 font-bold text-red-700">
-              <ShieldAlert size={18} aria-hidden="true" /> Không xác minh được
-            </p>
-            <p className="mt-1 text-sm text-red-700">{loi}</p>
-            <p className="mt-1 text-xs text-red-600">
+          <div data-testid="xac-minh-that-bai" className="mt-6">
+            <ErrorBox message={loi} />
+            <p className="mt-2 text-xs leading-relaxed text-muted-strong">
               Mẹo: nhập tay mã in dưới QR vào ô ?code= trên thanh địa chỉ rồi tải lại.
             </p>
           </div>

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { CheckCircle2, ScanLine } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, ScanLine } from "lucide-react";
 import { API_BASE } from "../../api/client";
+import { ErrorBox } from "../../components/ui";
 import { danhGiaMa, trichMaTuLienKet } from "../../components/qr/maCheckin";
 
 // Kết quả điểm danh công khai: chỉ tên + lớp để ban tổ chức đối chiếu.
@@ -28,6 +29,13 @@ export default function CheckinScan() {
 
   // Đánh giá nhanh hạn dùng ngay trên máy để báo trước khi gửi.
   const danhGia = maNhap.trim() ? danhGiaMa(maNhap.trim(), Math.floor(Date.now() / 1000)) : null;
+  // Icon kèm dòng đánh giá để màu không là tín hiệu duy nhất (00/7.7).
+  const iconDanhGia =
+    !danhGia || danhGia.trangThai === "hien-hanh" ? (
+      <Check size={12} className="shrink-0 text-[#047857]" aria-hidden="true" />
+    ) : (
+      <AlertTriangle size={12} className="shrink-0 text-[#9A3412]" aria-hidden="true" />
+    );
 
   // Gửi mã lên endpoint công khai (không token) để ghi nhận điểm danh.
   const xacNhan = async () => {
@@ -57,15 +65,15 @@ export default function CheckinScan() {
 
   return (
     <div className="min-h-screen bg-canvas flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-white p-6 shadow-soft">
+      <div className="w-full max-w-md rounded-[20px] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
         {/* Đầu trang nêu rõ luồng: quét xong tới đây, không cần đăng nhập. */}
-        <p className="text-xs font-semibold text-muted">FTalentHub · Điểm danh công khai</p>
-        <h1 className="mt-1 text-xl font-extrabold text-ink">Điểm danh hoạt động</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-strong">FTalentHub · Điểm danh công khai</p>
+        <h1 className="mt-1 text-[22px] md:text-2xl font-extrabold leading-[1.25] text-ink">Điểm danh hoạt động</h1>
+        <p className="mt-1 text-sm leading-relaxed text-muted-strong">
           Quét mã QR trên màn hình học sinh sẽ mở ra trang này — không cần đăng nhập, bấm xác nhận là xong.
         </p>
 
-        <label htmlFor="ma-diem-danh" className="mt-4 block text-sm font-semibold text-ink">
+        <label htmlFor="ma-diem-danh" className="mt-4 block text-[13px] font-semibold text-ink">
           Mã điểm danh
         </label>
         <input
@@ -74,11 +82,17 @@ export default function CheckinScan() {
           value={maNhap}
           onChange={(e) => setMaNhap(e.target.value)}
           placeholder="Tự điền từ mã QR, hoặc dán đường dẫn vừa quét"
-          className="mt-1 w-full rounded-xl border border-line-strong bg-white px-3 py-2.5 font-mono text-sm text-ink outline-none"
+          className="input-control mt-1 font-mono"
           autoComplete="off"
         />
+        {maThamSo === "" && (
+          <p className="mt-1 text-xs text-muted-strong">
+            Thiếu mã trên đường dẫn — dán mã hoặc quét lại QR.
+          </p>
+        )}
         {danhGia && (
-          <p className="mt-1 text-xs text-muted" aria-live="polite">
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-strong" aria-live="polite">
+            {iconDanhGia}
             {danhGia.thongDiep}
           </p>
         )}
@@ -88,7 +102,7 @@ export default function CheckinScan() {
           data-testid="nut-xac-nhan"
           onClick={xacNhan}
           disabled={dangGui || !maNhap.trim()}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold text-white cta-gradient disabled:opacity-50"
+          className="btn-primary mt-3 w-full"
           aria-busy={dangGui}
         >
           <ScanLine size={16} aria-hidden="true" />
@@ -96,16 +110,16 @@ export default function CheckinScan() {
         </button>
 
         {loi && (
-          <div data-testid="diem-danh-loi" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-            {loi}
+          <div data-testid="diem-danh-loi" className="mt-3">
+            <ErrorBox message={loi} />
           </div>
         )}
         {ketQua && (
-          <div data-testid="diem-danh-thanh-cong" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
-            <p className="flex items-center gap-2 font-bold">
-              <CheckCircle2 size={16} aria-hidden="true" /> {ketQua.message}
+          <div data-testid="diem-danh-thanh-cong" className="mt-3 rounded-xl bg-[#ECFDF5] p-4 text-[#047857]" role="status">
+            <p className="flex items-center gap-2 text-sm font-bold">
+              <CheckCircle2 size={18} aria-hidden="true" /> {ketQua.message}
             </p>
-            <p className="mt-1">
+            <p className="mt-1 text-sm">
               {ketQua.hoc_sinh.ho_ten} · Lớp {ketQua.hoc_sinh.lop}
             </p>
           </div>

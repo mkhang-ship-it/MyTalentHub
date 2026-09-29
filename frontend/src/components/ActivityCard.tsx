@@ -1,4 +1,4 @@
-import { Clock, MapPin, Users } from "lucide-react";
+import { Check, Clock, Loader2, MapPin, Users } from "lucide-react";
 
 // Kiểu dữ liệu hoạt động cho trang sinh viên (giữ đồng bộ với trang danh sách).
 export interface StudentActivity {
@@ -22,9 +22,14 @@ export const ACTIVITY_FIELD_NAMES: Record<string, string> = {
   sang_tao: "Sáng tạo",
 };
 
-// Lớp nút dùng chung cho mọi thẻ để chiều cao, cỡ chữ, bo góc giống hệt nhau.
-const NUT_DANG_KY_CLASS =
-  "h-10 w-full rounded-full px-4 text-sm font-semibold text-white cta-gradient disabled:opacity-40 shrink-0";
+// Hình học chung của nút (cao 44, bo 12, chữ 14/600) — 4 trạng thái cùng dùng
+// nên đáy nút luôn thẳng hàng (bất biến 6, đặc tả 02 B9g). Màu theo trạng thái riêng.
+const NUT_CHUNG =
+  "h-11 w-full rounded-[12px] px-5 text-sm font-semibold text-center transition-all duration-200 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2";
+
+// Nền nút mặc định: cta-gradient phủ 12% đen để chữ trắng đạt 4,61:1 (file 00 mục 7.4).
+const NEN_NUT_CHINH =
+  "linear-gradient(rgba(0,0,0,.12),rgba(0,0,0,.12)), var(--cta-gradient)";
 
 interface Props {
   // Dữ liệu một hoạt động cần hiển thị.
@@ -35,7 +40,7 @@ interface Props {
   khiDangKy: (id: number) => void;
 }
 
-// Thẻ hoạt động có chiều cao đều nhau, nút luôn nằm cùng một đường ngang ở đáy.
+// Thẻ hoạt động: giữ 6 bất biến nút thẳng hàng (đặc tả 02 đầu file), số đo theo B9.
 export default function ActivityCard({ hoatDong, dangDangKy, khiDangKy }: Props) {
   // Số chỗ đã lấy và tỉ lệ lấp đầy thanh tiến trình.
   const daLay = Math.max(0, hoatDong.capacity - hoatDong.slots_left);
@@ -45,64 +50,75 @@ export default function ActivityCard({ hoatDong, dangDangKy, khiDangKy }: Props)
     hoatDong.field === "ky_thuat" || hoatDong.field === "hoc_thuat"
       ? "field-banner-tech"
       : "hero-gradient";
-  const nutTat = hoatDong.registered || hoatDong.slots_left <= 0 || dangDangKy;
-  // Nhãn nút hiển thị tiếng Việt theo từng trạng thái.
-  const nhanNut = dangDangKy
-    ? "Đang đăng ký..."
+  const hetCho = hoatDong.slots_left <= 0;
+  // Lớp màu theo trạng thái (hình học đã chung ở NUT_CHUNG).
+  const lopNutTrangThai = dangDangKy
+    ? "text-white opacity-90"
     : hoatDong.registered
-      ? "Đã đăng ký ✓"
-      : hoatDong.slots_left <= 0
-        ? "Đã hết chỗ"
-        : "Đăng ký ngay";
+      ? "bg-portal-soft border border-portal text-portal-dark"
+      : hetCho
+        ? "bg-canvas-soft border border-line-control text-muted-strong"
+        : "text-white hover:brightness-[1.08] hover:-translate-y-px";
+  const nenNut =
+    dangDangKy || (!hoatDong.registered && !hetCho)
+      ? { backgroundImage: NEN_NUT_CHINH }
+      : undefined;
 
   return (
-    // Khung thẻ là cột dọc co giãn đầy chiều cao ô lưới để mọi thẻ cao bằng nhau.
+    // Khung thẻ: cột dọc co giãn đầy ô lưới; radius 20 viết rõ (rounded-2xl chỉ = 16px).
+    // Bỏ hover-lift: thẻ không phải vùng bấm, chỉ nút mới hover (file 00 mục 4.1).
     <article
       data-testid="activity-card"
-      className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition-responsive hover-lift"
+      className="flex h-full min-w-0 flex-col overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_1px_2px_rgba(51,50,77,.05),0_4px_12px_rgba(51,50,77,.06)] transition-responsive"
     >
-      {/* Dải banner trên cùng, cố định chiều cao, không co giãn. */}
-      <div className={`shrink-0 px-4 pb-8 pt-3 ${lopBanner}`}>
-        <span className="inline-block max-w-full truncate text-[11px] font-medium text-white rounded-full bg-white/25 px-2.5 py-1">
+      {/* Banner cao 84px cố định, không co giãn (bất biến 3). */}
+      <div className={`shrink-0 px-4 py-3 h-[84px] ${lopBanner}`}>
+        <span className="inline-flex h-6 max-w-full items-center truncate rounded-full bg-white px-2.5 text-xs font-semibold text-portal-dark">
           {ACTIVITY_FIELD_NAMES[hoatDong.field] ?? hoatDong.field}
         </span>
       </div>
 
-      {/* Vùng thân thẻ chiếm hết khoảng trống còn lại để đẩy nút xuống đáy. */}
+      {/* Thân thẻ tự giãn để đẩy nút xuống đáy (bất biến 4). */}
       <div className="flex flex-1 flex-col p-4">
-        {/* Vùng nội dung phía trên, tự giãn để nút dồn xuống dưới. */}
         <div className="flex flex-1 flex-col">
-          {/* Tiêu đề giới hạn 2 dòng và giữ sẵn chiều cao 2 dòng cho đều nhau. */}
+          {/* Tiêu đề 16/700, giữ sẵn 2 dòng 48px (bất biến 5). */}
           <h3
             data-testid="activity-title"
-            className="min-h-[3rem] text-[15px] font-bold leading-6 text-ink break-words line-clamp-2"
+            className="min-h-[3rem] text-base font-bold leading-6 text-ink break-words line-clamp-2"
           >
             {hoatDong.title}
           </h3>
-          {/* Cụm thông tin ngày, địa điểm, sĩ số; địa điểm cắt 1 dòng để không vỡ bố cục. */}
-          <div className="mt-2 space-y-1 text-xs text-muted">
+          {/* 3 dòng meta 12px, cách nhau 4px, cách dưới 8px. */}
+          <div className="mb-2 mt-2 space-y-1 text-xs text-muted-strong">
             <div className="flex items-center gap-1.5">
-              <Clock size={13} className="shrink-0" aria-hidden="true" />
+              <Clock size={14} className="shrink-0" aria-hidden="true" />
               <span className="min-w-0 truncate">{hoatDong.start_date ?? "Sắp mở"}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <MapPin size={13} className="shrink-0" aria-hidden="true" />
+              <MapPin size={14} className="shrink-0" aria-hidden="true" />
               <span className="min-w-0 truncate">
                 {hoatDong.description ?? "Địa điểm cập nhật sau"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Users size={13} className="shrink-0" aria-hidden="true" />
+              <Users size={14} className="shrink-0" aria-hidden="true" />
               <span className="tabular-nums">
                 {daLay}/{hoatDong.capacity}
               </span>
-              <span className="ml-auto shrink-0 font-semibold text-emerald-600">
-                {hoatDong.slots_left > 0 ? `Còn ${hoatDong.slots_left} chỗ` : "Hết chỗ"}
+              <span
+                className={`ml-auto shrink-0 text-xs font-bold ${
+                  hetCho ? "text-[#B91C1C]" : "text-[#047857]"
+                }`}
+              >
+                {hetCho ? "Hết chỗ" : `Còn ${hoatDong.slots_left} chỗ`}
               </span>
             </div>
           </div>
-          {/* Thanh tiến trình tỉ lệ lấp đầy, chiều cao cố định cho mọi thẻ. */}
-          <div className="mt-2 h-1.5 shrink-0 overflow-hidden rounded-full bg-canvas-soft">
+          {/* Thanh tiến độ cao 8, track --line; chữ đã có ở dòng 3 nên ẩn với SR. */}
+          <div
+            className="mt-2 h-2 shrink-0 overflow-hidden rounded-full bg-line"
+            aria-hidden="true"
+          >
             <div
               className="h-full rounded-full hero-gradient transition-all duration-300 ease-out"
               style={{ width: `${tiLe}%` }}
@@ -110,16 +126,41 @@ export default function ActivityCard({ hoatDong, dangDangKy, khiDangKy }: Props)
           </div>
         </div>
 
-        {/* Khối nút dính đáy thẻ nhờ mt-auto, mọi nút cùng một đường ngang. */}
+        {/* Khối nút dính đáy nhờ mt-auto (bất biến 6). */}
         <div className="mt-auto shrink-0 pt-4">
           <button
             type="button"
             data-testid="activity-register-btn"
             onClick={() => khiDangKy(hoatDong.id)}
-            disabled={nutTat}
-            className={NUT_DANG_KY_CLASS}
+            disabled={hoatDong.registered || hetCho || dangDangKy}
+            aria-busy={dangDangKy}
+            aria-label={
+              dangDangKy
+                ? `Đang đăng ký ${hoatDong.title}`
+                : hoatDong.registered
+                  ? `Đã đăng ký ${hoatDong.title}`
+                  : hetCho
+                    ? `${hoatDong.title} đã hết chỗ`
+                    : `Đăng ký ${hoatDong.title}`
+            }
+            style={nenNut}
+            className={`${NUT_CHUNG} ${lopNutTrangThai}`}
           >
-            {nhanNut}
+            {dangDangKy ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                Đang đăng ký…
+              </span>
+            ) : hoatDong.registered ? (
+              <span className="inline-flex items-center justify-center gap-1.5">
+                <Check size={16} aria-hidden="true" />
+                Đã đăng ký
+              </span>
+            ) : hetCho ? (
+              "Đã hết chỗ"
+            ) : (
+              "Đăng ký ngay"
+            )}
           </button>
         </div>
       </div>

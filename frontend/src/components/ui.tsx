@@ -39,7 +39,8 @@ export function StatCard({
 }: {
   label: string;
   value: ReactNode;
-  delta?: string;
+  /** Phụ chú: số → tô theo dấu kèm icon ▲▼; chuỗi → --muted-strong (file 03 G1). */
+  delta?: string | number;
   icon?: ReactNode;
   accent?: boolean;
   color?: string;
@@ -48,20 +49,35 @@ export function StatCard({
   revealDelay?: number;
 }) {
   const valueClass = animated ? "animated-number" : "";
+  // Delta số tô theo dấu (file 00 mục 7.7: màu không là tín hiệu duy nhất nên kèm icon).
+  // Chuỗi (kể cả "+12%") và kiểu lạ (object/null) → nhánh chuỗi, không crash.
+  const deltaSo = typeof delta === "number" ? delta : null;
+  const deltaChuoi = typeof delta === "string" ? delta : null;
+  const mauDeltaSo =
+    deltaSo === null ? "" : deltaSo > 0 ? "text-[#047857]" : deltaSo < 0 ? "text-[#B91C1C]" : "text-muted-strong";
+  const iconDeltaSo = deltaSo === null || deltaSo === 0 ? null : deltaSo > 0 ? "▲" : "▼";
   return (
     <Card interactive reveal={reveal} revealDelay={revealDelay}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          {/* Nhãn 14px dùng --muted-strong 5,01:1 thay --muted 3,46:1 */}
-          <div className="text-sm font-medium text-muted-strong">{label}</div>
+          {/* Nhãn 13/600 --ink-soft 8,50:1 (file 03 G1) */}
+          <div className="text-[13px] font-semibold text-ink-soft">{label}</div>
           <div className={`mt-1 text-[28px] font-extrabold leading-tight text-ink tabular-nums ${valueClass} break-words`}>
             {value}
           </div>
-          {delta && (
-            /* Phụ chú 12px dùng #047857 5,48:1 thay emerald-600 3,77:1 */
-            <div className="mt-1 text-xs font-semibold text-[#047857] break-words overflow-wrap-anywhere">
-              {delta}
+          {deltaSo !== null ? (
+            <div className={`mt-1 text-xs font-semibold tabular-nums break-words overflow-wrap-anywhere ${mauDeltaSo}`}>
+              {iconDeltaSo && (
+                <span aria-hidden="true">{iconDeltaSo} </span>
+              )}
+              {deltaSo > 0 ? `+${deltaSo}` : `${deltaSo}`}
             </div>
+          ) : (
+            deltaChuoi && (
+              <div className="mt-1 text-xs font-semibold text-muted-strong break-words overflow-wrap-anywhere">
+                {deltaChuoi}
+              </div>
+            )
           )}
         </div>
         {icon && (
@@ -111,27 +127,36 @@ export function PageHeader({
 
 export function Badge({
   children,
-  tone = "portal",
+  tone = "info",
   reveal = false,
   revealDelay = 0,
 }: {
   children: ReactNode;
-  tone?: "portal" | "emerald" | "amber" | "red" | "violet" | "slate";
+  /** Tone hiển thị. Tên cũ (portal/emerald/amber/red/violet/slate) giữ lại làm
+      bí danh để 3 trang ngoài phạm vi (Settings/Evaluations/Overview) không vỡ. */
+  tone?: "portal" | "emerald" | "amber" | "red" | "violet" | "slate" | "success" | "info" | "warn" | "danger" | "muted";
   reveal?: boolean;
   revealDelay?: number;
 }) {
   const tones: Record<string, string> = {
-    portal: "bg-portal-soft text-portal",
-    emerald: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    red: "bg-red-50 text-red-700",
+    // Tone mới file 03 G2 (cao 24, chữ 12/600, tương phản đã đối chiếu).
+    success: "bg-[#ECFDF5] text-[#047857]",
+    info: "bg-[#EFF6FF] text-[#1D4ED8]",
+    warn: "bg-[#FFF7ED] text-[#9A3412]",
+    danger: "bg-[#FEF2F2] text-[#B91C1C]",
+    muted: "bg-canvas-soft text-muted-strong border border-line-strong",
+    // Bí danh cũ → màu mới tương đương (giữ để không vỡ caller hiện có).
+    portal: "bg-portal-soft text-portal-dark",
+    emerald: "bg-[#ECFDF5] text-[#047857]",
+    amber: "bg-[#FFF7ED] text-[#9A3412]",
+    red: "bg-[#FEF2F2] text-[#B91C1C]",
     violet: "bg-violet-50 text-violet-700",
-    slate: "bg-canvas-soft text-muted",
+    slate: "bg-canvas-soft text-muted-strong border border-line-strong",
   };
   const revealClass = reveal ? "reveal-fade" : "";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]} ${revealClass}`}
+      className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${tones[tone]} ${revealClass}`}
       style={reveal ? { animationDelay: `${revealDelay}s` } : undefined}
     >
       {children}

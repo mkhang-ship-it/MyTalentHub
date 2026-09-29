@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1740" viewBox="0 0 1440 1740" font-family="'Be Vietnam Pro', Inter, sans-serif">
+  <title>Tham khảo 03 — Trang Tài trợ (Đợt 4)</title>
+  <desc>Ảnh tham khảo. CHỮ THẮNG ẢNH — con số chuẩn ở 03-enterprise-sponsorships.md. Banner có scrim navy, chip lĩnh vực thay “Tiềm năng”, form span cột mới (submit hàng riêng canh phải), badge trạng thái theo tone 00/4.3.</desc>
+
+  <defs>
+    <style>
+      .t1 { font-size: 24px; font-weight: 800; fill: #33324d; }
+      .t2 { font-size: 14px; fill: #6F6C8A; }
+      .h3 { font-size: 18px; font-weight: 700; fill: #33324d; }
+      .h3m { font-size: 17px; font-weight: 700; fill: #33324d; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #4b4a66; }
+      .b14 { font-size: 14px; fill: #4b4a66; }
+      .b14b { font-size: 14px; font-weight: 600; fill: #33324d; }
+      .n14 { font-size: 14px; font-weight: 700; fill: #33324d; }
+      .m12 { font-size: 12px; fill: #6F6C8A; }
+      .th { font-size: 12px; font-weight: 700; fill: #6F6C8A; letter-spacing: 0.06em; }
+      .card { fill: #ffffff; stroke: #ede7e1; stroke-width: 1; }
+      .rowline { stroke: #ede7e1; stroke-width: 1; }
+      .thead { stroke: #e2d9d0; stroke-width: 1; }
+      .ctl { fill: #ffffff; stroke: #968D82; stroke-width: 1; }
+      .btnP { fill: #C44296; }
+      .btnS { fill: #ffffff; stroke: #968D82; stroke-width: 1; }
+    </style>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FF5A4E"/><stop offset="0.48" stop-color="#EE3380"/><stop offset="1" stop-color="#8842C8"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.62"/>
+      <stop offset="0.55" stop-color="#1B2A5E" stop-opacity="0.40"/>
+      <stop offset="1" stop-color="#1B2A5E" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="prog" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EC4899"/><stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="1740" fill="#fdf7f1"/>
+
+  <!-- PageHeader (không còn “(slide 31)”) -->
+  <text class="t1" x="80" y="64">Tài trợ dự án học sinh</text>
+  <text class="t2" x="80" y="92">Đầu tư vào các dự án sáng tạo của học sinh sinh viên.</text>
+
+  <!-- ═══ BANNER TỔNG: scrim + radius 20 + icon chip nền trắng ═══ -->
+  <g>
+    <rect x="80" y="140" width="1280" height="104" rx="20" fill="url(#hero)"/>
+    <rect x="80" y="140" width="1280" height="104" rx="20" fill="url(#scrim)"/>
+    <rect x="104" y="168" width="48" height="48" rx="12" fill="#ffffff"/>
+    <path d="M128 180 v24 M120 188 h16" stroke="#922C6B" stroke-width="3" stroke-linecap="round"/>
+    <text x="176" y="186" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.06em">TỔNG ĐÃ TÀI TRỢ</text>
+    <text x="176" y="216" font-size="24" font-weight="800" fill="#ffffff" style="font-variant-numeric: tabular-nums">125.000.000 đ</text>
+    <text x="700" y="216" font-size="12" fill="#ffffff">Chỉ tính tài trợ đã duyệt · trên 42 dự án</text>
+  </g>
+
+  <!-- ═══ HÀNG BỘ LỌC (gap 16) ═══ -->
+  <g>
+    <rect class="ctl" x="80" y="276" width="280" height="44" rx="12"/>
+    <path d="M98 292 h14 M101 297 h8 M104 302 h2" stroke="#6F6C8A" stroke-width="1.5" stroke-linecap="round"/>
+    <text class="b14" x="124" y="304">Tất cả lĩnh vực</text>
+    <rect class="ctl" x="376" y="276" width="280" height="44" rx="12"/>
+    <text class="b14" x="392" y="304">Tất cả trạng thái</text>
+    <path d="M628 294l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+    <rect class="btnS" x="672" y="276" width="130" height="44" rx="12"/>
+    <text class="b14b" x="737" y="304" text-anchor="middle">Bỏ lọc</text>
+  </g>
+
+  <!-- ═══ LƯỚI DỰ ÁN 3 CỘT (≥1280) — card radius 20 ═══ -->
+  <!-- thẻ 1 -->
+  <g>
+    <rect class="card" x="80" y="352" width="416" height="336" rx="20"/>
+    <!-- chip LĨNH VỰC thay “✨ Tiềm năng” -->
+    <rect x="104" y="376" width="88" height="24" rx="12" fill="#FAF3EA" stroke="#e2d9d0" stroke-width="1"/>
+    <text x="148" y="392" text-anchor="middle" font-size="12" font-weight="600" fill="#4b4a66">Kỹ thuật</text>
+    <text class="h3" x="104" y="440">Robot nông nghiệp AI</text>
+    <text class="m12" x="104" y="466">GV. Nguyễn Văn A · Nhóm 5 thành viên</text>
+    <!-- dòng tiền 13/600 + % 13/700 ‑‑ink (bỏ emerald) -->
+    <text x="104" y="614" font-size="13" font-weight="600" fill="#4b4a66" style="font-variant-numeric: tabular-nums">12.000.000 / 20.000.000 đ</text>
+    <text x="472" y="614" font-size="13" font-weight="700" fill="#33324d" text-anchor="end" style="font-variant-numeric: tabular-nums">60%</text>
+    <!-- track ‑‑line · fill gradient 00/4.5 · cao 8 -->
+    <rect x="104" y="626" width="368" height="8" rx="4" fill="#ede7e1"/>
+    <rect x="104" y="626" width="221" height="8" rx="4" fill="url(#prog)"/>
+    <text class="m12" x="104" y="654">Còn thiếu 8.000.000 đ</text>
+    <!-- 2 nút h44 chân thẻ -->
+    <rect class="btnS" x="104" y="668" width="176" height="44" rx="12"/>
+    <text class="b14b" x="192" y="696" text-anchor="middle">Xem chi tiết</text>
+    <rect class="btnP" x="288" y="668" width="184" height="44" rx="12"/>
+    <text x="380" y="696" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">Tiếp tục tài trợ</text>
+  </g>
+
+  <!-- thẻ 2: đạt 100% -->
+  <g>
+    <rect class="card" x="512" y="352" width="416" height="336" rx="20"/>
+    <rect x="536" y="376" width="82" height="24" rx="12" fill="#FAF3EA" stroke="#e2d9d0" stroke-width="1"/>
+    <text x="577" y="392" text-anchor="middle" font-size="12" font-weight="600" fill="#4b4a66">Nghệ thuật</text>
+    <text class="h3" x="536" y="440">Câu lạc bộ kịch thiếu nhi</text>
+    <text class="m12" x="536" y="466">GV. Trần Thị B · Nhóm 7 thành viên</text>
+    <text x="536" y="614" font-size="13" font-weight="600" fill="#4b4a66" style="font-variant-numeric: tabular-nums">15.000.000 / 15.000.000 đ</text>
+    <text x="904" y="614" font-size="13" font-weight="700" fill="#33324d" text-anchor="end" style="font-variant-numeric: tabular-nums">100%</text>
+    <rect x="536" y="626" width="368" height="8" rx="4" fill="#ede7e1"/>
+    <rect x="536" y="626" width="368" height="8" rx="4" fill="url(#prog)"/>
+    <!-- pill tone thành công 00/4.3 -->
+    <rect x="536" y="646" width="134" height="24" rx="12" fill="#ECFDF5"/>
+    <text x="603" y="662" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✓ Đã đạt mục tiêu</text>
+    <rect class="btnS" x="536" y="668" width="176" height="44" rx="12"/>
+    <text class="b14b" x="624" y="696" text-anchor="middle">Xem chi tiết</text>
+    <rect x="720" y="668" width="184" height="44" rx="12" fill="#FAF3EA" stroke="#e2d9d0" stroke-width="1"/>
+    <text x="812" y="696" text-anchor="middle" font-size="14" font-weight="600" fill="#4b4a66">Đã đạt mục tiêu</text>
+  </g>
+
+  <!-- thẻ 3: 0% → “Tài trợ ngay” -->
+  <g>
+    <rect class="card" x="944" y="352" width="416" height="336" rx="20"/>
+    <rect x="968" y="376" width="90" height="24" rx="12" fill="#FAF3EA" stroke="#e2d9d0" stroke-width="1"/>
+    <text x="1013" y="392" text-anchor="middle" font-size="12" font-weight="600" fill="#4b4a66">Học thuật</text>
+    <text class="h3" x="968" y="440">Thí nghiệm hóa xanh</text>
+    <text class="m12" x="968" y="466">GV. Lê Văn C · Nhóm 4 thành viên</text>
+    <text x="968" y="614" font-size="13" font-weight="600" fill="#4b4a66" style="font-variant-numeric: tabular-nums">0 / 10.000.000 đ</text>
+    <text x="1336" y="614" font-size="13" font-weight="700" fill="#33324d" text-anchor="end" style="font-variant-numeric: tabular-nums">0%</text>
+    <rect x="968" y="626" width="368" height="8" rx="4" fill="#ede7e1"/>
+    <rect x="968" y="626" width="8" height="8" rx="4" fill="url(#prog)"/>
+    <text class="m12" x="968" y="654">Còn thiếu 10.000.000 đ</text>
+    <rect class="btnS" x="968" y="668" width="176" height="44" rx="12"/>
+    <text class="b14b" x="1056" y="696" text-anchor="middle">Xem chi tiết</text>
+    <rect class="btnP" x="1152" y="668" width="184" height="44" rx="12"/>
+    <text x="1244" y="696" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">Tài trợ ngay</text>
+  </g>
+
+  <!-- ═══ CARD FORM: span mới — project(2)+amount(2) / conditions(4) / submit(4 canh phải) ═══ -->
+  <g>
+    <rect class="card" x="80" y="720" width="1280" height="336" rx="20"/>
+    <text class="h3" x="104" y="760">Tài trợ dự án mới</text>
+    <line x1="104" y1="784" x2="1336" y2="784" stroke="#ede7e1" stroke-width="1"/>
+
+    <!-- hàng 1: dự án (2 cột) + số tiền (2 cột) -->
+    <text class="lbl" x="104" y="820">Dự án <tspan fill="#B91C1C">*</tspan></text>
+    <rect class="ctl" x="104" y="832" width="608" height="44" rx="12"/>
+    <text class="b14" x="120" y="860">Chọn dự án…</text>
+    <path d="M690 850l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+
+    <text class="lbl" x="736" y="820">Số tiền (VNĐ) <tspan fill="#B91C1C">*</tspan></text>
+    <rect class="ctl" x="736" y="832" width="600" height="44" rx="12"/>
+    <text class="b14" x="752" y="860">VD: 5000000</text>
+
+    <!-- hàng 2: điều kiện full -->
+    <text class="lbl" x="104" y="914">Điều kiện tài trợ (tùy chọn)</text>
+    <rect class="ctl" x="104" y="926" width="1232" height="44" rx="12"/>
+    <text class="b14" x="120" y="954" fill="#6F6C8A">VD: ưu tiên dự án có sản phẩm nguyên mẫu…</text>
+
+    <!-- dòng thông tin dự án đã chọn (thêm số liệu “còn thiếu”) -->
+    <text class="m12" x="104" y="994">Chủ dự án Nguyễn Văn A · 5 thành viên · đã nhận 12.000.000/20.000.000 đ (60%) · còn thiếu 8.000.000 đ.</text>
+
+    <!-- hàng 3: nút submit hàng riêng canh phải, self-end, h44 (không tràn ở 1024) -->
+    <text class="m12" x="104" y="1030">Bước 2: chọn ngân sách phù hợp với khả năng của đơn vị.</text>
+    <rect class="btnP" x="1124" y="998" width="212" height="44" rx="12"/>
+    <text x="1230" y="1026" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">Xác nhận tài trợ</text>
+  </g>
+
+  <!-- ═══ LỊCH SỬ TÀI TRỢ: thêm dòng tóm tắt + badge tone 4.3 ═══ -->
+  <g>
+    <rect class="card" x="80" y="1088" width="1280" height="456" rx="20"/>
+    <text class="h3" x="104" y="1128">Lịch sử tài trợ</text>
+    <text class="b14" x="104" y="1154">6 lượt tài trợ · đã duyệt 125.000.000 đ · chờ duyệt 20.000.000 đ.</text>
+
+    <rect x="81" y="1174" width="1278" height="44" fill="#FAF3EA"/>
+    <text class="th" x="104" y="1201">DỰ ÁN</text>
+    <text class="th" x="440" y="1201">LĨNH VỰC</text>
+    <text class="th" x="740" y="1201" text-anchor="end">SỐ TIỀN</text>
+    <text class="th" x="780" y="1201">ĐIỀU KIỆN</text>
+    <text class="th" x="1130" y="1201" text-anchor="end">TRẠNG THÁI</text>
+    <text class="th" x="1240" y="1201" text-anchor="end">NGÀY</text>
+    <text class="th" x="1336" y="1201" text-anchor="end">HÀNH ĐỘNG</text>
+    <line class="thead" x1="80" y1="1218" x2="1360" y2="1218"/>
+
+    <!-- hàng 1: đã duyệt → tone thành công -->
+    <g>
+      <text class="b14b" x="104" y="1256">Robot nông nghiệp AI</text>
+      <text class="b14" x="440" y="1256">Kỹ thuật</text>
+      <text class="n14" x="740" y="1256" text-anchor="end">10.000.000 đ</text>
+      <text class="b14" x="780" y="1256" fill="#6F6C8A">Ưu tiên giới thiệu sản phẩm</text>
+      <rect x="1034" y="1238" width="96" height="24" rx="12" fill="#ECFDF5"/>
+      <text x="1082" y="1254" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✓ Đã duyệt</text>
+      <text class="b14b" x="1240" y="1256" text-anchor="end" fill="#6F6C8A">12/09/2026</text>
+      <!-- nút icon 36 · Sửa secondary · Xóa tone nguy hiểm · focus ‑‑portal -->
+      <rect class="btnS" x="1264" y="1234" width="36" height="36" rx="12"/>
+      <path d="M1276 1260 l8-8 M1280 1248 l4 4" stroke="#33324d" stroke-width="1.5"/>
+      <rect x="1308" y="1234" width="36" height="36" rx="12" fill="#FEF2F2"/>
+      <path d="M1320 1244 h12 M1324 1244 v14 M1330 1244 v14 M1322 1244 v-3 h8 v3" stroke="#B91C1C" stroke-width="1.5" fill="none"/>
+      <line class="rowline" x1="80" y1="1274" x2="1360" y2="1274"/>
+    </g>
+
+    <!-- hàng 2: chờ duyệt → tone cảnh báo -->
+    <g>
+      <text class="b14b" x="104" y="1312">Câu lạc bộ kịch thiếu nhi</text>
+      <text class="b14" x="440" y="1312">Nghệ thuật</text>
+      <text class="n14" x="740" y="1312" text-anchor="end">10.000.000 đ</text>
+      <text class="b14" x="780" y="1312" fill="#6F6C8A">—</text>
+      <rect x="1034" y="1294" width="96" height="24" rx="12" fill="#FFF7ED"/>
+      <text x="1082" y="1310" text-anchor="middle" font-size="12" font-weight="600" fill="#9A3412">◷ Chờ duyệt</text>
+      <text class="b14b" x="1240" y="1312" text-anchor="end" fill="#6F6C8A">14/09/2026</text>
+      <rect class="btnS" x="1264" y="1290" width="36" height="36" rx="12"/>
+      <path d="M1276 1316 l8-8 M1280 1304 l4 4" stroke="#33324d" stroke-width="1.5"/>
+      <rect x="1308" y="1290" width="36" height="36" rx="12" fill="#FEF2F2"/>
+      <path d="M1320 1300 h12 M1324 1300 v14 M1330 1300 v14 M1322 1300 v-3 h8 v3" stroke="#B91C1C" stroke-width="1.5" fill="none"/>
+      <line class="rowline" x1="80" y1="1330" x2="1360" y2="1330"/>
+    </g>
+
+    <!-- hàng 3 -->
+    <g>
+      <text class="b14b" x="104" y="1368">Thí nghiệm hóa xanh</text>
+      <text class="b14" x="440" y="1368">Học thuật</text>
+      <text class="n14" x="740" y="1368" text-anchor="end">5.000.000 đ</text>
+      <text class="b14" x="780" y="1368" fill="#6F6C8A">Ghi tên nhà tài trợ trên poster</text>
+      <rect x="1034" y="1350" width="96" height="24" rx="12" fill="#ECFDF5"/>
+      <text x="1082" y="1366" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✓ Đã duyệt</text>
+      <text class="b14b" x="1240" y="1368" text-anchor="end" fill="#6F6C8A">16/09/2026</text>
+      <rect class="btnS" x="1264" y="1346" width="36" height="36" rx="12"/>
+      <path d="M1276 1372 l8-8 M1280 1360 l4 4" stroke="#33324d" stroke-width="1.5"/>
+      <rect x="1308" y="1346" width="36" height="36" rx="12" fill="#FEF2F2"/>
+      <path d="M1320 1356 h12 M1324 1356 v14 M1330 1356 v14 M1322 1356 v-3 h8 v3" stroke="#B91C1C" stroke-width="1.5" fill="none"/>
+      <line class="rowline" x1="80" y1="1386" x2="1360" y2="1386"/>
+    </g>
+
+    <!-- hàng 4 -->
+    <g>
+      <text class="b14b" x="104" y="1424">Sân chơi xanh cho lớp 3</text>
+      <text class="b14" x="440" y="1424">Cộng đồng</text>
+      <text class="n14" x="740" y="1424" text-anchor="end">8.000.000 đ</text>
+      <text class="b14" x="780" y="1424" fill="#6F6C8A">—</text>
+      <rect x="1034" y="1406" width="96" height="24" rx="12" fill="#ECFDF5"/>
+      <text x="1082" y="1422" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✓ Đã duyệt</text>
+      <text class="b14b" x="1240" y="1424" text-anchor="end" fill="#6F6C8A">18/09/2026</text>
+      <rect class="btnS" x="1264" y="1402" width="36" height="36" rx="12"/>
+      <path d="M1276 1428 l8-8 M1280 1416 l4 4" stroke="#33324d" stroke-width="1.5"/>
+      <rect x="1308" y="1402" width="36" height="36" rx="12" fill="#FEF2F2"/>
+      <path d="M1320 1412 h12 M1324 1412 v14 M1330 1412 v14 M1322 1412 v-3 h8 v3" stroke="#B91C1C" stroke-width="1.5" fill="none"/>
+      <line class="rowline" x1="80" y1="1442" x2="1360" y2="1442"/>
+    </g>
+  </g>
+
+  <!-- ═══ TOAST (00/4.11) ═══ -->
+  <g>
+    <rect x="1040" y="1560" width="320" height="64" rx="16" fill="#ffffff" stroke="#ede7e1" stroke-width="1" style="filter: drop-shadow(0 12px 32px rgba(51,50,77,0.16))"/>
+    <circle cx="1072" cy="1592" r="9" fill="none" stroke="#047857" stroke-width="2"/>
+    <path d="M1068 1592 l3 3 5-6" fill="none" stroke="#047857" stroke-width="2"/>
+    <text x="1094" y="1597" font-size="14" font-weight="700" fill="#33324d">Tạo tài trợ thành công</text>
+  </g>
+
+  <!-- ═══ HỘP THOẠI XÁC NHẬN (00/4.11) ═══ -->
+  <g>
+    <rect width="1440" height="1740" fill="rgba(27,42,94,0.45)"/>
+    <rect x="496" y="700" width="448" height="252" rx="20" fill="#ffffff"/>
+    <text class="h3" x="528" y="744">Xác nhận tài trợ dự án?</text>
+    <text class="b14" x="528" y="776">Dự án “Robot nông nghiệp AI” · 10.000.000 đ</text>
+    <text class="b14" x="528" y="798">Sau khi xác nhận, đơn vị không thể tự hủy trên hệ thống.</text>
+    <rect class="btnS" x="700" y="876" width="104" height="44" rx="12"/>
+    <text class="b14b" x="752" y="904" text-anchor="middle">Hủy</text>
+    <rect class="btnP" x="812" y="876" width="132" height="44" rx="12"/>
+    <text x="878" y="904" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">Xác nhận</text>
+  </g>
+
+  <text class="m12" x="80" y="1670" fill="#6F6C8A">Ghi chú ảnh: lưới dự án 1 cột &lt;640 · 2 cột 640–1279 · 3 cột ≥1280 · form 1 cột &lt;768 · BẢNG LỊCH SỬ → danh sách thẻ &lt;768 (00/4.7).</text>
+  <text class="m12" x="80" y="1694" fill="#6F6C8A">Hộp thoại + toast vẽ để tham chiếu tỉ lệ (khối thoại và cảnh báo nằm trên trang ở z-index cao hơn — không phủ toàn trang trong thực tế).</text>
+</svg>

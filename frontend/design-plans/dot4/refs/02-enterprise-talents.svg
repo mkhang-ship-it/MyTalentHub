@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1520" viewBox="0 0 1440 1520" font-family="'Be Vietnam Pro', Inter, sans-serif">
+  <title>Tham khảo 02 — Trang Tìm nhân tài (Đợt 4)</title>
+  <desc>Ảnh tham khảo. CHỮ THẮNG ẢNH — con số chuẩn ở 02-enterprise-talents.md. Lọc 1/2/3 cột, bảng có cột số 14/700, phân trang 44, DataNetwork giữ nguyên nội dung nhưng khối có margin-top 32 và ẩn khi 0 kết quả.</desc>
+
+  <defs>
+    <style>
+      .t1 { font-size: 24px; font-weight: 800; fill: #33324d; }
+      .t2 { font-size: 14px; fill: #6F6C8A; }
+      .h3 { font-size: 18px; font-weight: 700; fill: #33324d; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #4b4a66; }
+      .b14 { font-size: 14px; fill: #4b4a66; }
+      .b14b { font-size: 14px; font-weight: 600; fill: #33324d; }
+      .n14 { font-size: 14px; font-weight: 700; fill: #33324d; }
+      .m12 { font-size: 12px; fill: #6F6C8A; }
+      .th { font-size: 12px; font-weight: 700; fill: #6F6C8A; letter-spacing: 0.06em; }
+      .card { fill: #ffffff; stroke: #ede7e1; stroke-width: 1; }
+      .rowline { stroke: #ede7e1; stroke-width: 1; }
+      .thead { stroke: #e2d9d0; stroke-width: 1; }
+      .ctl { fill: #ffffff; stroke: #968D82; stroke-width: 1; }
+      .btnP { fill: #C44296; }
+      .btnS { fill: #ffffff; stroke: #968D82; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1440" height="1520" fill="#fdf7f1"/>
+
+  <!-- PageHeader (không còn “(slide 29)”) -->
+  <text class="t1" x="80" y="64">Tìm nhân tài</text>
+  <text class="t2" x="80" y="92">Tra cứu hồ sơ học sinh theo tên, lớp, khối, lĩnh vực, điểm năng lực — để tuyển thực tập hoặc tài trợ tài năng.</text>
+
+  <!-- ═══ CARD BỘ LỌC: 3 cột ≥1280 (lý do số ở B2-3) ═══ -->
+  <g>
+    <rect class="card" x="80" y="140" width="1280" height="196" rx="20"/>
+    <!-- hàng tiêu đề: nhãn 13/600 ‑‑ink-soft (bỏ uppercase) + nút Bỏ bộ lọc mới -->
+    <text class="lbl" x="104" y="176">Bộ lọc</text>
+    <rect class="btnS" x="1194" y="154" width="142" height="44" rx="12"/>
+    <text class="b14b" x="1265" y="182" text-anchor="middle">Bỏ bộ lọc</text>
+
+    <!-- ô 1/2/3 (dòng 1) — .input-control h44 r12 viền ‑‑line-control -->
+    <rect class="ctl" x="104" y="204" width="394" height="44" rx="12"/>
+    <text class="b14" x="120" y="232" fill="#6F6C8A">Tìm theo tên…</text>
+    <rect class="ctl" x="522" y="204" width="394" height="44" rx="12"/>
+    <text class="b14" x="538" y="232">Tất cả khối</text>
+    <path d="M890 222l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+    <rect class="ctl" x="940" y="204" width="394" height="44" rx="12"/>
+    <text class="b14" x="956" y="232">Tất cả lĩnh vực</text>
+    <path d="M1306 222l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+
+    <!-- ô 4/5/6 (dòng 2) -->
+    <rect class="ctl" x="104" y="264" width="394" height="44" rx="12"/>
+    <text class="b14" x="120" y="292">Tất cả lớp</text>
+    <rect class="ctl" x="522" y="264" width="394" height="44" rx="12"/>
+    <text class="b14" x="538" y="292">Điểm năng lực ≥ bất kỳ</text>
+    <path d="M890 282l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+    <rect class="ctl" x="940" y="264" width="394" height="44" rx="12"/>
+    <text class="b14" x="956" y="292">Điểm kỹ thuật ≥ bất kỳ</text>
+    <path d="M1306 282l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+  </g>
+
+  <!-- ═══ HÀNG ĐẾM + SỐ DÒNG/TRANG ═══ -->
+  <text class="b14" x="80" y="384" fill="#6F6C8A">128 hồ sơ phù hợp · Trang 1 / 13</text>
+  <rect class="ctl" x="1240" y="356" width="120" height="44" rx="12"/>
+  <text class="b14" x="1256" y="384">20/trang</text>
+  <path d="M1330 374l6 6 6-6" fill="none" stroke="#6F6C8A" stroke-width="1.5"/>
+
+  <!-- ═══ BẢNG KẾT QUẢ (≥768) ═══ -->
+  <g>
+    <rect class="card" x="80" y="420" width="1280" height="360" rx="16"/>
+    <!-- header 12/700 ‑‑muted-strong · padding 10/12 · border ‑‑line-strong -->
+    <rect x="81" y="421" width="1278" height="44" fill="#FAF3EA" rx="15"/>
+    <text class="th" x="104" y="448">HỌ TÊN</text>
+    <text class="th" x="330" y="448">LỚP</text>
+    <text class="th" x="420" y="448">KHỐI</text>
+    <text class="th" x="760" y="448" text-anchor="end">NĂNG LỰC</text>
+    <text class="th" x="890" y="448" text-anchor="end">KỸ THUẬT</text>
+    <text class="th" x="930" y="448">KỸ NĂNG NỔI BẬT</text>
+    <text class="th" x="1336" y="448" text-anchor="end">THAO TÁC</text>
+    <line class="thead" x1="80" y1="465" x2="1360" y2="465"/>
+
+    <!-- hàng 1 -->
+    <g>
+      <text class="b14b" x="104" y="504">Nguyễn Minh Anh</text>
+      <text class="b14" x="330" y="504">11B1</text>
+      <text class="b14" x="420" y="504">11</text>
+      <text class="n14" x="760" y="504" text-anchor="end">92</text>
+      <text class="n14" x="890" y="504" text-anchor="end">88</text>
+      <!-- chip 12/600 h24 tone nhấn -->
+      <rect x="930" y="486" width="66" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="963" y="502" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Lập trình</text>
+      <rect x="1002" y="486" width="60" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="1032" y="502" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Thiết kế</text>
+      <rect x="1068" y="486" width="58" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="1097" y="502" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">+3 kỹ</text>
+      <!-- nút sm 36 (≥768) -->
+      <rect class="btnS" x="1156" y="477" width="94" height="36" rx="10"/>
+      <text class="b14b" x="1203" y="500" text-anchor="middle" font-size="13">Xem hồ sơ</text>
+      <rect class="btnP" x="1258" y="477" width="78" height="36" rx="10"/>
+      <text x="1297" y="500" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Mời</text>
+      <line class="rowline" x1="80" y1="526" x2="1360" y2="526"/>
+    </g>
+
+    <!-- hàng 2: lỗi mời → chip tone nguy hiểm NGAY TRONG DÒNG (không mất trang) -->
+    <g>
+      <rect x="81" y="527" width="1278" height="64" fill="#FBEFF7"/>
+      <text class="b14b" x="104" y="568">Trần Đức Long</text>
+      <text class="b14" x="330" y="568">12A2</text>
+      <text class="b14" x="420" y="568">12</text>
+      <text class="n14" x="760" y="568" text-anchor="end">89</text>
+      <text class="n14" x="890" y="568" text-anchor="end">84</text>
+      <rect x="930" y="550" width="70" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="965" y="566" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Robotics</text>
+      <rect x="1006" y="550" width="64" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="1038" y="566" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Khoa học</text>
+      <!-- chip lỗi -->
+      <rect x="1156" y="541" width="180" height="24" rx="12" fill="#FEF2F2"/>
+      <text x="1246" y="557" text-anchor="middle" font-size="12" font-weight="600" fill="#B91C1C">⚠ Không gửi được lời mời</text>
+      <line class="rowline" x1="80" y1="591" x2="1360" y2="591"/>
+    </g>
+
+    <!-- hàng 3: chip “Đã mời” tone thành công -->
+    <g>
+      <text class="b14b" x="104" y="632">Lê Thu Hà</text>
+      <text class="b14" x="330" y="632">10C3</text>
+      <text class="b14" x="420" y="632">10</text>
+      <text class="n14" x="760" y="632" text-anchor="end">84</text>
+      <text class="n14" x="890" y="632" text-anchor="end">79</text>
+      <rect x="930" y="614" width="66" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="963" y="630" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Nghệ thuật</text>
+      <rect class="btnS" x="1156" y="605" width="94" height="36" rx="10"/>
+      <text class="b14b" x="1203" y="628" text-anchor="middle" font-size="13">Xem hồ sơ</text>
+      <rect x="1258" y="611" width="78" height="24" rx="12" fill="#ECFDF5"/>
+      <text x="1297" y="627" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✓ Đã mời</text>
+      <line class="rowline" x1="80" y1="655" x2="1360" y2="655"/>
+    </g>
+
+    <!-- hàng 4 + 5 (mẫu) -->
+    <g>
+      <text class="b14b" x="104" y="696">Phạm Quốc Bảo</text>
+      <text class="b14" x="330" y="696">11A4</text>
+      <text class="b14" x="420" y="696">11</text>
+      <text class="n14" x="760" y="696" text-anchor="end">77</text>
+      <text class="n14" x="890" y="696" text-anchor="end">81</text>
+      <rect x="930" y="678" width="70" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="965" y="694" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Thể thao</text>
+      <rect class="btnS" x="1156" y="669" width="94" height="36" rx="10"/>
+      <text class="b14b" x="1203" y="692" text-anchor="middle" font-size="13">Xem hồ sơ</text>
+      <rect class="btnP" x="1258" y="669" width="78" height="36" rx="10"/>
+      <text x="1297" y="692" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Mời</text>
+      <line class="rowline" x1="80" y1="720" x2="1360" y2="720"/>
+    </g>
+    <g>
+      <text class="b14b" x="104" y="761">Vũ Thảo My</text>
+      <text class="b14" x="330" y="761">12B2</text>
+      <text class="b14" x="420" y="761">12</text>
+      <text class="n14" x="760" y="761" text-anchor="end">75</text>
+      <text class="n14" x="890" y="761" text-anchor="end">70</text>
+      <rect x="930" y="743" width="72" height="24" rx="12" fill="#FBEFF7"/>
+      <text x="966" y="759" text-anchor="middle" font-size="12" font-weight="600" fill="#922C6B">Kinh doanh</text>
+      <rect class="btnS" x="1156" y="733" width="94" height="36" rx="10"/>
+      <text class="b14b" x="1203" y="756" text-anchor="middle" font-size="13">Xem hồ sơ</text>
+      <rect class="btnP" x="1258" y="733" width="78" height="36" rx="10"/>
+      <text x="1297" y="756" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Mời</text>
+    </g>
+  </g>
+
+  <!-- ═══ PHÂN TRANG 44×44 ═══ -->
+  <g>
+    <rect class="btnS" x="548" y="804" width="44" height="44" rx="12"/>
+    <path d="M574 818l-7 8 7 8" fill="none" stroke="#6F6C8A" stroke-width="1.8"/>
+    <rect class="btnP" x="600" y="804" width="44" height="44" rx="12"/>
+    <text x="622" y="832" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">1</text>
+    <rect class="btnS" x="652" y="804" width="44" height="44" rx="12"/>
+    <text class="b14b" x="674" y="832" text-anchor="middle">2</text>
+    <rect class="btnS" x="704" y="804" width="44" height="44" rx="12"/>
+    <text class="b14b" x="726" y="832" text-anchor="middle">3</text>
+    <text class="m12" x="762" y="832">…</text>
+    <rect class="btnS" x="784" y="804" width="44" height="44" rx="12"/>
+    <text class="b14b" x="806" y="832" text-anchor="middle">13</text>
+    <rect class="btnS" x="836" y="804" width="44" height="44" rx="12"/>
+    <path d="M854 818l7 8-7 8" fill="none" stroke="#6F6C8A" stroke-width="1.8"/>
+  </g>
+
+  <!-- ═══ KHỐI DATANETWORK (giữ nguyên nội dung; margin-top 32; ẩn khi 0 kết quả) ═══ -->
+  <g>
+    <rect class="card" x="80" y="888" width="1280" height="470" rx="20"/>
+    <text class="h3" x="104" y="924">Ai giỏi kỹ năng nào</text>
+    <text class="b14" x="104" y="952" fill="#4b4a66">Trong 128 hồ sơ đang hiện (tổng 540): điểm năng lực trung bình 7,2; kỹ năng phổ biến nhất:</text>
+    <text class="b14" x="104" y="972" fill="#4b4a66">Lập trình (42 người). Đường nối nghĩa là nhân tài đó có kỹ năng bên phải — không phải điểm số.</text>
+
+    <!-- lưới 2 cột node, đường nối ‑‑muted-strong (đề nghị E9) -->
+    <g>
+      <!-- cột nhân tài -->
+      <circle cx="300" cy="1040" r="8" fill="#C44296" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="320" y="1045">Nguyễn Minh Anh</text>
+      <circle cx="300" cy="1100" r="8" fill="#C44296" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="320" y="1105">Trần Đức Long</text>
+      <circle cx="300" cy="1160" r="8" fill="#C44296" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="320" y="1165">Lê Thu Hà</text>
+      <circle cx="300" cy="1220" r="8" fill="#C44296" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="320" y="1225">Phạm Quốc Bảo</text>
+      <circle cx="300" cy="1280" r="8" fill="#C44296" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="320" y="1285">Vũ Thảo My</text>
+
+      <!-- cột kỹ năng -->
+      <circle cx="1040" cy="1064" r="8" fill="#F97316" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="1060" y="1069">Lập trình</text>
+      <circle cx="1040" cy="1134" r="8" fill="#F97316" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="1060" y="1139">Thiết kế</text>
+      <circle cx="1040" cy="1204" r="8" fill="#F97316" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="1060" y="1209">Nghệ thuật</text>
+      <circle cx="1040" cy="1274" r="8" fill="#F97316" stroke="#ffffff" stroke-width="2"/>
+      <text class="b14b" x="1060" y="1279">Robotics</text>
+
+      <!-- đường nối (màu ‑‑muted-strong) -->
+      <g stroke="#6F6C8A" stroke-width="1.5" fill="none">
+        <path d="M308 1040 C 500 1040, 800 1064, 1032 1064"/>
+        <path d="M308 1040 C 500 1040, 800 1134, 1032 1134"/>
+        <path d="M308 1100 C 500 1100, 800 1064, 1032 1064"/>
+        <path d="M308 1100 C 500 1100, 800 1274, 1032 1274"/>
+        <path d="M308 1160 C 500 1160, 800 1134, 1032 1134"/>
+        <path d="M308 1160 C 500 1160, 800 1204, 1032 1204"/>
+        <path d="M308 1220 C 500 1220, 800 1064, 1032 1064"/>
+        <path d="M308 1220 C 500 1220, 800 1204, 1032 1204"/>
+        <path d="M308 1280 C 500 1280, 800 1134, 1032 1134"/>
+        <path d="M308 1280 C 500 1280, 800 1274, 1032 1274"/>
+      </g>
+    </g>
+
+    <!-- chú giải -->
+    <circle cx="1180" cy="1032" r="6" fill="#C44296"/>
+    <text class="m12" x="1194" y="1037">Nhân tài</text>
+    <circle cx="1180" cy="1058" r="6" fill="#F97316"/>
+    <text class="m12" x="1194" y="1063">Kỹ năng</text>
+    <line x1="1174" y1="1086" x2="1186" y2="1086" stroke="#6F6C8A" stroke-width="1.5"/>
+    <text class="m12" x="1194" y="1091">Có nhau</text>
+    <rect x="1168" y="1110" width="14" height="14" rx="3" fill="#ffffff" stroke="#968D82" stroke-width="1"/>
+    <text class="m12" x="1194" y="1122">Giữ khi cuộn</text>
+  </g>
+
+  <text class="m12" x="80" y="1400">Ghi chú ảnh: bộ lọc 1 cột &lt;768 · 2 cột 768–1279 · 3 cột ≥1280 (ảnh = 1440 → 3 cột) · BẢNG → danh sách thẻ &lt;768 (nút 44px) · khối cách nhau 32px.</text>
+  <text class="m12" x="80" y="1424">Ảnh KHÔNG mô tả bên trong DataNetwork — nội dung đó thuộc mục E, chờ P5 mở quyền sửa three/** (E10: chiều cao SVG theo tỉ lệ).</text>
+</svg>

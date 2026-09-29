@@ -37,22 +37,22 @@ export default function BieuDoCot({ tieuDe, tomTat, cot, donViY, thongBaoRong, g
   const lonNhat = Math.max(1, ...cot.map((c) => c.giaTri));
 
   return (
-    <figure className="rounded-2xl border border-line bg-white p-4 sm:p-5" aria-label={nhanAria}>
-      <h3 className="font-semibold text-ink">{tieuDe}</h3>
-      <p className="mt-1 text-sm text-muted leading-relaxed">{tomTat}</p>
+    <figure className="rounded-[20px] border border-line bg-white p-4 sm:p-5" aria-label={nhanAria}>
+      <h3 className="text-lg font-bold text-ink">{tieuDe}</h3>
+      <p className="mt-1 text-sm text-ink-soft leading-relaxed">{tomTat}</p>
       {cot.length === 0 ? (
-        <p role="status" className="mt-4 rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm text-muted">
+        <p role="status" className="mt-4 rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm font-semibold text-ink-soft">
           {thongBaoRong ?? "Chưa đủ dữ liệu để vẽ biểu đồ."}
         </p>
       ) : (
         <>
-          <div className="mt-2 text-xs text-muted-light" id="bieu-do-cot-don-vi">{donViY}</div>
-          <ul className="mt-1 flex items-end gap-2 sm:gap-3" aria-label={`${tieuDe} — số liệu từng nhóm`}>
+          <div className="mt-2 text-xs font-medium text-muted-strong" id="bieu-do-cot-don-vi">{donViY}</div>
+          <ul className="mt-1 flex items-end gap-4" aria-label={`${tieuDe} — số liệu từng nhóm`}>
             {cot.map((c) => (
               <li key={c.nhan} className="flex min-w-0 flex-1 flex-col items-center">
                 <span className="text-xs font-bold text-ink tabular-nums" aria-hidden="true">{c.nhanGiaTri}</span>
                 <div
-                  className="mt-1 w-full max-w-[72px] rounded-t-lg bg-gradient-to-t from-violet-600 to-violet-400"
+                  className="mt-1 w-full max-w-[56px] rounded-t-[6px] bg-[#1B2A5E]"
                   style={{ height: `${Math.max(8, Math.round((c.giaTri / lonNhat) * 140))}px` }}
                   aria-hidden="true"
                 />
@@ -61,14 +61,15 @@ export default function BieuDoCot({ tieuDe, tomTat, cot, donViY, thongBaoRong, g
                     <span key={i} className="block">{dong}</span>
                   ))}
                 </span>
-                {c.phuDe && <span className="mt-0.5 text-center text-[11px] text-muted-light leading-tight">{c.phuDe}</span>}
+                {c.phuDe && <span className="mt-0.5 text-center text-xs text-muted-strong leading-tight">{c.phuDe}</span>}
                 <span className="sr-only">{`${c.nhan}: ${c.nhanGiaTri}${c.phuDe ? `, ${c.phuDe}` : ""}`}</span>
               </li>
             ))}
           </ul>
           {ghiChu && (
-            <p role="note" className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 leading-relaxed">
-              {ghiChu}
+            <p role="note" className="mt-4 flex items-start gap-2 rounded-xl bg-[#FFF7ED] px-3 py-2 text-xs text-[#9A3412] leading-relaxed">
+              <span aria-hidden="true">⚠</span>
+              <span>{ghiChu}</span>
             </p>
           )}
         </>

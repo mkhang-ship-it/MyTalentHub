@@ -31,6 +31,16 @@ export function nhanNutTaiTro(pct: number): NhanNutTaiTro {
   return "tai_tro_ngay";
 }
 
+// Tên lĩnh vực tiếng Việt cho chip thẻ (đồng bộ với trang danh sách).
+const TEN_LINH_VUC: Record<string, string> = {
+  ky_thuat: "Kỹ thuật",
+  nghe_thuat: "Nghệ thuật",
+  kinh_doanh: "Kinh doanh",
+  the_thao: "Thể thao",
+  hoc_thuat: "Học thuật",
+  sang_tao: "Sáng tạo",
+};
+
 interface TheDuAnProps {
   duAn: DuAnTaiTro;
   onChon: (id: number) => void;
@@ -50,32 +60,30 @@ export default function SponsorProjectCard({ duAn, onChon }: TheDuAnProps) {
 
   return (
     <article role="listitem" className="h-full" aria-label={`Dự án ${duAn.title}`}>
-      <div className="card-surface flex h-full flex-col rounded-xl p-5 transition-responsive hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(51_50_77/0.08)]">
+      <div className="card-surface flex h-full flex-col rounded-[20px] p-6 transition-responsive hover:-translate-y-1 hover:shadow-[0_10px_30px_rgb(51_50_77/0.08)]">
         <div className="flex flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="font-bold text-ink">{duAn.title}</h3>
-              <div className="mt-0.5 text-xs text-muted">
+              <h3 className="text-[17px] md:text-lg font-bold text-ink">{duAn.title}</h3>
+              <div className="mt-0.5 text-xs text-muted-strong">
                 {duAn.owner_name} · Nhóm {duAn.member_count} thành viên
               </div>
             </div>
-            <span
-              className="shrink-0 rounded-full bg-pink-50 px-2.5 py-1 text-[11px] font-semibold text-pink-600"
-              aria-label="Dự án tiềm năng"
-            >
-              ✨ Tiềm năng
+            {/* Chip lĩnh vực từ dữ liệu thật (thay nhãn "Tiềm năng" dán mọi thẻ). */}
+            <span className="inline-flex h-6 shrink-0 items-center rounded-full border border-line-strong bg-canvas-soft px-2.5 text-xs font-semibold text-ink-soft">
+              {TEN_LINH_VUC[duAn.field] ?? duAn.field}
             </span>
           </div>
 
           <div className="mt-auto pt-3">
-            <div className="flex items-baseline justify-between gap-2 text-xs">
-              <span className="font-semibold tabular-nums text-ink">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[13px] font-semibold tabular-nums text-ink-soft">
                 {dinhDangTien(duAn.sponsored_total)} / {dinhDangTien(duAn.funding_goal)}
               </span>
-              <span className="font-bold tabular-nums text-emerald-600">{pct}%</span>
+              <span className="text-[13px] font-bold tabular-nums text-ink">{pct}%</span>
             </div>
             <div
-              className="mt-1.5 h-2 overflow-hidden rounded-full bg-canvas-soft shadow-inner"
+              className="mt-1.5 h-2 overflow-hidden rounded-full bg-line"
               role="progressbar"
               aria-valuenow={pct}
               aria-valuemin={0}
@@ -83,33 +91,33 @@ export default function SponsorProjectCard({ duAn, onChon }: TheDuAnProps) {
               aria-label={`Tiến độ tài trợ của dự án ${duAn.title}: ${pct} phần trăm`}
             >
               <div
-                className="h-full rounded-full hero-gradient transition-all duration-700 ease-out hover:brightness-110"
-                style={{ width: `${pct}%` }}
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${pct}%`, background: "linear-gradient(90deg,#EC4899,#8B5CF6)" }}
               />
             </div>
 
             {nhan === "dat_muc_tieu" ? (
               <div className="mt-3">
-                <p role="status" className="rounded-full bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-700">
+                <p role="status" className="inline-flex h-6 w-full items-center justify-center rounded-full bg-[#ECFDF5] px-3 text-xs font-semibold text-[#047857]">
                   Đã đạt mục tiêu
                 </p>
                 <button
                   type="button"
                   onClick={() => onChon(duAn.id)}
                   aria-label={`Xem chi tiết dự án ${duAn.title}`}
-                  className="mt-2 w-full rounded-full border border-line py-2 text-sm font-semibold text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  className="mt-2 h-11 w-full rounded-[12px] border border-line-control text-sm font-semibold text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
                 >
                   Xem chi tiết
                 </button>
               </div>
             ) : (
               <div className="mt-3">
-                <p className="mb-1.5 min-h-5 text-center text-xs text-muted">{dongPhu}</p>
+                <p className="mb-1.5 min-h-5 text-center text-xs text-muted-strong">{dongPhu}</p>
                 <button
                   type="button"
                   onClick={() => onChon(duAn.id)}
                   aria-label={`${nhan === "tiep_tuc" ? "Tiếp tục tài trợ" : "Tài trợ ngay"} cho dự án ${duAn.title}`}
-                  className="w-full rounded-full cta-gradient py-2 text-sm font-semibold text-white hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  className="btn-primary h-11 w-full"
                 >
                   {nhan === "tiep_tuc" ? "Tiếp tục tài trợ" : "Tài trợ ngay"}
                 </button>

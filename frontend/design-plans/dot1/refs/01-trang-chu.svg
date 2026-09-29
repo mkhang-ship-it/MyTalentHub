@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="2040" viewBox="0 0 1440 2040" font-family="'Be Vietnam Pro', -apple-system, Helvetica, Arial, sans-serif">
+<title>FTalentHub — Trang chủ / (Đợt 1). ẢNH CHỈ ĐỂ XEM HÌNH DẠNG, chữ thắng ảnh.</title>
+<defs>
+  <linearGradient id="heroG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#1B2A5E"/><stop offset="0.46" stop-color="#27308E"/><stop offset="1" stop-color="#C44296"/>
+  </linearGradient>
+  <linearGradient id="heroScrim" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.62"/>
+    <stop offset="0.55" stop-color="#1B2A5E" stop-opacity="0.40"/>
+    <stop offset="1" stop-color="#1B2A5E" stop-opacity="0.18"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#FFC107"/><stop offset="1" stop-color="#F97316"/>
+  </linearGradient>
+  <linearGradient id="m1" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF5A4E"/><stop offset="0.48" stop-color="#EF4580"/><stop offset="1" stop-color="#844BD2"/>
+  </linearGradient>
+  <linearGradient id="m2" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FBBF24"/><stop offset="0.55" stop-color="#F97316"/><stop offset="1" stop-color="#EA580C"/>
+  </linearGradient>
+  <linearGradient id="m3" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F4417E"/><stop offset="0.5" stop-color="#C345A9"/><stop offset="1" stop-color="#7C57DB"/>
+  </linearGradient>
+  <linearGradient id="statG" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#A1458F"/><stop offset="0.52" stop-color="#9B6AB5"/><stop offset="1" stop-color="#27308E"/>
+  </linearGradient>
+  <linearGradient id="statScrim" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.55"/><stop offset="1" stop-color="#1B2A5E" stop-opacity="0.30"/>
+  </linearGradient>
+  <linearGradient id="ctaG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#A1458F"/><stop offset="0.5" stop-color="#9B6AB5"/><stop offset="1" stop-color="#27308E"/>
+  </linearGradient>
+  <linearGradient id="ctaScrim" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.55"/><stop offset="1" stop-color="#1B2A5E" stop-opacity="0.28"/>
+  </linearGradient>
+  <filter id="b40" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/></filter>
+  <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#33324D" flood-opacity="0.06"/>
+  </filter>
+</defs>
+
+<rect width="1440" height="2040" fill="#FDF7F1"/>
+
+<!-- ================= NAV (64px, sticky) ================= -->
+<g>
+  <rect x="0" y="0" width="1440" height="64" fill="#FDF7F1" fill-opacity="0.94"/>
+  <line x1="0" y1="64" x2="1440" y2="64" stroke="#EDE7E1"/>
+  <rect x="144" y="12" width="40" height="40" rx="12" fill="#284B8C"/>
+  <text x="164" y="39" font-size="20" font-weight="800" fill="#FFFFFF" text-anchor="middle">F</text>
+  <text x="194" y="39" font-size="17" font-weight="800" fill="#33324D">FTalentHub</text>
+
+  <text x="560" y="39" font-size="14" font-weight="600" fill="#4B4A66">Vai trò</text>
+  <rect x="560" y="46" width="52" height="2" rx="1" fill="#C44296" fill-opacity="0"/>
+  <text x="648" y="39" font-size="14" font-weight="600" fill="#4B4A66">Tính năng</text>
+  <text x="756" y="39" font-size="14" font-weight="600" fill="#4B4A66">Giá trị</text>
+
+  <rect x="1068" y="12" width="96" height="40" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="1116" y="38" font-size="14" font-weight="600" fill="#33324D" text-anchor="middle">Đăng ký</text>
+  <rect x="1176" y="12" width="120" height="40" rx="12" fill="#C44296"/>
+  <text x="1236" y="38" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Đăng nhập</text>
+</g>
+
+<!-- ================= HERO (64 → 600) ================= -->
+<g>
+  <rect x="0" y="64" width="1440" height="536" fill="url(#heroG)"/>
+  <rect x="0" y="64" width="1440" height="536" fill="url(#heroScrim)"/>
+  <circle cx="90" cy="120" r="224" fill="#F97316" fill-opacity="0.30" filter="url(#b40)"/>
+  <circle cx="1390" cy="560" r="192" fill="#FFC107" fill-opacity="0.30" filter="url(#b40)"/>
+
+  <!-- eyebrow -->
+  <rect x="144" y="136" width="316" height="32" rx="16" fill="#FFFFFF" fill-opacity="0.12" stroke="#FFFFFF" stroke-opacity="0.28"/>
+  <text x="160" y="157" font-size="12" font-weight="700" fill="#FFFFFF">✦  Hệ sinh thái tài năng đa lĩnh vực</text>
+
+  <!-- H1 -->
+  <text x="144" y="240" font-size="56" font-weight="800" fill="#FFFFFF" letter-spacing="-1.1">Discover Talent</text>
+  <text x="144" y="298" font-size="56" font-weight="800" fill="url(#gold)" letter-spacing="-1.1">Develop Skills</text>
+  <text x="144" y="356" font-size="56" font-weight="800" fill="#FFFFFF" letter-spacing="-1.1">Create Future</text>
+
+  <!-- paragraph -->
+  <text x="144" y="404" font-size="18" fill="#FFFFFF">FTalentHub kết nối học sinh — giáo viên — nhà trường — doanh nghiệp trong một</text>
+  <text x="144" y="430" font-size="18" fill="#FFFFFF">nền tảng duy nhất: từ khám phá năng khiếu đến chứng chỉ số và kết nối nghề nghiệp.</text>
+
+  <!-- buttons -->
+  <rect x="144" y="468" width="200" height="52" rx="16" fill="#FFFFFF"/>
+  <text x="244" y="500" font-size="15" font-weight="700" fill="#1B2A5E" text-anchor="middle">Bắt đầu ngay →</text>
+  <rect x="360" y="468" width="212" height="52" rx="16" fill="#1B2A5E" fill-opacity="0.45" stroke="#FFFFFF" stroke-opacity="0.4"/>
+  <text x="466" y="500" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Đăng ký tài khoản</text>
+  <rect x="588" y="468" width="212" height="52" rx="16" fill="none" stroke="#FFFFFF" stroke-opacity="0.4"/>
+  <text x="694" y="500" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Khám phá vai trò</text>
+
+  <!-- 3D box -->
+  <rect x="916" y="132" width="380" height="420" rx="24" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.25"/>
+  <g stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1.5" fill="#FFFFFF" fill-opacity="0.9">
+    <line x1="1000" y1="240" x2="1108" y2="316"/><line x1="1108" y1="316" x2="1216" y2="236"/>
+    <line x1="1108" y1="316" x2="1150" y2="430"/><line x1="1000" y1="240" x2="1042" y2="410"/>
+    <line x1="1042" y1="410" x2="1150" y2="430"/><line x1="1216" y1="236" x2="1250" y2="370"/>
+    <line x1="1150" y1="430" x2="1250" y2="370"/>
+    <circle cx="1000" cy="240" r="9"/><circle cx="1108" cy="316" r="13"/><circle cx="1216" cy="236" r="8"/>
+    <circle cx="1042" cy="410" r="7"/><circle cx="1150" cy="430" r="11"/><circle cx="1250" cy="370" r="7"/>
+  </g>
+  <text x="1106" y="518" font-size="12" font-weight="600" fill="#FFFFFF" fill-opacity="0.85" text-anchor="middle">Talent Constellation · 3D (giữ nguyên component)</text>
+</g>
+
+<!-- ================= 4 THẺ CỔNG (tràn lên hero −72) ================= -->
+<g filter="url(#cardShadow)">
+  <rect x="144" y="528" width="270" height="188" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="438" y="528" width="270" height="188" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="732" y="528" width="270" height="188" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="1026" y="528" width="270" height="188" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<g>
+  <rect x="168" y="552" width="40" height="40" rx="12" fill="#F9EEF7"/>
+  <text x="188" y="578" font-size="16" font-weight="800" fill="#A1458F" text-anchor="middle">HS</text>
+  <text x="168" y="630" font-size="16" font-weight="700" fill="#33324D">Học sinh</text>
+  <text x="168" y="654" font-size="13" fill="#6F6C8A">Khám phá năng khiếu, check-in,</text>
+  <text x="168" y="674" font-size="13" fill="#6F6C8A">Talent Passport QR.</text>
+  <text x="168" y="702" font-size="12" font-weight="700" fill="#7E2F73">Xem cổng →</text>
+
+  <rect x="462" y="552" width="40" height="40" rx="12" fill="#ECEFF9"/>
+  <text x="482" y="578" font-size="16" font-weight="800" fill="#27308E" text-anchor="middle">GV</text>
+  <text x="462" y="630" font-size="16" font-weight="700" fill="#33324D">Giáo viên</text>
+  <text x="462" y="654" font-size="13" fill="#6F6C8A">Tạo sân chơi, chấm điểm,</text>
+  <text x="462" y="674" font-size="13" fill="#6F6C8A">đánh giá học sinh.</text>
+  <text x="462" y="702" font-size="12" font-weight="700" fill="#27308E">Xem cổng →</text>
+
+  <rect x="756" y="552" width="40" height="40" rx="12" fill="#F4EEF8"/>
+  <text x="776" y="578" font-size="16" font-weight="800" fill="#9B6AB5" text-anchor="middle">TH</text>
+  <text x="756" y="630" font-size="16" font-weight="700" fill="#33324D">Nhà trường</text>
+  <text x="756" y="654" font-size="13" fill="#6F6C8A">Phân tích năng lực,</text>
+  <text x="756" y="674" font-size="13" fill="#6F6C8A">báo cáo, lớp &amp; khối.</text>
+  <text x="756" y="702" font-size="12" font-weight="700" fill="#6E4390">Xem cổng →</text>
+
+  <rect x="1050" y="552" width="40" height="40" rx="12" fill="#FBEFF7"/>
+  <text x="1070" y="578" font-size="16" font-weight="800" fill="#C44296" text-anchor="middle">DN</text>
+  <text x="1050" y="630" font-size="16" font-weight="700" fill="#33324D">Doanh nghiệp</text>
+  <text x="1050" y="654" font-size="13" fill="#6F6C8A">Tìm nhân tài, thực tập,</text>
+  <text x="1050" y="674" font-size="13" fill="#6F6C8A">tài trợ dự án.</text>
+  <text x="1050" y="702" font-size="12" font-weight="700" fill="#922C6B">Xem cổng →</text>
+</g>
+
+<!-- ================= SECTION: TÍNH NĂNG ================= -->
+<text x="720" y="812" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2" text-anchor="middle">TÍNH NĂNG NỔI BẬT</text>
+<text x="720" y="856" font-size="32" font-weight="800" fill="#33324D" letter-spacing="-0.64" text-anchor="middle">Nền tảng đa cổng</text>
+<text x="720" y="886" font-size="15" fill="#6F6C8A" text-anchor="middle">Tích hợp từ khám phá năng khiếu đến hồ sơ năng lực số và kết nối doanh nghiệp.</text>
+
+<g filter="url(#cardShadow)">
+  <rect x="144" y="924" width="368" height="292" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="536" y="924" width="368" height="292" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="928" y="924" width="368" height="292" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<path d="M144 944a20 20 0 0 1 20-20h328a20 20 0 0 1 20 20v136H144z" fill="url(#m1)"/>
+<path d="M536 944a20 20 0 0 1 20-20h328a20 20 0 0 1 20 20v136H536z" fill="url(#m2)"/>
+<path d="M928 944a20 20 0 0 1 20-20h328a20 20 0 0 1 20 20v136H928z" fill="url(#m3)"/>
+<g stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round">
+  <circle cx="328" cy="1012" r="26"/><path d="M312 1028l14-10 14-16"/><circle cx="720" cy="1012" r="26"/><path d="M708 1034v-16a12 12 0 0 1 24 0v16"/><path d="M704 1034h32"/>
+  <circle cx="1112" cy="1012" r="26"/><path d="M1100 1012h24M1112 1000v24"/>
+</g>
+<text x="168" y="1136" font-size="18" font-weight="700" fill="#33324D">Khám phá năng khiếu</text>
+<text x="168" y="1164" font-size="14" fill="#4B4A66">Bộ test Holland, MBTI, DISC, MI giúp học sinh</text>
+<text x="168" y="1186" font-size="14" fill="#4B4A66">hiểu chính mình và nhận lộ trình 3 tháng từ AI.</text>
+
+<text x="560" y="1136" font-size="18" font-weight="700" fill="#33324D">Talent Passport</text>
+<text x="560" y="1164" font-size="14" fill="#4B4A66">Hồ sơ năng lực số tích hợp QR xác thực, chứng</text>
+<text x="560" y="1186" font-size="14" fill="#4B4A66">chỉ, dự án và kỹ năng — sẵn sàng tuyển dụng.</text>
+
+<text x="952" y="1136" font-size="18" font-weight="700" fill="#33324D">AI phân tích &amp; gợi ý</text>
+<text x="952" y="1164" font-size="14" fill="#4B4A66">Phân tích năng lực cá nhân, gợi ý lộ trình phát</text>
+<text x="952" y="1186" font-size="14" fill="#4B4A66">triển và phản hồi thông minh cho từng vai trò.</text>
+
+<!-- ================= SECTION: TẠI SAO ================= -->
+<text x="144" y="1300" font-size="32" font-weight="800" fill="#33324D" letter-spacing="-0.64">Tại sao FTalentHub?</text>
+
+<rect x="144" y="1332" width="552" height="84" rx="16" fill="#FAF3EA" stroke="#EDE7E1"/>
+<text x="168" y="1366" font-size="16" font-weight="700" fill="#33324D">Đa lĩnh vực — một nền tảng</text>
+<text x="168" y="1392" font-size="14" fill="#4B4A66">Từ học thuật, nghệ thuật, kỹ thuật đến thể thao và doanh nghiệp.</text>
+
+<rect x="144" y="1432" width="552" height="84" rx="16" fill="#FAF3EA" stroke="#EDE7E1"/>
+<text x="168" y="1466" font-size="16" font-weight="700" fill="#33324D">Chứng chỉ số xác thực</text>
+<text x="168" y="1492" font-size="14" fill="#4B4A66">Talent Passport với mã QR giúp xác thực khi xin học bổng, thực tập.</text>
+
+<rect x="144" y="1532" width="552" height="84" rx="16" fill="#FAF3EA" stroke="#EDE7E1"/>
+<text x="168" y="1566" font-size="16" font-weight="700" fill="#33324D">AI cá nhân hóa</text>
+<text x="168" y="1592" font-size="14" fill="#4B4A66">AI phân tích dữ liệu cá nhân để gợi ý đúng người, đúng thời điểm.</text>
+
+<g>
+  <rect x="744" y="1332" width="552" height="284" rx="24" fill="url(#statG)"/>
+  <rect x="744" y="1332" width="552" height="284" rx="24" fill="url(#statScrim)"/>
+  <text x="776" y="1374" font-size="20" font-weight="800" fill="#FFFFFF">Số liệu nổi bật</text>
+
+  <rect x="776" y="1396" width="236" height="76" rx="16" fill="#1B2A5E" fill-opacity="0.50" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="796" y="1434" font-size="24" font-weight="800" fill="#FFFFFF">4 cổng</text>
+  <text x="796" y="1458" font-size="12" font-weight="600" fill="#FFFFFF">Vai trò</text>
+
+  <rect x="1028" y="1396" width="236" height="76" rx="16" fill="#1B2A5E" fill-opacity="0.50" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="1048" y="1434" font-size="24" font-weight="800" fill="#FFFFFF">4 bộ</text>
+  <text x="1048" y="1458" font-size="12" font-weight="600" fill="#FFFFFF">Bài test</text>
+
+  <rect x="776" y="1484" width="236" height="76" rx="16" fill="#1B2A5E" fill-opacity="0.50" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="796" y="1522" font-size="24" font-weight="800" fill="#FFFFFF">6+</text>
+  <text x="796" y="1546" font-size="12" font-weight="600" fill="#FFFFFF">Lĩnh vực</text>
+
+  <rect x="1028" y="1484" width="236" height="76" rx="16" fill="#1B2A5E" fill-opacity="0.50" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="1048" y="1522" font-size="24" font-weight="800" fill="#FFFFFF">QR</text>
+  <text x="1048" y="1546" font-size="12" font-weight="600" fill="#FFFFFF">Hồ sơ số tích hợp</text>
+
+  <line x1="776" y1="1584" x2="1264" y2="1584" stroke="#FFFFFF" stroke-opacity="0.22"/>
+</g>
+<text x="776" y="1608" font-size="13" fill="#FFFFFF">Xây dựng theo 35 slide thiết kế và tiêu chuẩn Awwwards.</text>
+
+<!-- ================= CTA CUỐI ================= -->
+<g>
+  <rect x="144" y="1676" width="1152" height="196" rx="32" fill="url(#ctaG)"/>
+  <rect x="144" y="1676" width="1152" height="196" rx="32" fill="url(#ctaScrim)"/>
+  <text x="192" y="1748" font-size="32" font-weight="800" fill="#FFFFFF" letter-spacing="-0.64">Sẵn sàng khám phá năng lực?</text>
+  <text x="192" y="1784" font-size="16" fill="#FFFFFF">Đăng ký để bắt đầu hành trình: từ bài test năng khiếu đến hồ sơ số và kết nối nghề nghiệp.</text>
+
+  <rect x="880" y="1748" width="200" height="52" rx="16" fill="#FFFFFF"/>
+  <text x="980" y="1780" font-size="15" font-weight="700" fill="#27308E" text-anchor="middle">Đăng nhập ngay →</text>
+  <rect x="1096" y="1748" width="176" height="52" rx="16" fill="#1B2A5E" fill-opacity="0.45" stroke="#FFFFFF" stroke-opacity="0.4"/>
+  <text x="1184" y="1780" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Đăng ký tài khoản</text>
+</g>
+
+<!-- ================= FOOTER ================= -->
+<line x1="144" y1="1924" x2="1296" y2="1924" stroke="#EDE7E1"/>
+<text x="144" y="1966" font-size="12" font-weight="500" fill="#6F6C8A">Team FPI Cần Thơ · Hệ sinh thái tài năng đa lĩnh vực</text>
+<text x="1088" y="1966" font-size="12" font-weight="600" fill="#4B4A66">Điều khoản</text>
+<text x="1168" y="1966" font-size="12" font-weight="600" fill="#4B4A66">Quyền riêng tư</text>
+<text x="1262" y="1966" font-size="12" font-weight="600" fill="#4B4A66">Liên hệ</text>
+
+<text x="720" y="2016" font-size="11" font-weight="600" fill="#6F6C8A" text-anchor="middle">ẢNH THAM KHẢO — mọi số đo lấy từ 01-trang-chu.md (chữ thắng ảnh)</text>
+</svg>

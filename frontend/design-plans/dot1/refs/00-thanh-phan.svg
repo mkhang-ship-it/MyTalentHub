@@ -1,0 +1,223 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1800" viewBox="0 0 1440 1800" font-family="'Be Vietnam Pro', -apple-system, Helvetica, Arial, sans-serif">
+<title>FTalentHub — Bảng thành phần tham khảo (Đợt 1). ẢNH CHỈ ĐỂ XEM HÌNH DẠNG.</title>
+<defs>
+  <linearGradient id="ctaBtn" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#D73754"/><stop offset="1" stop-color="#81275E"/>
+  </linearGradient>
+  <linearGradient id="portalBtn" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#C44296"/><stop offset="1" stop-color="#9A2E5E"/>
+  </linearGradient>
+  <linearGradient id="sbA" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EC4899"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>
+  <linearGradient id="sbB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#6366F1"/></linearGradient>
+  <linearGradient id="sbC" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FB923C"/><stop offset="1" stop-color="#EC4899"/></linearGradient>
+  <linearGradient id="shim" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#F3ECE3"/><stop offset="0.5" stop-color="#FAF3EA"/><stop offset="1" stop-color="#F3ECE3"/>
+  </linearGradient>
+</defs>
+
+<rect width="1440" height="1800" fill="#FDF7F1"/>
+
+<text x="80" y="76" font-size="32" font-weight="800" fill="#33324D" letter-spacing="-0.6">BẢNG THÀNH PHẦN — FTalentHub · Đợt 1</text>
+<text x="80" y="106" font-size="14" font-weight="500" fill="#6F6C8A">Ảnh tham khảo hình ảnh. MỌI con số và màu sắc nằm trong 00-he-thong-thiet-ke.md — chữ thắng ảnh.</text>
+<line x1="80" y1="132" x2="1360" y2="132" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 1. THANG CHỮ ============ -->
+<text x="80" y="176" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">1 · THANG CHỮ</text>
+
+<text x="80" y="236" font-size="56" font-weight="800" fill="#33324D" letter-spacing="-1.1">Discover Talent</text>
+<text x="1010" y="236" font-size="12" font-weight="600" fill="#6F6C8A">56 / 800 / lh1,05 / −0,02em</text>
+
+<text x="80" y="292" font-size="32" font-weight="800" fill="#33324D" letter-spacing="-0.64">Nền tảng đa cổng</text>
+<text x="1010" y="292" font-size="12" font-weight="600" fill="#6F6C8A">H2 khoảng · 32 / 800 / lh1,20</text>
+
+<text x="80" y="344" font-size="24" font-weight="800" fill="#33324D" letter-spacing="-0.36">Tổng quan cá nhân</text>
+<text x="1010" y="344" font-size="12" font-weight="600" fill="#6F6C8A">H1 trang · 24 / 800 / lh1,25</text>
+
+<text x="80" y="392" font-size="18" font-weight="700" fill="#33324D">Skill Orbit — tiêu đề card</text>
+<text x="1010" y="392" font-size="12" font-weight="600" fill="#6F6C8A">H3 card · 18 / 700 / lh1,35</text>
+
+<text x="80" y="434" font-size="15" font-weight="400" fill="#4B4A66">Đoạn dẫn 15/1.6 dùng cho mô tả section và PageHeader.</text>
+<text x="1010" y="434" font-size="12" font-weight="600" fill="#6F6C8A">Subtitle · 15 / 400 / --ink-soft</text>
+
+<text x="80" y="474" font-size="14" font-weight="400" fill="#4B4A66">Nội dung 14/1.6 — chữ trong card, bảng, mô tả.</text>
+<text x="1010" y="474" font-size="12" font-weight="600" fill="#6F6C8A">Body · 14 / 400 / --ink-soft</text>
+
+<text x="80" y="514" font-size="13" font-weight="600" fill="#4B4A66">Nhãn ô nhập / label StatCard · 13/600</text>
+<text x="1010" y="514" font-size="12" font-weight="600" fill="#6F6C8A">Label · 13 / 600</text>
+
+<text x="80" y="552" font-size="12" font-weight="500" fill="#6F6C8A">Chữ nhỏ 12/500 — chú thích, footer, meta. Không dùng cỡ dưới 12px.</text>
+<text x="1010" y="552" font-size="12" font-weight="600" fill="#6F6C8A">Caption · 12 / 500 / --muted-strong</text>
+
+<text x="80" y="606" font-size="28" font-weight="800" fill="#33324D">128</text>
+<text x="190" y="606" font-size="12" font-weight="600" fill="#6F6C8A">chữ số KPI · 28/800 tabular-nums</text>
+<text x="520" y="606" font-size="16" font-weight="700" fill="#33324D">42h</text>
+<text x="600" y="606" font-size="12" font-weight="600" fill="#6F6C8A">chữ số nhỏ · 16/700 tabular</text>
+<text x="860" y="606" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">EYEBROW 12/700 +0,1EM</text>
+
+<line x1="80" y1="644" x2="1360" y2="644" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 2. NÚT ============ -->
+<text x="80" y="688" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">2 · NÚT (cao 44 · bo góc 12 · chữ 14/600 · gap icon 8)</text>
+
+<rect x="80" y="712" width="176" height="44" rx="12" fill="url(#ctaBtn)"/>
+<text x="168" y="740" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Bắt đầu ngay →</text>
+<text x="80" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Chính · cta-gradient + phủ 12% đen = 4,61:1</text>
+
+<rect x="284" y="712" width="176" height="44" rx="12" fill="#FFFFFF" stroke="#968D82" stroke-width="1"/>
+<text x="372" y="740" font-size="14" font-weight="600" fill="#33324D" text-anchor="middle">Đăng ký</text>
+<text x="284" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Phụ · viền #968D82 = 3,27:1</text>
+
+<rect x="488" y="712" width="150" height="44" rx="12" fill="none"/>
+<text x="563" y="740" font-size="14" font-weight="600" fill="#4B4A66" text-anchor="middle">Xem thêm</text>
+<text x="488" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Ghost · hover nền #FAF3EA</text>
+
+<rect x="666" y="712" width="146" height="44" rx="12" fill="#B91C1C"/>
+<text x="739" y="740" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Xóa hoạt động</text>
+<text x="666" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Nguy hiểm · hover #991B1B</text>
+
+<rect x="840" y="712" width="146" height="44" rx="12" fill="url(#ctaBtn)" opacity="0.55"/>
+<text x="913" y="740" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle" opacity="0.9">Đang xử lý…</text>
+<text x="840" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Disabled · opacity .55, không hover</text>
+
+<rect x="1030" y="706" width="186" height="56" rx="16" fill="url(#ctaBtn)" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="0"/>
+<rect x="1024" y="700" width="198" height="68" rx="20" fill="none" stroke="#284B8C" stroke-width="2"/>
+<text x="1123" y="740" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">Vòng focus 2px +2</text>
+<text x="1030" y="784" font-size="12" font-weight="500" fill="#6F6C8A">Focus: outline 2px --portal, offset 2px</text>
+
+<line x1="80" y1="816" x2="1360" y2="816" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 3. BADGE ============ -->
+<text x="80" y="860" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">3 · HUY HIỆU (cao 24 · px 10 · radius 999 · 12/600 · LUÔN có icon/chữ kèm màu)</text>
+
+<rect x="80" y="884" width="96" height="24" rx="12" fill="#F9EEF7"/>
+<path d="M94 896l4 4 7-8" stroke="#7E2F73" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="112" y="901" font-size="12" font-weight="600" fill="#7E2F73">Đã duyệt</text>
+
+<rect x="192" y="884" width="112" height="24" rx="12" fill="#ECFDF5"/>
+<circle cx="206" cy="896" r="5" fill="#047857"/>
+<text x="216" y="901" font-size="12" font-weight="600" fill="#047857">Hoàn thành</text>
+
+<rect x="320" y="884" width="126" height="24" rx="12" fill="#FFF7ED"/>
+<path d="M334 892v6M334 901v.5" stroke="#9A3412" stroke-width="2" stroke-linecap="round"/>
+<text x="344" y="901" font-size="12" font-weight="600" fill="#9A3412">Đang tham gia</text>
+
+<rect x="462" y="884" width="104" height="24" rx="12" fill="#FEF2F2"/>
+<path d="M476 892l6 8M482 892l-6 8" stroke="#B91C1C" stroke-width="2" stroke-linecap="round"/>
+<text x="490" y="901" font-size="12" font-weight="600" fill="#B91C1C">Từ chối</text>
+
+<rect x="582" y="884" width="112" height="24" rx="12" fill="#FAF3EA" stroke="#E2D9D0"/>
+<text x="596" y="901" font-size="12" font-weight="600" fill="#4B4A66">Chưa bắt đầu</text>
+
+<rect x="710" y="884" width="84" height="24" rx="12" fill="#EAF0F9"/>
+<text x="724" y="901" font-size="12" font-weight="600" fill="#1E3A6E">4 cổng</text>
+
+<text x="820" y="901" font-size="12" font-weight="500" fill="#6F6C8A">Chip trên nền gradient → nền TRẮNG đặc, chữ --portal-dark (6,4:1)</text>
+
+<line x1="80" y1="936" x2="1360" y2="936" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 4. THẺ ============ -->
+<text x="80" y="980" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">4 · THẺ (nền #fff · viền #EDE7E1 · bo góc 20 · shadow 2 lớp · padding 24)</text>
+
+<rect x="80" y="1004" width="380" height="176" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+<text x="104" y="1046" font-size="18" font-weight="700" fill="#33324D">AI phân tích năng lực</text>
+<text x="104" y="1072" font-size="14" font-weight="400" fill="#4B4A66">Mô tả 14/1.6 --ink-soft, tối đa 2 dòng.</text>
+<text x="104" y="1094" font-size="14" font-weight="400" fill="#4B4A66">Card tương tác: hover lift −2px.</text>
+<rect x="104" y="1112" width="332" height="44" rx="16" fill="#F9EEF7" stroke="#D8A9C6"/>
+<text x="120" y="1139" font-size="14" font-weight="600" fill="#7E2F73">💡 Xem lộ trình 3 tháng của bạn →</text>
+
+<rect x="496" y="1004" width="300" height="116" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+<text x="516" y="1034" font-size="13" font-weight="600" fill="#4B4A66">Điểm năng lực</text>
+<text x="516" y="1074" font-size="28" font-weight="800" fill="#33324D">128</text>
+<text x="516" y="1100" font-size="12" font-weight="600" fill="#6F6C8A">Thang điểm 100</text>
+<rect x="732" y="1024" width="44" height="44" rx="12" fill="#F9EEF7"/>
+<path d="M746 1052l6-8 5 5 6-9" stroke="#7E2F73" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="496" y="1148" font-size="12" font-weight="500" fill="#6F6C8A">Thẻ chỉ số · padding 20 · min-height 116 · ô icon 44×44</text>
+
+<rect x="832" y="1004" width="528" height="176" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+<text x="856" y="1038" font-size="18" font-weight="700" fill="#33324D">Thanh tiến độ</text>
+<text x="856" y="1072" font-size="13" font-weight="600" fill="#4B4A66">Kỹ thuật</text>
+<text x="1336" y="1072" font-size="13" font-weight="700" fill="#33324D" text-anchor="end" font-family="'Be Vietnam Pro'">68%</text>
+<rect x="856" y="1082" width="480" height="8" rx="4" fill="#EDE7E1"/>
+<rect x="856" y="1082" width="326" height="8" rx="4" fill="url(#sbA)"/>
+<text x="856" y="1122" font-size="13" font-weight="600" fill="#4B4A66">Nghệ thuật</text>
+<text x="1336" y="1122" font-size="13" font-weight="700" fill="#33324D" text-anchor="end">42%</text>
+<rect x="856" y="1132" width="480" height="8" rx="4" fill="#EDE7E1"/>
+<rect x="856" y="1132" width="202" height="8" rx="4" fill="url(#sbC)"/>
+<text x="832" y="1180" font-size="12" font-weight="500" fill="#6F6C8A">Thanh cao 8 · track #EDE7E1 · LUÔN kèm % · gap 16 giữa các thanh</text>
+
+<line x1="80" y1="1204" x2="1360" y2="1204" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 5. Ô NHẬP ============ -->
+<text x="80" y="1248" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">5 · Ô NHẬP (cao 44 · bo góc 12 · viền #968D82 · chữ 14/400)</text>
+
+<text x="80" y="1286" font-size="13" font-weight="600" fill="#4B4A66">Họ và tên</text>
+<rect x="80" y="1296" width="300" height="44" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+<text x="94" y="1324" font-size="14" fill="#6F6C8A">Nguyễn Văn A</text>
+
+<text x="416" y="1286" font-size="13" font-weight="600" fill="#4B4A66">Lớp (đang focus)</text>
+<rect x="416" y="1296" width="300" height="44" rx="12" fill="#FFFFFF" stroke="#A1458F" stroke-width="1.5"/>
+<rect x="412" y="1292" width="308" height="52" rx="16" fill="none" stroke="#A1458F" stroke-opacity="0.18" stroke-width="3"/>
+<text x="430" y="1324" font-size="14" fill="#33324D">12A3</text>
+<text x="416" y="1364" font-size="12" fill="#6F6C8A">focus: viền --portal + ring 3px 18%</text>
+
+<text x="752" y="1286" font-size="13" font-weight="600" fill="#4B4A66">Email (đang lỗi)</text>
+<rect x="752" y="1296" width="300" height="44" rx="12" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.5"/>
+<text x="766" y="1324" font-size="14" fill="#33324D">ten@truong</text>
+<path d="M1018 1310l7 12h-14z" fill="#DC2626"/>
+<text x="752" y="1364" font-size="12" fill="#B91C1C">⚠ Email không hợp lệ (12/500, --ink hoặc #B91C1C)</text>
+
+<rect x="1088" y="1296" width="272" height="44" rx="12" fill="#FAF3EA" stroke="#968D82"/>
+<text x="1102" y="1324" font-size="14" fill="#6F6C8A">Đã tắt — đang tải</text>
+<text x="1088" y="1364" font-size="12" fill="#6F6C8A">Disabled: nền canvas-soft, cursor not-allowed</text>
+
+<line x1="80" y1="1396" x2="1360" y2="1396" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 6. TRẠNG THÁI ============ -->
+<text x="80" y="1440" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">6 · TRẠNG THÁI TRỐNG · SKELETON · LỖI</text>
+
+<rect x="80" y="1464" width="380" height="150" rx="16" fill="#FAF3EA" stroke="#E2D9D0" stroke-dasharray="6 5"/>
+<path d="M262 1500h16M270 1492v16" stroke="#8A87A3" stroke-width="2" stroke-linecap="round"/>
+<text x="270" y="1544" font-size="14" font-weight="600" fill="#4B4A66" text-anchor="middle">Bạn chưa tham gia hoạt động nào</text>
+<text x="270" y="1566" font-size="13" fill="#6F6C8A" text-anchor="middle">khám phá sân chơi ngay!</text>
+<rect x="212" y="1580" width="116" height="36" rx="10" fill="#FFFFFF" stroke="#968D82"/>
+<text x="270" y="1603" font-size="13" font-weight="600" fill="#33324D" text-anchor="middle">Khám phá →</text>
+
+<rect x="496" y="1464" width="380" height="150" rx="16" fill="#FFFFFF" stroke="#EDE7E1"/>
+<rect x="520" y="1488" width="220" height="20" rx="8" fill="url(#shim)"/>
+<rect x="520" y="1524" width="332" height="14" rx="7" fill="url(#shim)"/>
+<rect x="520" y="1548" width="332" height="14" rx="7" fill="url(#shim)"/>
+<rect x="520" y="1572" width="200" height="14" rx="7" fill="url(#shim)"/>
+<text x="496" y="1638" font-size="12" fill="#6F6C8A">Skeleton 1.4s · khớp bố cục thật · bỏ shimmer khi reduced-motion</text>
+
+<rect x="912" y="1464" width="448" height="150" rx="12" fill="#FEF2F2" stroke="#FECACA"/>
+<path d="M936 1492l8 14h-16z" fill="#B91C1C"/>
+<text x="954" y="1504" font-size="14" font-weight="700" fill="#33324D">Không tải được dữ liệu</text>
+<text x="936" y="1532" font-size="14" fill="#33324D">Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.</text>
+<rect x="936" y="1552" width="110" height="36" rx="10" fill="#FFFFFF" stroke="#968D82"/>
+<text x="991" y="1575" font-size="13" font-weight="600" fill="#33324D" text-anchor="middle">Thử lại</text>
+<text x="912" y="1638" font-size="12" fill="#6F6C8A">Lỗi: chữ --ink 14/500 + icon đỏ · không tô đỏ toàn bộ câu</text>
+
+<line x1="80" y1="1670" x2="1360" y2="1670" stroke="#EDE7E1" stroke-width="1"/>
+
+<!-- ============ 7. BẢNG MÀU BIỂU ĐỒ ============ -->
+<text x="80" y="1712" font-size="12" font-weight="700" fill="#9A2E5E" letter-spacing="1.2">7 · CHUỖI DỮ LIỆU BIỂU ĐỒ (đúng bậc sáng tối, kèm hoạ tiết — không dùng màu làm tín hiệu duy nhất)</text>
+
+<rect x="80" y="1734" width="180" height="34" rx="8" fill="#1B2A5E"/>
+<text x="170" y="1756" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">S1 · #1B2A5E</text>
+
+<rect x="276" y="1734" width="180" height="34" rx="8" fill="#284B8C"/>
+<text x="366" y="1756" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">S2 · #284B8C</text>
+
+<rect x="472" y="1734" width="180" height="34" rx="8" fill="#C44296"/>
+<text x="562" y="1756" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">S3 · #C44296</text>
+
+<rect x="668" y="1734" width="180" height="34" rx="8" fill="#0D9488"/>
+<text x="758" y="1756" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">S4 · #0D9488</text>
+
+<rect x="864" y="1734" width="180" height="34" rx="8" fill="#F97316"/>
+<text x="954" y="1756" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">S5 · #F97316</text>
+
+<rect x="1060" y="1734" width="180" height="34" rx="8" fill="#B2AFC6" stroke="#4B4A66"/>
+<text x="1150" y="1756" font-size="13" font-weight="700" fill="#33324D" text-anchor="middle">S6 · #B2AFC6</text>
+
+</svg>

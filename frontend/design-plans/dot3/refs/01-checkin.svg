@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" font-family="'Be Vietnam Pro', Inter, sans-serif">
+  <title>Tham khảo 01 — Trang check-in hoạt động (Đợt 3)</title>
+  <desc>Ảnh tham khảo. CHỮ THẮNG ẢNH — con số chuẩn ở 01-checkin.md. QR vẽ minh hoạ, mã thật do component QrCode sinh.</desc>
+
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF5A4E"/>
+      <stop offset="0.48" stop-color="#EF4580"/>
+      <stop offset="1" stop-color="#844BD2"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.62"/>
+      <stop offset="0.55" stop-color="#1B2A5E" stop-opacity="0.40"/>
+      <stop offset="1" stop-color="#1B2A5E" stop-opacity="0.18"/>
+    </linearGradient>
+    <style>
+      .t1 { font-size: 24px; font-weight: 800; fill: #33324d; }
+      .t2 { font-size: 14px; fill: #6F6C8A; }
+      .h3 { font-size: 18px; font-weight: 700; fill: #33324d; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #33324d; }
+      .b14 { font-size: 14px; fill: #4b4a66; }
+      .m12 { font-size: 12px; fill: #6F6C8A; }
+      .w18 { font-size: 18px; font-weight: 700; fill: #ffffff; }
+      .w14 { font-size: 14px; fill: #ffffff; }
+      .w12 { font-size: 12px; fill: #ffffff; }
+      .card { fill: #ffffff; stroke: #ede7e1; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <!-- Nền trang -->
+  <rect width="1440" height="920" fill="#fdf7f1"/>
+
+  <!-- PageHeader -->
+  <text class="t1" x="80" y="64">Check-in hoạt động</text>
+  <text class="t2" x="80" y="92">Quét mã QR tại buổi sinh hoạt để tự động cộng giờ trải nghiệm — thật nhanh, không cần giấy tờ.</text>
+
+  <!-- ═══ CỘT TRÁI: thẻ QR (scrim + hero-gradient) ═══ -->
+  <g>
+    <rect x="80" y="140" width="636" height="702" rx="20" fill="url(#hero)"/>
+    <rect x="80" y="140" width="636" height="702" rx="20" fill="url(#scrim)"/>
+
+    <text class="w18" x="398" y="184" text-anchor="middle">Check-in trải nghiệm</text>
+    <text class="w14" x="398" y="212" text-anchor="middle">Quét mã QR tại buổi sinh hoạt để tự động</text>
+    <text class="w14" x="398" y="232" text-anchor="middle">cộng giờ — mã tự làm mới mỗi 120 giây.</text>
+
+    <!-- Khung QR: bg-white padding 12, radius 16 -->
+    <rect x="294" y="250" width="208" height="244" rx="16" fill="#ffffff"/>
+    <!-- QR minh hoạ (không phải mã thật) -->
+    <g fill="#111111">
+      <path d="M306 262 h40 v40 h-40 z M314 270 v24 h24 v-24 z" fill-rule="evenodd"/>
+      <rect x="314" y="278" width="24" height="16"/>
+      <path d="M450 262 h40 v40 h-40 z M458 270 v24 h24 v-24 z" fill-rule="evenodd"/>
+      <rect x="458" y="278" width="24" height="16"/>
+      <path d="M306 406 h40 v40 h-40 z M314 414 v24 h24 v-24 z" fill-rule="evenodd"/>
+      <rect x="314" y="422" width="24" height="16"/>
+      <rect x="354" y="262" width="8" height="8"/><rect x="370" y="262" width="8" height="8"/>
+      <rect x="386" y="270" width="8" height="8"/><rect x="402" y="262" width="8" height="8"/>
+      <rect x="426" y="278" width="8" height="8"/><rect x="410" y="294" width="8" height="8"/>
+      <rect x="442" y="302" width="8" height="8"/><rect x="426" y="318" width="8" height="8"/>
+      <rect x="410" y="334" width="8" height="8"/><rect x="442" y="342" width="8" height="8"/>
+      <rect x="458" y="334" width="8" height="8"/><rect x="474" y="318" width="8" height="8"/>
+      <rect x="474" y="350" width="8" height="8"/><rect x="458" y="366" width="8" height="8"/>
+      <rect x="442" y="382" width="8" height="8"/><rect x="474" y="390" width="8" height="8"/>
+      <rect x="362" y="310" width="8" height="8"/><rect x="378" y="326" width="8" height="8"/>
+      <rect x="394" y="342" width="8" height="8"/><rect x="362" y="358" width="8" height="8"/>
+      <rect x="378" y="374" width="8" height="8"/><rect x="394" y="390" width="8" height="8"/>
+      <rect x="362" y="406" width="8" height="8"/><rect x="386" y="422" width="8" height="8"/>
+      <rect x="410" y="406" width="8" height="8"/><rect x="426" y="422" width="8" height="8"/>
+      <rect x="450" y="414" width="8" height="8"/><rect x="474" y="430" width="8" height="8"/>
+      <rect x="434" y="446" width="8" height="8"/><rect x="402" y="446" width="8" height="8"/>
+      <rect x="370" y="446" width="8" height="8"/><rect x="354" y="438" width="8" height="8"/>
+      <rect x="338" y="326" width="8" height="8"/><rect x="338" y="358" width="8" height="8"/>
+      <rect x="338" y="390" width="8" height="8"/><rect x="362" y="278" width="8" height="8"/>
+      <rect x="394" y="302" width="8" height="8"/><rect x="426" y="350" width="8" height="8"/>
+    </g>
+    <text class="m12" x="398" y="466" text-anchor="middle">https://…/checkin?code=FTH%3ATP-1001%3A24531</text>
+    <text class="m12" x="398" y="484" text-anchor="middle">Dùng camera điện thoại để quét (không cần đăng nhập)</text>
+
+    <text class="w18" x="398" y="528" text-anchor="middle">Mã QR của bạn</text>
+    <text class="w12" x="398" y="550" text-anchor="middle">Mã thay đổi sau mỗi chu kỳ 120 giây, không dùng lại.</text>
+
+    <!-- Chip đếm ngược: nền trắng đặc, token portal-dark -->
+    <rect x="338" y="562" width="120" height="24" rx="12" fill="#ffffff"/>
+    <text x="398" y="579" text-anchor="middle" font-size="14" font-weight="700" fill="#7E2F73" font-family="'Be Vietnam Pro', monospace">Còn 118 giây</text>
+
+    <!-- Cảnh báo tone 4.3 -->
+    <rect x="206" y="602" width="384" height="44" rx="12" fill="#FFF7ED"/>
+    <text x="226" y="629" font-size="14" font-weight="600" fill="#9A3412">⚠ Mã đã dùng trong vòng này — chờ vòng mới.</text>
+
+    <!-- Ô nhập input-control: h44 radius12 viền line-control -->
+    <rect x="206" y="662" width="320" height="44" rx="12" fill="#ffffff" stroke="#968D82"/>
+    <text x="222" y="690" font-size="14" fill="#6F6C8A">Mã ban tổ chức (nếu có)</text>
+
+    <!-- Nút trên gradient: nền trắng, chữ #1B2A5E, h44 radius12 -->
+    <rect x="206" y="718" width="320" height="44" rx="12" fill="#ffffff"/>
+    <text x="366" y="746" text-anchor="middle" font-size="14" font-weight="600" fill="#1B2A5E">Xác nhận check-in</text>
+
+    <!-- Hộp kết quả tone thành công -->
+    <rect x="206" y="774" width="384" height="44" rx="12" fill="#ECFDF5"/>
+    <text x="226" y="801" font-size="14" font-weight="600" fill="#047857">✓ Check-in thành công · +1h</text>
+  </g>
+
+  <!-- ═══ CỘT PHẢI ═══ -->
+  <!-- ErrorBox -->
+  <rect x="740" y="140" width="620" height="64" rx="12" fill="#FEF2F2" stroke="#FECACA"/>
+  <text x="764" y="168" font-size="14" font-weight="500" fill="#33324d">⚠ Bạn cần đăng nhập bằng tài khoản học sinh để check-in.</text>
+  <text x="764" y="190" font-size="13" font-weight="600" fill="#B91C1C">Thử lại</text>
+
+  <!-- Card lịch sử -->
+  <rect x="740" y="228" width="620" height="272" rx="20" class="card"/>
+  <circle cx="774" cy="254" r="9" fill="#FBEFF7"/>
+  <path d="M769 254 h10 M774 249 v10" stroke="#7E2F73" stroke-width="2"/>
+  <text class="h3" x="792" y="261">Lịch sử check-in</text>
+
+  <!-- dòng 1 -->
+  <rect x="764" y="292" width="572" height="56" rx="12" fill="#ffffff" stroke="#ede7e1"/>
+  <circle cx="802" cy="320" r="18" fill="#FBEFF7"/>
+  <text x="802" y="325" text-anchor="middle" font-size="13" fill="#7E2F73">H</text>
+  <text x="832" y="316" font-size="14" font-weight="600" fill="#33324d">Chuỗi sự kiện Khám phá Khoa học</text>
+  <text class="m12" x="832" y="336">26/09/2026 · 07:30</text>
+  <text x="1324" y="325" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73" font-family="'Be Vietnam Pro', monospace">+1h</text>
+
+  <!-- dòng 2 -->
+  <rect x="764" y="356" width="572" height="56" rx="12" fill="#ffffff" stroke="#ede7e1"/>
+  <circle cx="802" cy="384" r="18" fill="#FBEFF7"/>
+  <text x="802" y="389" text-anchor="middle" font-size="13" fill="#7E2F73">N</text>
+  <text x="832" y="380" font-size="14" font-weight="600" fill="#33324d">Ngày hội nghệ thuật học đường</text>
+  <text class="m12" x="832" y="400">20/09/2026 · 13:00</text>
+  <text x="1324" y="389" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73" font-family="'Be Vietnam Pro', monospace">+2h</text>
+
+  <!-- dòng 3 -->
+  <rect x="764" y="420" width="572" height="56" rx="12" fill="#ffffff" stroke="#ede7e1"/>
+  <circle cx="802" cy="448" r="18" fill="#FBEFF7"/>
+  <text x="802" y="453" text-anchor="middle" font-size="13" fill="#7E2F73">C</text>
+  <text x="832" y="444" font-size="14" font-weight="600" fill="#33324d">Chiến dịch làm sạch môi trường</text>
+  <text class="m12" x="832" y="464">12/09/2026 · 08:00</text>
+  <text x="1324" y="453" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73" font-family="'Be Vietnam Pro', monospace">+3h</text>
+
+  <!-- Card cách hoạt động -->
+  <rect x="740" y="516" width="620" height="200" rx="20" class="card"/>
+  <text class="h3" x="764" y="550">Cách hoạt động</text>
+  <text class="b14" x="764" y="580">1. Mở mã QR trong ứng dụng (tự làm mới mỗi 2 phút).</text>
+  <text class="b14" x="764" y="610">2. Ban tổ chức dùng điện thoại quét mã trên màn hình.</text>
+  <text class="b14" x="764" y="640">3. Giờ trải nghiệm tự động cộng vào hồ sơ của bạn.</text>
+  <text class="m12" x="764" y="684">Trạng thái: đang tải = Skeleton 4 dòng · rỗng = Empty + “Xem hoạt động đang mở” · lỗi = ErrorBox + Thử lại.</text>
+
+  <!-- Chú thích cuối -->
+  <text class="m12" x="80" y="884">Ảnh tham khảo — CHỮ THẮNG ẢNH, con số chuẩn ở 01-checkin.md. QR vẽ minh hoạ (mã thật do &lt;QrCode&gt; sinh, ô module ≥ 2px, lề ≥ 4 module).</text>
+</svg>

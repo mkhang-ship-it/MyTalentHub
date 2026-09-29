@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="660" viewBox="0 0 1020 660" font-family="'Be Vietnam Pro', Inter, sans-serif">
+  <title>Tham khảo 03 — Hai trang công khai /checkin và /passport/verify (Đợt 3)</title>
+  <desc>Ảnh tham khảo. CHỮ THẮNG ẢNH — số chuẩn ở 03-trang-cong-khai.md. Hai trang này KHÔNG thuộc phạm vi code Đợt 3.</desc>
+
+  <defs>
+    <linearGradient id="ctag" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F43F5E"/>
+      <stop offset="1" stop-color="#922C6B"/>
+    </linearGradient>
+    <style>
+      .ttl { font-size: 20px; font-weight: 800; fill: #33324d; }
+      .m12 { font-size: 12px; fill: #6F6C8A; }
+      .eye { font-size: 12px; font-weight: 700; fill: #6F6C8A; letter-spacing: 0.06em; }
+      .h1 { font-size: 24px; font-weight: 800; fill: #33324d; }
+      .d14 { font-size: 14px; fill: #6F6C8A; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #33324d; }
+      .inp { font-size: 14px; fill: #33324d; }
+      .btn { font-size: 14px; font-weight: 600; fill: #ffffff; }
+      .ok { font-size: 14px; font-weight: 700; fill: #047857; }
+      .okb { font-size: 14px; fill: #047857; }
+      .dl { font-size: 14px; fill: #6F6C8A; }
+      .dv { font-size: 14px; font-weight: 600; fill: #33324d; }
+      .lnk { font-size: 14px; font-weight: 600; fill: #C44296; }
+      .card { fill: #ffffff; stroke: #ede7e1; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1020" height="660" fill="#fdf7f1"/>
+  <text class="ttl" x="48" y="52">Trang công khai — mở khi quét QR bằng điện thoại</text>
+  <text class="m12" x="48" y="76">Cùng ngôn ngữ thị giác với portal (card 448 · radius 20 · padding 24 · H1 24/800 · btn-primary 4,61:1) — không cần đăng nhập.</text>
+
+  <!-- ═══ CARD 1 — /checkin (CheckinScan) ═══ -->
+  <rect x="48" y="110" width="448" height="440" rx="20" class="card"/>
+  <text class="eye" x="72" y="146">FTALENTHUB · ĐIỂM DANH CÔNG KHAI</text>
+  <text class="h1" x="72" y="178">Điểm danh hoạt động</text>
+  <text class="d14" x="72" y="206">Quét mã QR trên màn hình học sinh để ghi nhận</text>
+  <text class="d14" x="72" y="226">giờ tham gia — không cần tài khoản.</text>
+
+  <text class="lbl" x="72" y="256">Mã điểm danh</text>
+  <rect x="72" y="266" width="400" height="44" rx="12" fill="#ffffff" stroke="#968D82"/>
+  <text class="inp" x="88" y="294" font-family="'Be Vietnam Pro', monospace">FTH:TP-1001:24531</text>
+
+  <!-- trạng thái đánh giá hạn dùng: icon + chữ (không để màu là tín hiệu duy nhất) -->
+  <text x="72" y="330" font-size="12" fill="#9A3412">⚠ Mã còn hiệu lực 118 giây · chỉ dùng một lần</text>
+
+  <!-- nút btn-primary: gradient + phủ 12% đen = 4,61:1, h44 radius 12 -->
+  <rect x="72" y="346" width="400" height="44" rx="12" fill="url(#ctag)"/>
+  <rect x="72" y="346" width="400" height="44" rx="12" fill="#000000" opacity="0.12"/>
+  <text class="btn" x="272" y="374" text-anchor="middle">Xác nhận điểm danh</text>
+
+  <!-- hộp thành công tone 4.3 -->
+  <rect x="72" y="406" width="400" height="72" rx="12" fill="#ECFDF5"/>
+  <text class="ok" x="92" y="432">✓ Check-in thành công · +1h</text>
+  <text class="okb" x="92" y="458" font-weight="400">Nguyễn Minh An · Lớp 10A1</text>
+
+  <text class="lnk" x="272" y="514" text-anchor="middle">Về trang chủ FTalentHub</text>
+
+  <!-- ═══ CARD 2 — /passport/verify (VerifyPassport) ═══ -->
+  <rect x="524" y="110" width="448" height="440" rx="20" class="card"/>
+  <text class="eye" x="548" y="146">FTALENTHUB · XÁC MINH CÔNG KHAI</text>
+  <text class="h1" x="548" y="178">Xác minh Talent Passport</text>
+  <text class="d14" x="548" y="206">Chỉ hiện thông tin tối thiểu (tên, lớp, trường)</text>
+  <text class="d14" x="548" y="226">để bảo vệ riêng tư của học sinh.</text>
+
+  <!-- hộp thành công tone 4.3 -->
+  <rect x="548" y="246" width="400" height="176" rx="12" fill="#ECFDF5"/>
+  <text class="ok" x="568" y="274">✓ Đã xác minh</text>
+  <text class="dl" x="568" y="302">Họ và tên</text>
+  <text class="dv" x="708" y="302">Nguyễn Minh An</text>
+  <text class="dl" x="568" y="326">Lớp</text>
+  <text class="dv" x="708" y="326">10A1</text>
+  <text class="dl" x="568" y="350">Trường</text>
+  <text class="dv" x="708" y="350">THPT Chu Văn An</text>
+  <text class="dl" x="568" y="374">Mã thẻ</text>
+  <text class="dv" x="708" y="374" font-family="'Be Vietnam Pro', monospace">TP-1001</text>
+  <text class="dl" x="568" y="398">Cập nhật</text>
+  <text class="dv" x="708" y="398" font-family="'Be Vietnam Pro', monospace">26/09/2026</text>
+
+  <text class="lnk" x="748" y="464" text-anchor="middle">Về trang chủ FTalentHub</text>
+
+  <!-- chú thích -->
+  <text class="m12" x="48" y="586">Card 1 · /checkin — trạng thái: thành công (dạng ErrorBox lỗi &amp; tone cảnh báo đặc tả ở file 03).</text>
+  <text class="m12" x="524" y="586">Card 2 · /passport/verify — trạng thái: đã xác minh.</text>
+  <text class="m12" x="48" y="612">Các trạng thái khác (đang tải · rỗng · lỗi · mã hết hạn) đặc tả ở 03-trang-cong-khai.md — CHỮ THẮNG ẢNH. Hai trang này CHƯA thuộc phạm vi code Đợt 3.</text>
+</svg>

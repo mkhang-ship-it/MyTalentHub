@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1560" viewBox="0 0 1440 1560" font-family="'Be Vietnam Pro', -apple-system, Helvetica, Arial, sans-serif">
+<title>FTalentHub — /student/activities (Đợt 2). ẢNH CHỈ ĐỂ XEM HÌNH DẠNG — chữ thắng ảnh; con số chuẩn nằm ở 02-activities.md.</title>
+<defs>
+  <linearGradient id="ctaA" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#D73753"/><stop offset="1" stop-color="#80275E"/>
+  </linearGradient>
+  <linearGradient id="heroA" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#FF5A4E"/><stop offset="0.48" stop-color="#EF4580"/><stop offset="1" stop-color="#844BD2"/>
+  </linearGradient>
+  <linearGradient id="techA" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#FB923C"/><stop offset="0.55" stop-color="#F97316"/><stop offset="1" stop-color="#EA580C"/>
+  </linearGradient>
+  <filter id="shA" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#33324D" flood-opacity="0.06"/>
+  </filter>
+</defs>
+
+<rect width="1440" height="1560" fill="#FDF7F1"/>
+
+<!-- ===== SIDEBAR 280 ===== -->
+<rect x="0" y="0" width="280" height="1560" fill="#FFFFFF"/>
+<line x1="280" y1="0" x2="280" y2="1560" stroke="#EDE7E1"/>
+<rect x="20" y="20" width="36" height="36" rx="12" fill="#284B8C"/>
+<text x="38" y="45" font-size="18" font-weight="800" fill="#FFFFFF" text-anchor="middle">F</text>
+<text x="66" y="45" font-size="16" font-weight="800" fill="#33324D">FTalentHub</text>
+<line x1="0" y1="76" x2="280" y2="76" stroke="#EDE7E1"/>
+<rect x="16" y="92" width="248" height="36" rx="10" fill="#FAF3EA"/>
+<text x="34" y="115" font-size="13" font-weight="600" fill="#4B4A66">⌂  Về trang chủ</text>
+<rect x="16" y="144" width="196" height="24" rx="12" fill="#F9EEF7"/>
+<text x="30" y="160" font-size="10" font-weight="800" fill="#7E2F73" letter-spacing="0.8">★ CỔNG ĐANG HOẠT ĐỘNG</text>
+<text x="16" y="188" font-size="10" font-weight="600" fill="#6F6C8A">Học sinh · Cổng học sinh</text>
+<text x="34" y="231" font-size="13" font-weight="600" fill="#4B4A66">✦  Khám phá</text>
+<rect x="16" y="248" width="248" height="40" rx="12" fill="#F9EEF7"/>
+<text x="34" y="273" font-size="13" font-weight="700" fill="#7E2F73">☰  Hoạt động</text>
+<text x="34" y="315" font-size="13" font-weight="600" fill="#4B4A66">◎  Check-in</text>
+<text x="34" y="351" font-size="13" font-weight="600" fill="#4B4A66">▤  Hộ chiếu</text>
+<text x="34" y="387" font-size="13" font-weight="600" fill="#4B4A66">★  Đánh giá</text>
+
+<!-- ===== HÀNG ĐẦU: PageHeader + bộ lọc ===== -->
+<text x="312" y="40" font-size="24" font-weight="800" fill="#33324D">Đăng ký hoạt động</text>
+<text x="312" y="66" font-size="14" font-weight="400" fill="#6F6C8A">Săn slot các lab, câu lạc bộ, cuộc thi đang mở.</text>
+
+<g font-size="13" font-weight="600">
+  <rect x="760" y="44" width="84" height="44" rx="22" fill="#33324D" stroke="#33324D"/>
+  <text x="802" y="71" fill="#FFFFFF" text-anchor="middle">✓ Tất cả</text>
+  <rect x="852" y="44" width="94" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="899" y="71" fill="#4B4A66" text-anchor="middle">Nghệ thuật</text>
+  <rect x="954" y="44" width="82" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="995" y="71" fill="#4B4A66" text-anchor="middle">Thể thao</text>
+  <rect x="1044" y="44" width="92" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="1090" y="71" fill="#4B4A66" text-anchor="middle">Kinh doanh</text>
+  <rect x="1144" y="44" width="80" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="1184" y="71" fill="#4B4A66" text-anchor="middle">Kỹ thuật</text>
+  <rect x="1232" y="44" width="84" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="1274" y="71" fill="#4B4A66" text-anchor="middle">Học thuật</text>
+  <rect x="1324" y="44" width="84" height="44" rx="22" fill="#FFFFFF" stroke="#968D82"/>
+  <text x="1366" y="71" fill="#4B4A66" text-anchor="middle">Sáng tạo</text>
+</g>
+<text x="760" y="106" font-size="10" font-weight="700" fill="#C44296">chip lọc h44 · radius 999 · 13/600 · đang chọn: bg --ink + icon ✓ + aria-pressed (không chỉ màu) · chưa chọn: viền --line-control 3,27:1</text>
+
+<!-- Ô tìm kiếm -->
+<rect x="312" y="124" width="384" height="44" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+<text x="328" y="152" font-size="16" font-weight="400" fill="#6F6C8A">⌕</text>
+<text x="352" y="152" font-size="14" font-weight="400" fill="#6F6C8A">Tìm hoạt động theo tên…</text>
+
+<!-- ===== LƯỚI 3 THẺ (chiều cao bằng nhau, nút trùng đường ngang) ===== -->
+<!-- THẺ 1 -->
+<rect x="312" y="192" width="349" height="340" rx="20" fill="#FFFFFF" stroke="#EDE7E1" filter="url(#shA)"/>
+<rect x="313" y="193" width="347" height="84" fill="url(#heroA)"/>
+<rect x="329" y="205" width="82" height="24" rx="12" fill="#FFFFFF"/>
+<text x="370" y="221" font-size="12" font-weight="600" fill="#7E2F73" text-anchor="middle">Kỹ thuật</text>
+<text x="328" y="310" font-size="16" font-weight="700" fill="#33324D">Lập trình game cùng Mentor</text>
+<g font-size="12" font-weight="400" fill="#6F6C8A">
+  <text x="328" y="356">🕘 15/10/2025 · 09:00</text>
+  <text x="328" y="376">📍 Phòng Lab A – Tầng 3</text>
+  <text x="328" y="396">👥 8/30 · <tspan font-weight="700" fill="#047857">Còn 22 chỗ</tspan></text>
+</g>
+<rect x="328" y="410" width="317" height="8" rx="4" fill="#EDE7E1"/>
+<rect x="328" y="410" width="84" height="8" rx="4" fill="url(#heroA)"/>
+<rect x="328" y="472" width="317" height="44" rx="12" fill="url(#ctaA)"/>
+<text x="486" y="499" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Đăng ký ngay</text>
+
+<!-- THẺ 2 -->
+<rect x="685" y="192" width="349" height="340" rx="20" fill="#FFFFFF" stroke="#EDE7E1" filter="url(#shA)"/>
+<rect x="686" y="193" width="347" height="84" fill="url(#heroA)"/>
+<rect x="702" y="205" width="84" height="24" rx="12" fill="#FFFFFF"/>
+<text x="744" y="221" font-size="12" font-weight="600" fill="#7E2F73" text-anchor="middle">Sáng tạo</text>
+<text x="701" y="310" font-size="16" font-weight="700" fill="#33324D">Câu lạc bộ Robotics chinh phục</text>
+<text x="701" y="334" font-size="16" font-weight="700" fill="#33324D">giải đấu quốc tế 2026</text>
+<g font-size="12" font-weight="400" fill="#6F6C8A">
+  <text x="701" y="356">🕘 18/10/2025 · 14:00</text>
+  <text x="701" y="376">📍 Nhà thi đấu đa năng</text>
+  <text x="701" y="396">👥 12/24 · <tspan font-weight="700" fill="#047857">Còn 12 chỗ</tspan></text>
+</g>
+<rect x="701" y="410" width="317" height="8" rx="4" fill="#EDE7E1"/>
+<rect x="701" y="410" width="158" height="8" rx="4" fill="url(#heroA)"/>
+<rect x="701" y="472" width="317" height="44" rx="12" fill="#F9EEF7" stroke="#A1458F"/>
+<text x="859" y="499" font-size="14" font-weight="600" fill="#7E2F73" text-anchor="middle">Đã đăng ký ✓</text>
+
+<!-- THẺ 3 -->
+<rect x="1058" y="192" width="349" height="340" rx="20" fill="#FFFFFF" stroke="#EDE7E1" filter="url(#shA)"/>
+<rect x="1059" y="193" width="347" height="84" fill="url(#techA)"/>
+<rect x="1075" y="205" width="74" height="24" rx="12" fill="#FFFFFF"/>
+<text x="1112" y="221" font-size="12" font-weight="600" fill="#7E2F73" text-anchor="middle">Học thuật</text>
+<text x="1074" y="310" font-size="16" font-weight="700" fill="#33324D">Hội chợ sách – gian hàng</text>
+<g font-size="12" font-weight="400" fill="#6F6C8A">
+  <text x="1074" y="356">🕘 22/10/2025 · 08:00</text>
+  <text x="1074" y="376">📍 Sảnh A – Tầng 1</text>
+  <text x="1074" y="396">👥 30/30 · <tspan font-weight="700" fill="#B91C1C">Hết chỗ</tspan></text>
+</g>
+<rect x="1074" y="410" width="317" height="8" rx="4" fill="#EDE7E1"/>
+<rect x="1074" y="410" width="317" height="8" rx="4" fill="url(#heroA)"/>
+<rect x="1074" y="472" width="317" height="44" rx="12" fill="#FAF3EA" stroke="#968D82"/>
+<text x="1232" y="499" font-size="14" font-weight="600" fill="#6F6C8A" text-anchor="middle">Đã hết chỗ</text>
+
+<!-- Đường ngang chứng minh nút thẳng hàng -->
+<line x1="312" y1="472" x2="1407" y2="472" stroke="#C44296" stroke-dasharray="5 5"/>
+<line x1="312" y1="516" x2="1407" y2="516" stroke="#C44296" stroke-dasharray="5 5"/>
+<text x="1407" y="466" font-size="10" font-weight="700" fill="#C44296" text-anchor="end">mọi nút: height 44 · radius 12 · 14/600 · cùng một đường ngang (mt-auto + shrink-0)</text>
+<text x="1407" y="532" font-size="10" font-weight="700" fill="#C44296" text-anchor="end">title 2 dòng (thẻ 2) vẫn KHÔNG đẩy nút xuống dưới · banner cố định 84 · card radius 20</text>
+
+<!-- Banner CTA cuối -->
+<rect x="312" y="564" width="1096" height="96" rx="20" fill="#FFFFFF" stroke="#EDE7E1" filter="url(#shA)"/>
+<rect x="336" y="588" width="48" height="48" rx="16" fill="#E8EDF7"/>
+<path d="M352 604h16v16h-16z M348 608h4 M372 608h4 M348 616h4 M372 616h4" stroke="#284B8C" stroke-width="2" fill="none"/>
+<text x="400" y="610" font-size="16" font-weight="700" fill="#33324D">Tham gia – Trải nghiệm – Phát triển</text>
+<text x="400" y="634" font-size="14" font-weight="400" fill="#6F6C8A">Mọi hoạt động đều được ghi nhận vào Hộ chiếu năng lượng của bạn.</text>
+
+<!-- ===== DIVIDER ===== -->
+<line x1="312" y1="700" x2="1408" y2="700" stroke="#EDE7E1"/>
+<text x="312" y="726" font-size="11" font-weight="700" fill="#C44296" letter-spacing="1.2">TRẠNG THÁI RÀNG BUỘC — ĐANG TẢI · LỖI · RỖNG</text>
+
+<!-- ĐANG TẢI -->
+<text x="312" y="756" font-size="12" font-weight="700" fill="#6F6C8A">1 · ĐANG TẢI (aria-busy, giữ nguyên khung đầu trang)</text>
+<rect x="312" y="768" width="349" height="260" rx="20" fill="#FFFFFF" stroke="#EDE7E1" stroke-dasharray="6 6"/>
+<rect x="313" y="769" width="347" height="84" fill="#F3ECE3"/>
+<rect x="328" y="869" width="220" height="20" rx="6" fill="#F3ECE3"/>
+<rect x="328" y="901" width="176" height="12" rx="6" fill="#F3ECE3"/>
+<rect x="328" y="921" width="252" height="12" rx="6" fill="#F3ECE3"/>
+<rect x="328" y="941" width="140" height="12" rx="6" fill="#F3ECE3"/>
+<rect x="328" y="965" width="317" height="8" rx="4" fill="#F3ECE3"/>
+<rect x="328" y="976" width="317" height="44" rx="12" fill="#F3ECE3" transform="translate(0,0)"/>
+<text x="328" y="1044" font-size="10" font-weight="600" fill="#6F6C8A">6 skeleton khớp ActivityCard · shimmer 1,4s · bỏ shimmer khi prefers-reduced-motion</text>
+
+<!-- LỖI -->
+<text x="685" y="756" font-size="12" font-weight="700" fill="#6F6C8A">2 · LỖI TẢI DỮ LIỆU (giữ PageHeader + filter + search)</text>
+<rect x="685" y="768" width="349" height="150" rx="12" fill="#FEF2F2" stroke="#FECACA"/>
+<text x="701" y="798" font-size="16" font-weight="700" fill="#B91C1C">⚠</text>
+<text x="725" y="798" font-size="14" font-weight="500" fill="#33324D">Không tải được danh sách hoạt động,</text>
+<text x="725" y="818" font-size="14" font-weight="500" fill="#33324D">bạn thử lại sau nhé.</text>
+<rect x="701" y="848" width="130" height="44" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+<text x="766" y="875" font-size="14" font-weight="600" fill="#33324D" text-anchor="middle">Thử lại</text>
+<text x="685" y="944" font-size="10" font-weight="600" fill="#6F6C8A">chữ --ink 14/500 (không đỏ toàn bộ câu) · nút Thử lại h44 · margin-bottom khối 16</text>
+
+<!-- RỖNG -->
+<text x="1058" y="756" font-size="12" font-weight="700" fill="#6F6C8A">3 · RỖNG (Empty 00/4.8)</text>
+<rect x="1058" y="768" width="349" height="180" rx="16" fill="#FAF3EA" fill-opacity="0.6" stroke="#B2AFC6" stroke-dasharray="6 6"/>
+<text x="1232" y="820" font-size="30" font-weight="700" fill="#8A87A3" text-anchor="middle">🗓</text>
+<text x="1232" y="854" font-size="14" font-weight="600" fill="#4B4A66" text-anchor="middle">Chưa có hoạt động nào, bạn thử đổi</text>
+<text x="1232" y="874" font-size="14" font-weight="600" fill="#4B4A66" text-anchor="middle">từ khóa hoặc lĩnh vực khác nhé.</text>
+<rect x="1146" y="894" width="172" height="44" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+<text x="1232" y="921" font-size="14" font-weight="600" fill="#33324D" text-anchor="middle">Xóa bộ lọc</text>
+
+<!-- ===== 4 TRẠNG THÁI NÚT ===== -->
+<line x1="312" y1="1076" x2="1408" y2="1076" stroke="#EDE7E1"/>
+<text x="312" y="1102" font-size="11" font-weight="700" fill="#C44296" letter-spacing="1.2">4 TRẠNG THÁI NÚT — CÙNG 1 CLASS CHUNG: h44 · radius 12 · 14/600 · width 100%</text>
+
+<rect x="312" y="1122" width="240" height="44" rx="12" fill="url(#ctaA)"/>
+<text x="432" y="1149" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Đăng ký ngay</text>
+<text x="312" y="1184" font-size="10" font-weight="600" fill="#6F6C8A">gradient + phủ 12% đen · trắng 4,61:1 · hover brightness 1,08 + −1px</text>
+
+<rect x="576" y="1122" width="240" height="44" rx="12" fill="url(#ctaA)" fill-opacity="0.9"/>
+<circle cx="606" cy="1144" r="8" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="2.5"/>
+<path d="M606 1136a8 8 0 0 1 8 8" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<text x="710" y="1149" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Đang đăng ký…</text>
+<text x="576" y="1184" font-size="10" font-weight="600" fill="#6F6C8A">disabled + aria-busy="true" · khóa đúng thẻ này (registeringId)</text>
+
+<rect x="840" y="1122" width="240" height="44" rx="12" fill="#F9EEF7" stroke="#A1458F"/>
+<text x="960" y="1149" font-size="14" font-weight="600" fill="#7E2F73" text-anchor="middle">Đã đăng ký ✓</text>
+<text x="840" y="1184" font-size="10" font-weight="600" fill="#6F6C8A">portal-soft/portal-dark 6,4:1 · có ✓ + chữ → không phụ thuộc màu</text>
+
+<rect x="1104" y="1122" width="240" height="44" rx="12" fill="#FAF3EA" stroke="#968D82"/>
+<text x="1224" y="1149" font-size="14" font-weight="600" fill="#6F6C8A" text-anchor="middle">Đã hết chỗ</text>
+<text x="1104" y="1184" font-size="10" font-weight="600" fill="#6F6C8A">canvas-soft/muted-strong/line-control · opacity 1 (KHÔNG opacity .40)</text>
+
+<!-- ===== THÔNG BÁO + TRẠNG THÁI PHỤ ===== -->
+<line x1="312" y1="1224" x2="1408" y2="1224" stroke="#EDE7E1"/>
+<text x="312" y="1250" font-size="11" font-weight="700" fill="#C44296" letter-spacing="1.2">THÔNG BÁO THÀNH CÔNG (MỚI) &amp; Ô TÌM KIẾM</text>
+
+<rect x="312" y="1270" width="420" height="44" rx="12" fill="#ECFDF5"/>
+<text x="328" y="1297" font-size="14" font-weight="600" fill="#047857">✓ Đăng ký thành công — bạn đã giữ chỗ.</text>
+<text x="312" y="1334" font-size="10" font-weight="600" fill="#6F6C8A">role="status" aria-live="polite" · #047857 = 5,48:1 · đặt trên lưới, dưới hộp lỗi</text>
+
+<rect x="768" y="1270" width="384" height="44" rx="12" fill="#FFFFFF" stroke="#968D82"/>
+<text x="784" y="1298" font-size="16" fill="#6F6C8A">⌕</text>
+<text x="808" y="1298" font-size="14" fill="#6F6C8A">Tìm hoạt động theo tên…</text>
+<text x="768" y="1334" font-size="10" font-weight="600" fill="#6F6C8A">h44 · radius 12 · viền --line-control (3,27:1) · placeholder --muted-strong · focus: viền --portal + ring 3px 18%</text>
+
+<!-- ===== GHI CHÚ ===== -->
+<text x="312" y="1394" font-size="11" font-weight="700" fill="#C44296">GHI CHÚ BẮT BUỘC (P2 KHÔNG ĐƯỢC PHÁ)</text>
+<text x="312" y="1414" font-size="12" font-weight="500" fill="#6F6C8A">• 6 bất biến giữ nút thẳng hàng: grid items-stretch · article flex h-full flex-col · banner shrink-0 (84px) · thân flex-1 · title min-h 48 + line-clamp-2 · khối nút mt-auto shrink-0 + chung 1 class.</text>
+<text x="312" y="1434" font-size="12" font-weight="500" fill="#6F6C8A">• Kiểm thử: 3 thẻ title 1 dòng / 2 dòng / mô tả dài → đáy 3 nút phải trùng nhau tuyệt đối ở 390/768/1440.</text>
+<text x="312" y="1454" font-size="12" font-weight="500" fill="#6F6C8A">• Lưới: grid-cols-1 md:grid-cols-2 lg:grid-cols-3 · gap-4 md:gap-6 (16/24) · items-stretch.</text>
+<text x="312" y="1474" font-size="12" font-weight="500" fill="#6F6C8A">• Thẻ: radius 20 (rounded-[20px], KHÔNG rounded-2xl) · bỏ hover-lift (thẻ không phải vùng bấm) · progress h8 track --line + aria-hidden.</text>
+<text x="312" y="1494" font-size="12" font-weight="500" fill="#6F6C8A">• Meta 12/400 --muted-strong · “Còn N chỗ” #047857 · “Hết chỗ” #B91C1C · banner CTA cuối: nền --brand-soft, bỏ interactive.</text>
+<text x="312" y="1514" font-size="12" font-weight="500" fill="#6F6C8A">• Giữ nguyên: API load/register, registeringId, khungDauTrang, ACTIVITY_FIELD_NAMES, data-testid, mọi text tiếng Việt hiện có.</text>
+<text x="312" y="1540" font-size="11" font-weight="700" fill="#C44296">ẢNH CHỈ ĐỂ XEM HÌNH DẠNG — mọi con số/màu chuẩn nằm ở 02-activities.md.</text>
+</svg>

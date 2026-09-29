@@ -1,0 +1,234 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1420" viewBox="0 0 1440 1420" font-family="'Be Vietnam Pro', Inter, sans-serif">
+  <title>Tham khảo 02 — Trang Talent Passport + hộp chi tiết (Đợt 3)</title>
+  <desc>Ảnh tham khảo. CHỮ THẮNG ẢNH — con số chuẩn ở 02-passport.md. Thẻ passport là 2D thuần CSS (PassportHoloCard), QR vẽ minh hoạ.</desc>
+
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B2A5E"/>
+      <stop offset="0.5" stop-color="#284B8C"/>
+      <stop offset="1" stop-color="#1B2A5E"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#EC4899"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <g id="qrmini" fill="#111111">
+      <path d="M0 0h40v40H0z M8 8v24h24V8z" fill-rule="evenodd"/>
+      <rect x="16" y="16" width="8" height="8"/>
+      <path d="M48 0h40v40H48z M56 8v24h24V8z" fill-rule="evenodd"/>
+      <rect x="64" y="16" width="8" height="8"/>
+      <path d="M0 48h40v40H0z M8 56v24h24V56z" fill-rule="evenodd"/>
+      <rect x="16" y="64" width="8" height="8"/>
+      <rect x="48" y="48" width="8" height="8"/><rect x="64" y="48" width="8" height="8"/>
+      <rect x="80" y="56" width="8" height="8"/><rect x="48" y="64" width="8" height="8"/>
+      <rect x="64" y="72" width="8" height="8"/><rect x="80" y="80" width="8" height="8"/>
+      <rect x="48" y="80" width="8" height="8"/><rect x="72" y="64" width="8" height="8"/>
+      <rect x="48" y="32" width="8" height="8"/><rect x="64" y="32" width="8" height="8"/>
+      <rect x="32" y="48" width="8" height="8"/><rect x="32" y="64" width="8" height="8"/>
+      <rect x="8" y="48" width="8" height="8"/>
+    </g>
+    <style>
+      .t1 { font-size: 24px; font-weight: 800; fill: #33324d; }
+      .t2 { font-size: 14px; fill: #6F6C8A; }
+      .h3 { font-size: 18px; font-weight: 700; fill: #33324d; }
+      .sec { font-size: 14px; font-weight: 700; fill: #33324d; }
+      .b14 { font-size: 14px; fill: #6F6C8A; }
+      .b14i { font-size: 14px; font-weight: 600; fill: #33324d; }
+      .m12 { font-size: 12px; fill: #6F6C8A; }
+      .rowtitle { font-size: 14px; font-weight: 600; fill: #33324d; }
+      .card { fill: #ffffff; stroke: #ede7e1; stroke-width: 1; }
+      .chip { font-size: 12px; font-weight: 600; fill: #33324d; }
+      .w18 { font-size: 18px; font-weight: 800; fill: #ffffff; }
+      .w12 { font-size: 12px; fill: #ffffff; }
+      .w10l { font-size: 12px; font-weight: 500; fill: #ffffff; }
+      .wv { font-size: 18px; font-weight: 800; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <!-- ═══ PANEL 1 — TRANG /passport/:id ═══ -->
+  <rect width="1440" height="640" fill="#fdf7f1"/>
+  <text class="t1" x="80" y="64">Talent Passport</text>
+  <text class="t2" x="80" y="92">Hồ sơ năng lực số — điểm mạnh, kỹ năng và hành trình trải nghiệm của bạn.</text>
+
+  <!-- Cột 1: PassportHoloCard (2D thuần CSS, minHeight 400) -->
+  <rect x="80" y="120" width="411" height="440" rx="16" fill="url(#navy)"/>
+  <text class="w12" x="104" y="152" font-weight="600" opacity="0.9">TALENT PASSPORT</text>
+  <text class="w18" x="104" y="184">Nguyễn Minh An</text>
+  <text class="w12" x="104" y="206" opacity="0.72">Lớp 10A1 · Khối 10</text>
+
+  <rect x="104" y="224" width="113" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="160" y="248" text-anchor="middle">Điểm talent</text>
+  <text class="wv" x="160" y="272" text-anchor="middle">86</text>
+  <rect x="227" y="224" width="113" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="283" y="248" text-anchor="middle">Giờ trải nghiệm</text>
+  <text class="wv" x="283" y="272" text-anchor="middle">48h</text>
+  <rect x="350" y="224" width="113" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="406" y="248" text-anchor="middle">Huy hiệu</text>
+  <text class="wv" x="406" y="272" text-anchor="middle">12</text>
+
+  <text class="w12" x="104" y="316" opacity="0.72">Kỹ năng nổi bật</text>
+  <rect x="104" y="326" width="359" height="6" rx="3" fill="#ffffff" opacity="0.25"/>
+  <rect x="104" y="326" width="300" height="6" rx="3" fill="#EC4899"/>
+  <text class="w12" x="104" y="352">Lập trình</text>
+  <rect x="104" y="362" width="359" height="6" rx="3" fill="#ffffff" opacity="0.25"/>
+  <rect x="104" y="362" width="220" height="6" rx="3" fill="#F97316"/>
+  <text class="w12" x="104" y="388">Thiết kế</text>
+
+  <rect x="104" y="404" width="96" height="96" rx="8" fill="#ffffff"/>
+  <use href="#qrmini" transform="translate(112,412)"/>
+  <text class="m12" x="216" y="440" fill="#ffffff" style="fill:#ffffff" opacity="0.72">Mã QR hồ sơ</text>
+  <text class="m12" x="216" y="458" fill="#ffffff" style="fill:#ffffff" opacity="0.72">TP-1001</text>
+  <text class="w12" x="104" y="530" opacity="0.72">Cập nhật 26/09/2026 · Quét bằng camera để xác minh</text>
+
+  <!-- Cột 2: Giới thiệu + Chứng chỉ &amp; Dự án -->
+  <rect x="515" y="120" width="411" height="170" rx="20" class="card"/>
+  <text class="h3" x="539" y="152">Giới thiệu &amp; Sở thích</text>
+  <text class="b14" x="539" y="182">Mình mê khám phá khoa học và biến ý tưởng thành sản phẩm thật,</text>
+  <text class="b14" x="539" y="200">rất thích làm việc nhóm và thử thách bản thân ở dự án mới.</text>
+  <rect x="539" y="218" width="86" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="582" y="234" text-anchor="middle" style="fill:#7E2F73">Khoa học</text>
+  <rect x="633" y="218" width="94" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="680" y="234" text-anchor="middle" style="fill:#7E2F73">Nghệ thuật</text>
+  <rect x="735" y="218" width="84" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="777" y="234" text-anchor="middle" style="fill:#7E2F73">Thể thao</text>
+
+  <rect x="515" y="306" width="411" height="274" rx="20" class="card"/>
+  <text class="h3" x="539" y="338">Chứng chỉ &amp; Dự án</text>
+  <rect x="539" y="356" width="363" height="52" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="555" y="380">Chứng nhận Lập trình Web nâng cao</text>
+  <text class="m12" x="555" y="398">FPT Skillage · 08/2026</text>
+  <rect x="539" y="416" width="363" height="52" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="555" y="440">Huy hiệu Tuần Lễ Khởi nghiệp</text>
+  <text class="m12" x="555" y="458">Sở GD&amp;ĐT · 05/2026</text>
+  <text class="sec" x="539" y="500">Dự án</text>
+  <rect x="539" y="512" width="363" height="52" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="555" y="536">Cây ATM nước tái chế</text>
+  <text class="m12" x="555" y="554">Kỹ thuật · Đang thực hiện — Tái chế · Đang thực hiện</text>
+
+  <!-- Cột 3: Hoạt động -->
+  <rect x="950" y="120" width="410" height="300" rx="20" class="card"/>
+  <text class="h3" x="974" y="152">Hoạt động trải nghiệm</text>
+  <rect x="974" y="170" width="362" height="48" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="990" y="190">Câu lạc bộ Robotics</text>
+  <text class="m12" x="990" y="208">Kỹ thuật · Thành viên</text>
+  <text x="1320" y="200" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73">12h</text>
+  <rect x="974" y="224" width="362" height="48" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="990" y="244">Cuộc thi Vẽ tranh môi trường</text>
+  <text class="m12" x="990" y="262">Nghệ thuật · Trưởng nhóm</text>
+  <text x="1320" y="254" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73">6h</text>
+  <rect x="974" y="278" width="362" height="48" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="990" y="298">Bán hàng từ thiện</text>
+  <text class="m12" x="990" y="316">Kinh doanh · Nhân viên</text>
+  <text x="1320" y="308" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73">4h</text>
+  <rect x="974" y="332" width="362" height="48" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="990" y="352">Ngày hội đọc sách</text>
+  <text class="m12" x="990" y="370">Học thuật · Tình nguyện viên</text>
+  <text x="1320" y="362" text-anchor="end" font-size="14" font-weight="700" fill="#7E2F73">3h</text>
+
+  <text class="m12" x="720" y="612" text-anchor="middle">Dữ liệu minh hoạ · trạng thái: đang tải = Skeleton theo bố cục · lỗi = PageHeader + ErrorBox + Thử lại · danh sách rỗng = Empty.</text>
+
+  <!-- ═══ PANEL 2 — HỘP CHI TIẾT (hộp thoại lớn) ═══ -->
+  <rect x="0" y="640" width="1440" height="780" fill="#fdf7f1"/>
+  <rect x="0" y="640" width="1440" height="780" fill="#1B2A5E" opacity="0.45"/>
+  <rect x="80" y="648" width="640" height="28" rx="8" fill="#ffffff"/>
+  <text class="m12" x="96" y="667">Hộp chi tiết — hộp thoại lớn 896 · radius 20 · padding 20/24 · overlay navy .45 · focus trap + Esc</text>
+
+  <!-- bóng đổ + hộp -->
+  <rect x="280" y="692" width="896" height="700" rx="20" fill="#1B2A5E" opacity="0.18"/>
+  <rect x="272" y="680" width="896" height="700" rx="20" fill="#ffffff"/>
+
+  <!-- cột trái hộp -->
+  <path d="M292 680 h400 v700 h-400 a20 20 0 0 1 -20 -20 v-660 a20 20 0 0 1 20 -20 z" fill="#FBF6F0"/>
+  <line x1="692" y1="680" x2="692" y2="1380" stroke="#ede7e1"/>
+  <rect x="292" y="712" width="380" height="380" rx="16" fill="url(#navy)"/>
+  <text class="w12" x="312" y="744" font-weight="600" opacity="0.9">TALENT PASSPORT</text>
+  <text class="w18" x="312" y="776">Nguyễn Minh An</text>
+  <text class="w12" x="312" y="798" opacity="0.72">Lớp 10A1 · Khối 10</text>
+  <rect x="312" y="814" width="114" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="369" y="838" text-anchor="middle">Điểm talent</text>
+  <text class="wv" x="369" y="862" text-anchor="middle">86</text>
+  <rect x="436" y="814" width="114" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="493" y="838" text-anchor="middle">Giờ trải nghiệm</text>
+  <text class="wv" x="493" y="862" text-anchor="middle">48h</text>
+  <rect x="560" y="814" width="92" height="56" rx="12" fill="#ffffff" opacity="0.10"/>
+  <text class="w10l" x="606" y="838" text-anchor="middle">Huy hiệu</text>
+  <text class="wv" x="606" y="862" text-anchor="middle">12</text>
+  <text class="w12" x="312" y="898" opacity="0.72">Kỹ năng nổi bật</text>
+  <rect x="312" y="908" width="340" height="6" rx="3" fill="#ffffff" opacity="0.25"/>
+  <rect x="312" y="908" width="282" height="6" rx="3" fill="#EC4899"/>
+  <rect x="312" y="926" width="340" height="6" rx="3" fill="#ffffff" opacity="0.25"/>
+  <rect x="312" y="926" width="204" height="6" rx="3" fill="#F97316"/>
+  <rect x="312" y="954" width="92" height="92" rx="8" fill="#ffffff"/>
+  <use href="#qrmini" transform="translate(320,962)"/>
+  <text class="m12" x="420" y="996" fill="#ffffff" style="fill:#ffffff" opacity="0.72">Mã QR xác minh</text>
+  <text class="m12" x="420" y="1014" fill="#ffffff" style="fill:#ffffff" opacity="0.72">TP-1001 · ô module ≥ 2px</text>
+  <text class="w12" x="312" y="1070" opacity="0.72">Cập nhật 26/09/2026 · Quét bằng camera để xác minh</text>
+
+  <!-- nút toàn màn hình h44 + chú thích -->
+  <rect x="292" y="1112" width="204" height="44" rx="22" fill="#ffffff" stroke="#968D82"/>
+  <text x="316" y="1140" font-size="13" font-weight="600" fill="#33324d">⛶ Xem toàn màn hình</text>
+  <text class="m12" x="292" y="1182">Thẻ 2D — mặt trước và mặt sau hiện liền nhau (không xoay 3D).</text>
+  <rect x="292" y="1200" width="140" height="140" rx="12" fill="#ffffff" stroke="#ede7e1"/>
+  <use href="#qrmini" transform="translate(306,1214)"/>
+  <text class="m12" x="448" y="1234">Cập nhật 26/09/2026</text>
+  <text class="m12" x="448" y="1254">Quét bằng camera điện thoại</text>
+  <text class="m12" x="448" y="1274">(mở /passport/verify?code=…)</text>
+
+  <!-- cột phải hộp -->
+  <text class="h3" x="716" y="730">Talent Passport</text>
+  <text class="b14" x="716" y="754">Nguyễn Minh An · Lớp 10A1 · Khối 10</text>
+  <rect x="1100" y="706" width="44" height="44" rx="22" fill="#ffffff" stroke="#968D82"/>
+  <text x="1122" y="734" text-anchor="middle" font-size="16" fill="#33324d">✕</text>
+
+  <text class="sec" x="716" y="796">Giới thiệu &amp; Sở thích</text>
+  <text class="b14" x="716" y="820">Mình mê khám phá khoa học và biến ý tưởng thành sản phẩm thật.</text>
+  <text class="b14" x="716" y="840">Rất thích làm việc nhóm và thử thách bản thân ở dự án mới.</text>
+  <rect x="716" y="856" width="86" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="759" y="872" text-anchor="middle" style="fill:#7E2F73">Khoa học</text>
+  <rect x="810" y="856" width="94" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="857" y="872" text-anchor="middle" style="fill:#7E2F73">Nghệ thuật</text>
+  <rect x="912" y="856" width="84" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="954" y="872" text-anchor="middle" style="fill:#7E2F73">Thể thao</text>
+  <rect x="1004" y="856" width="80" height="24" rx="12" fill="#FBEFF7"/>
+  <text class="chip" x="1044" y="872" text-anchor="middle" style="fill:#7E2F73">Âm nhạc</text>
+
+  <text class="sec" x="716" y="914">Điểm số nổi bật</text>
+  <rect x="716" y="930" width="136" height="64" rx="12" fill="#FBEFF7"/>
+  <text x="784" y="956" text-anchor="middle" font-size="18" font-weight="800" fill="#7E2F73">86</text>
+  <text class="m12" x="784" y="978" text-anchor="middle">Điểm talent</text>
+  <rect x="862" y="930" width="136" height="64" rx="12" fill="#FBEFF7"/>
+  <text x="930" y="956" text-anchor="middle" font-size="18" font-weight="800" fill="#7E2F73">48h</text>
+  <text class="m12" x="930" y="978" text-anchor="middle">Giờ trải nghiệm</text>
+  <rect x="1008" y="930" width="136" height="64" rx="12" fill="#FBEFF7"/>
+  <text x="1076" y="956" text-anchor="middle" font-size="18" font-weight="800" fill="#7E2F73">12</text>
+  <text class="m12" x="1076" y="978" text-anchor="middle">Huy hiệu</text>
+
+  <text class="sec" x="716" y="1030">Kỹ năng</text>
+  <text class="b14" x="716" y="1054" fill="#4b4a66" style="fill:#4b4a66">>Lập trình</text>
+  <text class="m12" x="1144" y="1054" text-anchor="end" font-weight="700">8/10</text>
+  <rect x="716" y="1062" width="428" height="8" rx="4" fill="#ede7e1"/>
+  <rect x="716" y="1062" width="342" height="8" rx="4" fill="url(#bar)"/>
+  <text class="b14" x="716" y="1094" fill="#4b4a66" style="fill:#4b4a66">>Thiết kế</text>
+  <text class="m12" x="1144" y="1094" text-anchor="end" font-weight="700">6/10</text>
+  <rect x="716" y="1102" width="428" height="8" rx="4" fill="#ede7e1"/>
+  <rect x="716" y="1102" width="257" height="8" rx="4" fill="url(#bar)"/>
+  <text class="b14" x="716" y="1134" fill="#4b4a66" style="fill:#4b4a66">>Giao tiếp</text>
+  <text class="m12" x="1144" y="1134" text-anchor="end" font-weight="700">9/10</text>
+  <rect x="716" y="1142" width="428" height="8" rx="4" fill="#ede7e1"/>
+  <rect x="716" y="1142" width="385" height="8" rx="4" fill="url(#bar)"/>
+
+  <text class="sec" x="716" y="1184">Huy hiệu</text>
+  <rect x="716" y="1200" width="96" height="24" rx="12" fill="#ffffff" stroke="#F97316" stroke-width="1.5"/>
+  <text class="chip" x="764" y="1216" text-anchor="middle">Nhà sáng tạo</text>
+  <rect x="820" y="1200" width="88" height="24" rx="12" fill="#ffffff" stroke="#8B5CF6" stroke-width="1.5"/>
+  <text class="chip" x="864" y="1216" text-anchor="middle">Đồng đội</text>
+  <rect x="916" y="1200" width="96" height="24" rx="12" fill="#ffffff" stroke="#C44296" stroke-width="1.5"/>
+  <text class="chip" x="964" y="1216" text-anchor="middle">Người dẫn</text>
+
+  <text class="sec" x="716" y="1256">Chứng chỉ</text>
+  <rect x="716" y="1272" width="428" height="48" rx="12" fill="#FAF3EA" stroke="#ede7e1"/>
+  <text class="rowtitle" x="732" y="1292">Chứng nhận Lập trình Web nâng cao</text>
+  <text class="m12" x="732" y="1310">FPT Skillage · 08/2026</text>
+
+  <text class="m12" x="1360" y="60" text-anchor="end">Ảnh tham khảo — CHỮ THẮNG ẢNH, con số chuẩn ở 02-passport.md. Thẻ passport = 2D thuần CSS (không WebGL).</text>
+</svg>

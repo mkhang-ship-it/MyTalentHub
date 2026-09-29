@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1400" viewBox="0 0 1440 1400" font-family="'Be Vietnam Pro', -apple-system, Helvetica, Arial, sans-serif">
+<title>FTalentHub — Dashboard học sinh /student (Đợt 1). ẢNH CHỈ ĐỂ XEM HÌNH DẠNG, chữ thắng ảnh.</title>
+<defs>
+  <linearGradient id="heroS" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#FF5A4E"/><stop offset="0.48" stop-color="#EF4580"/><stop offset="1" stop-color="#844BD2"/>
+  </linearGradient>
+  <linearGradient id="heroScrimS" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#1B2A5E" stop-opacity="0.62"/>
+    <stop offset="0.55" stop-color="#1B2A5E" stop-opacity="0.40"/>
+    <stop offset="1" stop-color="#1B2A5E" stop-opacity="0.18"/>
+  </linearGradient>
+  <linearGradient id="navS" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#FF7A3D"/><stop offset="1" stop-color="#A1458F"/>
+  </linearGradient>
+  <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#EC4899"/><stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient>
+  <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#33324D" flood-opacity="0.06"/>
+  </filter>
+</defs>
+
+<rect width="1440" height="1400" fill="#FDF7F1"/>
+
+<!-- ==================== SIDEBAR 280px ==================== -->
+<rect x="0" y="0" width="280" height="1400" fill="#FFFFFF"/>
+<line x1="280" y1="0" x2="280" y2="1400" stroke="#EDE7E1"/>
+
+<rect x="20" y="20" width="36" height="36" rx="12" fill="#284B8C"/>
+<text x="38" y="45" font-size="18" font-weight="800" fill="#FFFFFF" text-anchor="middle">F</text>
+<text x="66" y="45" font-size="16" font-weight="800" fill="#33324D">FTalentHub</text>
+<line x1="0" y1="76" x2="280" y2="76" stroke="#EDE7E1"/>
+
+<rect x="16" y="92" width="248" height="36" rx="10" fill="#FAF3EA"/>
+<path d="M34 114l10-8 10 8v8h-8v-6h-4v6h-8z" fill="#4B4A66"/>
+<text x="62" y="115" font-size="13" font-weight="600" fill="#4B4A66">Về trang chủ</text>
+
+<rect x="16" y="144" width="196" height="24" rx="12" fill="#F9EEF7"/>
+<text x="30" y="160" font-size="10" font-weight="800" fill="#7E2F73" letter-spacing="0.8">★ CỔNG ĐANG HOẠT ĐỘNG</text>
+<text x="16" y="188" font-size="10" font-weight="600" fill="#6F6C8A">Học sinh · Cổng học sinh</text>
+
+<text x="32" y="222" font-size="11" font-weight="700" fill="#6F6C8A" letter-spacing="1">HỌC SINH</text>
+<rect x="16" y="234" width="248" height="404" rx="12" fill="#F9EEF7" fill-opacity="0.4"/>
+
+<rect x="20" y="240" width="240" height="36" rx="10" fill="url(#navS)"/>
+<path d="M36 252h12v12H36z" fill="#FFFFFF" fill-opacity="0.9" stroke="#FFFFFF"/>
+<text x="62" y="263" font-size="13" font-weight="600" fill="#FFFFFF">Tổng quan</text>
+<path d="M244 254l4 4-4 4" stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+
+<text x="62" y="303" font-size="13" fill="#4B4A66">Hồ sơ năng lực</text>
+<rect x="36" y="292" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="343" font-size="13" fill="#4B4A66">Khám phá năng khiếu</text>
+<rect x="36" y="332" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="383" font-size="13" fill="#4B4A66">Hoạt động</text>
+<rect x="36" y="372" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="423" font-size="13" fill="#4B4A66">Check-in QR</text>
+<rect x="36" y="412" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="463" font-size="13" fill="#4B4A66">Đánh giá</text>
+<rect x="36" y="452" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="503" font-size="13" fill="#4B4A66">Huy hiệu</text>
+<rect x="36" y="492" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="543" font-size="13" fill="#4B4A66">AI gợi ý</text>
+<rect x="36" y="532" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="583" font-size="13" fill="#4B4A66">Thống kê</text>
+<rect x="36" y="572" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+<text x="62" y="623" font-size="13" fill="#4B4A66">Talent Passport</text>
+<rect x="36" y="612" width="14" height="14" rx="3" fill="#A1458F" fill-opacity="0.55"/>
+
+<rect x="16" y="1268" width="248" height="76" rx="16" fill="#FAF3EA" stroke="#EDE7E1"/>
+<circle cx="48" cy="1306" r="20" fill="#284B8C"/>
+<text x="48" y="1311" font-size="12" font-weight="800" fill="#FFFFFF" text-anchor="middle">MK</text>
+<text x="78" y="1300" font-size="13" font-weight="800" fill="#33324D">Nguyễn Minh Khang</text>
+<text x="78" y="1320" font-size="11" font-weight="600" fill="#7E2F73">Học sinh</text>
+
+<!-- ==================== NỘI DUNG ==================== -->
+<!-- PageHeader -->
+<text x="312" y="58" font-size="24" font-weight="800" fill="#33324D" letter-spacing="-0.36">Tổng quan cá nhân</text>
+<text x="312" y="84" font-size="14" fill="#6F6C8A">Hiển thị điểm năng lực, huy hiệu, giờ trải nghiệm của bạn.</text>
+
+<!-- Hero banner -->
+<g>
+  <rect x="312" y="116" width="1096" height="148" rx="20" fill="url(#heroS)"/>
+  <rect x="312" y="116" width="1096" height="148" rx="20" fill="url(#heroScrimS)"/>
+  <text x="344" y="172" font-size="24" font-weight="800" fill="#FFFFFF">Chào mừng trở lại, Nguyễn Minh Khang! 👋</text>
+  <text x="344" y="200" font-size="14" fill="#FFFFFF">128h trải nghiệm · Khối 12 · Hạng #12/450</text>
+  <rect x="344" y="216" width="176" height="32" rx="16" fill="#FFFFFF"/>
+  <path d="M364 240c0-6 6-6 6-12 0 0 6 4 6 10a6 6 0 0 1-12 0c0-3 3-4 3-4" fill="#A1458F"/>
+  <text x="384" y="237" font-size="13" font-weight="700" fill="#7E2F73">Chuỗi 12 ngày</text>
+
+  <rect x="1152" y="148" width="224" height="84" rx="16" fill="#1B2A5E" fill-opacity="0.50" stroke="#FFFFFF" stroke-opacity="0.22"/>
+  <text x="1172" y="178" font-size="12" font-weight="700" fill="#FFFFFF" letter-spacing="0.7">ĐIỂM NĂNG LỰC</text>
+  <text x="1172" y="216" font-size="40" font-weight="800" fill="#FFFFFF">86</text>
+</g>
+
+<!-- KPI ×4 -->
+<g filter="url(#cardShadow)">
+  <rect x="312" y="296" width="262" height="116" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="590" y="296" width="262" height="116" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="868" y="296" width="262" height="116" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="1146" y="296" width="262" height="116" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<g>
+  <text x="332" y="330" font-size="13" font-weight="600" fill="#4B4A66">Điểm năng lực</text>
+  <text x="332" y="372" font-size="28" font-weight="800" fill="#33324D">86</text>
+  <text x="332" y="396" font-size="12" font-weight="600" fill="#6F6C8A">Thang điểm 100</text>
+  <rect x="510" y="316" width="44" height="44" rx="12" fill="#F9EEF7"/>
+  <path d="M524 348l6-10 5 6 7-11" stroke="#7E2F73" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="610" y="330" font-size="13" font-weight="600" fill="#4B4A66">Giờ trải nghiệm</text>
+  <text x="610" y="372" font-size="28" font-weight="800" fill="#33324D">128h</text>
+  <text x="610" y="396" font-size="12" font-weight="600" fill="#6F6C8A">Tích lũy tự động qua check-in</text>
+  <rect x="788" y="316" width="44" height="44" rx="12" fill="#F9EEF7"/>
+  <path d="M810 326c6 6 8 10 8 14a8 8 0 0 1-16 0c0-4 3-6 4-8 1 3 4 3 4 3" fill="#7E2F73"/>
+
+  <text x="888" y="330" font-size="13" font-weight="600" fill="#4B4A66">Xếp hạng</text>
+  <text x="888" y="372" font-size="28" font-weight="800" fill="#33324D">#12/450</text>
+  <text x="888" y="396" font-size="12" font-weight="600" fill="#6F6C8A">Khối 12 · 450 bạn</text>
+  <rect x="1066" y="316" width="44" height="44" rx="12" fill="#F9EEF7"/>
+  <circle cx="1082" cy="334" r="5" fill="#7E2F73"/><circle cx="1094" cy="334" r="5" fill="#7E2F73"/>
+  <path d="M1074 350a8 8 0 0 1 16 0M1088 350a6 6 0 0 1 12 0" stroke="#7E2F73" stroke-width="2" fill="none"/>
+
+  <text x="1166" y="330" font-size="13" font-weight="600" fill="#4B4A66">Huy hiệu đã mở</text>
+  <text x="1166" y="372" font-size="28" font-weight="800" fill="#33324D">4</text>
+  <text x="1166" y="396" font-size="12" font-weight="600" fill="#6F6C8A">Explorer/Innovator/Expert/Master</text>
+  <rect x="1344" y="316" width="44" height="44" rx="12" fill="#F9EEF7"/>
+  <path d="M1366 326l4 8 8 4-8 4-4 8-4-8-8-4 8-4z" fill="#7E2F73"/>
+</g>
+
+<!-- Skill Orbit -->
+<g filter="url(#cardShadow)">
+  <rect x="312" y="444" width="1096" height="300" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<text x="336" y="484" font-size="18" font-weight="700" fill="#33324D">Skill Orbit</text>
+<text x="336" y="510" font-size="14" fill="#6F6C8A">Năng lực và hành trình của bạn trong một không gian dữ liệu.</text>
+<rect x="1320" y="466" width="64" height="24" rx="12" fill="#F9EEF7"/>
+<text x="1352" y="483" font-size="12" font-weight="700" fill="#7E2F73" text-anchor="middle">86/100</text>
+<rect x="336" y="532" width="1048" height="188" rx="12" fill="#FAF3EA"/>
+<g fill="none" stroke="#EDE7E1">
+  <ellipse cx="860" cy="626" rx="300" ry="76"/>
+  <ellipse cx="860" cy="626" rx="210" ry="54"/>
+  <ellipse cx="860" cy="626" rx="120" ry="32"/>
+</g>
+<g fill="#A1458F">
+  <circle cx="560" cy="626" r="9"/><circle cx="1070" cy="626" r="8"/><circle cx="650" cy="572" r="7"/>
+  <circle cx="740" cy="658" r="7"/><circle cx="980" cy="594" r="9"/><circle cx="900" cy="658" r="6"/>
+</g>
+<circle cx="860" cy="626" r="22" fill="#7E2F73"/>
+<text x="336" y="700" font-size="12" font-weight="600" fill="#6F6C8A">canvas 100% × 188px (desktop) · 260px mobile · fallback = 6 thanh tiến độ nếu lỗi WebGL</text>
+
+<!-- AI + Roadmap -->
+<g filter="url(#cardShadow)">
+  <rect x="312" y="776" width="536" height="256" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+  <rect x="872" y="776" width="536" height="256" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<g>
+  <path d="M344 810l4 8 8 4-8 4-4 8-4-8-8-4 8-4z" fill="#A1458F"/>
+  <text x="364" y="818" font-size="16" font-weight="700" fill="#33324D">AI phân tích năng lực</text>
+  <text x="336" y="850" font-size="14" fill="#4B4A66">Bạn có thiên hướng Kỹ thuật — Tư duy hệ thống cao,</text>
+  <text x="336" y="872" font-size="14" fill="#4B4A66">nên ưu tiên dự án robotics và học bổng STEM.</text>
+  <rect x="336" y="900" width="488" height="60" rx="16" fill="#F9EEF7" stroke="#D8A9C6"/>
+  <text x="356" y="936" font-size="14" font-weight="600" fill="#7E2F73">💡 Xem lộ trình 3 tháng được AI gợi ý riêng cho bạn →</text>
+
+  <path d="M900 810h16M908 802v16" stroke="#A1458F" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="928" y="818" font-size="16" font-weight="700" fill="#33324D">Lộ trình gợi ý 3 tháng tới</text>
+
+  <circle cx="904" cy="866" r="16" fill="#F9EEF7"/>
+  <text x="904" y="871" font-size="12" font-weight="700" fill="#7E2F73" text-anchor="middle">T1</text>
+  <line x1="904" y1="884" x2="904" y2="906" stroke="#EDE7E1" stroke-width="2"/>
+  <text x="936" y="866" font-size="14" font-weight="600" fill="#33324D">Hoàn thành 3 bài test năng khiếu</text>
+  <text x="936" y="886" font-size="13" fill="#6F6C8A">Holland · MBTI · DISC, 45 phút mỗi bài</text>
+
+  <circle cx="904" cy="930" r="16" fill="#F9EEF7"/>
+  <text x="904" y="935" font-size="12" font-weight="700" fill="#7E2F73" text-anchor="middle">T2</text>
+  <line x1="904" y1="948" x2="904" y2="970" stroke="#EDE7E1" stroke-width="2"/>
+  <text x="936" y="930" font-size="14" font-weight="600" fill="#33324D">Tham gia 1 dự án robotics</text>
+  <text x="936" y="950" font-size="13" fill="#6F6C8A">Mục tiêu: 20 giờ thực hành nhóm</text>
+
+  <circle cx="904" cy="994" r="16" fill="#F9EEF7"/>
+  <text x="904" y="999" font-size="12" font-weight="700" fill="#7E2F73" text-anchor="middle">T3</text>
+  <text x="936" y="994" font-size="14" font-weight="600" fill="#33324D">Cập nhật Talent Passport + QR</text>
+  <text x="936" y="1014" font-size="13" fill="#6F6C8A">Xác thực dự án với giáo viên chủ nhiệm</text>
+</g>
+
+<!-- Bảng hoạt động -->
+<g filter="url(#cardShadow)">
+  <rect x="312" y="1064" width="1096" height="300" rx="20" fill="#FFFFFF" stroke="#EDE7E1"/>
+</g>
+<path d="M336 1098h16M344 1090v16" stroke="#A1458F" stroke-width="2.4" stroke-linecap="round"/>
+<text x="364" y="1106" font-size="16" font-weight="700" fill="#33324D">Hoạt động của bạn</text>
+
+<rect x="336" y="1130" width="1048" height="34" fill="#FAF3EA"/>
+<text x="348" y="1152" font-size="12" font-weight="700" fill="#6F6C8A" letter-spacing="0.7">HOẠT ĐỘNG</text>
+<text x="820" y="1152" font-size="12" font-weight="700" fill="#6F6C8A" letter-spacing="0.7">LĨNH VỰC</text>
+<text x="1010" y="1152" font-size="12" font-weight="700" fill="#6F6C8A" letter-spacing="0.7">TRẠNG THÁI</text>
+<text x="1372" y="1152" font-size="12" font-weight="700" fill="#6F6C8A" letter-spacing="0.7" text-anchor="end">GIỜ TÍCH LŨY</text>
+<line x1="336" y1="1164" x2="1384" y2="1164" stroke="#E2D9D0"/>
+
+<text x="348" y="1194" font-size="14" font-weight="600" fill="#33324D">Cuộc thi Robotics miền Tây 2026</text>
+<text x="820" y="1194" font-size="14" fill="#4B4A66">Kỹ thuật</text>
+<rect x="1010" y="1178" width="94" height="24" rx="12" fill="#F9EEF7"/>
+<path d="M1022 1190l4 4 7-8" stroke="#7E2F73" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1040" y="1195" font-size="12" font-weight="600" fill="#7E2F73">Đã duyệt</text>
+<text x="1372" y="1194" font-size="14" font-weight="700" fill="#33324D" text-anchor="end">12h</text>
+<line x1="336" y1="1212" x2="1384" y2="1212" stroke="#EDE7E1"/>
+
+<text x="348" y="1242" font-size="14" font-weight="600" fill="#33324D">Chương trình Mùa hè xanh</text>
+<text x="820" y="1242" font-size="14" fill="#4B4A66">Thể thao</text>
+<rect x="1010" y="1226" width="124" height="24" rx="12" fill="#FFF7ED"/>
+<path d="M1022 1232v6l4 3" stroke="#9A3412" stroke-width="2" fill="none" stroke-linecap="round"/>
+<text x="1036" y="1243" font-size="12" font-weight="600" fill="#9A3412">Đang tham gia</text>
+<text x="1372" y="1242" font-size="14" font-weight="700" fill="#33324D" text-anchor="end">8h</text>
+<line x1="336" y1="1260" x2="1384" y2="1260" stroke="#EDE7E1"/>
+
+<text x="348" y="1290" font-size="14" font-weight="600" fill="#33324D">Kịch 5 phút Tiếng Anh</text>
+<text x="820" y="1290" font-size="14" fill="#4B4A66">Nghệ thuật</text>
+<rect x="1010" y="1274" width="106" height="24" rx="12" fill="#ECFDF5"/>
+<path d="M1022 1286l4 4 7-8" stroke="#047857" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1040" y="1291" font-size="12" font-weight="600" fill="#047857">Hoàn thành</text>
+<text x="1372" y="1290" font-size="14" font-weight="700" fill="#33324D" text-anchor="end">6h</text>
+<line x1="336" y1="1308" x2="1384" y2="1308" stroke="#EDE7E1"/>
+
+<text x="348" y="1336" font-size="12" font-weight="600" fill="#6F6C8A">Khoảng cách khối dọc 32px · card padding 24 · bảng &lt;768px chuyển thành danh sách thẻ</text>
+
+<text x="720" y="1384" font-size="11" font-weight="600" fill="#6F6C8A" text-anchor="middle">ẢNH THAM KHẢO — mọi số đo lấy từ 02-dashboard-hoc-sinh.md (chữ thắng ảnh)</text>
+</svg>

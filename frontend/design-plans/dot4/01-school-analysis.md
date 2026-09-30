@@ -66,14 +66,14 @@ Card: card-surface · radius 20 · padding 24
 
 | # | Vị trí | Hiện tại | **Chốt** | Lý do |
 |---|---|---|---|---|
-| 1 | `SIZE` / `RADIUS` | 320 / 100 | **288 / 88** | text SVG bị scale theo viewBox; cột hẹp nhất = 1024 → card inner = 696/2 − 48 = **288px** → viewBox 288 = scale 1,00 → font 12 hiển thị đúng **12px** (00/7.1). Tại 390: 302px → scale 1,05 → 12,6px ✅ |
+| 1 | `SIZE` / `RADIUS` | 320 / 100 | **272 / 83** | **ĐO LẠI 29/9 (Playwright, viewport 1024×900, `getBoundingClientRect` + `viewBox.baseVal`):** cột hẹp nhất THẬT ≠ 288 như đặc tả cũ — gridW **680** (main 744 − 2×32 pad, Layout pad 32 ở ≥1024 chứ không phải 24) → cột **328** (gap 24) → card inner = 328 − 48 (padding 24×2) − 2 (viền 1×2) = **278px** → viewBox 288 cũ → scale **0,9653** → font 12 chỉ hiện **11,58px** (P2 báo 11,6 ✓; **sai 0,42px / −3,5%** so với chốt 12,0 → vi phạm 00/7.1, **không chấp nhận**). Chốt mới **SIZE 272**: 278/272 = 1,022 → **12,27px ≥12** ✅. Đo 3 cỡ còn lại (svg = 300 @390 · 340 @768 · 340 @1440, `max-w-[340px]`) → 13,2 / 15,0 / 15,0 ✅. |
 | 2 | Nhãn kỹ năng | `fontSize 9` / `10`, `fill #64748b` | **12 / 600 · `--ink-soft` (`#4b4a66`)** | 00/6.1 nhãn trục 12/600 `--ink-soft`; `#64748b` ngoài bảng token |
 | 3 | Giá trị điểm | `fontSize 12` bold, `fill #db2777` | **12 / 700 · `--ink`** | 00/6.1 “giá trị trực tiếp 12/700 `--ink`”; `#db2777` ngoài bảng |
 | 4 | Vòng lưới (rings) | solid `#e2e8f0` | **`1px dashed #ede7e1`** | 00/6.1 lưới |
 | 5 | Trục toạ độ | `#e2e8f0` | **`1px #cfc6bc`** | 00/6.1 đường trục |
 | 6 | Đa giác dữ liệu | fill `rgba(236,72,153,.25)` · stroke `#ec4899` 2px | fill **`rgba(27,42,94,.15)`** · stroke **`#1B2A5E` 2.5px** | 00/6.1: không dùng `--portal`/hồng làm màu chuỗi khi nó là màu nhấn trang; 00/6.3 stroke 2.5px |
 | 7 | Điểm dữ liệu | `r=2.5` hồng | **`r=4` · `#1B2A5E`** | 00/6.3 điểm dữ liệu r=4 |
-| 8 | Nhãn quanh vòng | offset `r+32`, clamp x `[56, SIZE−56]`, y `[14, SIZE−14]` | offset **`r+30`**, clamp x **`[64, 224]`**, y **`[16, 272]`** (theo SIZE 288) | giữ nhãn không tràn viewBox; **đo bằng devtools** (mục G, AN16) |
+| 8 | Nhãn quanh vòng | offset `r+32`, clamp x `[56, SIZE−56]`, y `[14, SIZE−14]` | offset **`r+30`**, clamp x **`[64, 208]`**, y **`[16, 256]`** (theo SIZE 272 — đổi từ [64,224]/[16,272] theo SIZE 288 cũ) | giữ nhãn không tràn viewBox; **đo bằng devtools** (mục G, AN16) |
 | 9 | Animation | `strokeDashoffset="200"` + `drawRadar 1.2s` | đặt **`strokeDashoffset="0"` mặc định**, keyframe chỉ `from { stroke-dashoffset: 200; opacity: 0 }` | reduced-motion tắt animation → đa giác phải hiện đủ, không bị ẩn vì offset 200 |
 | 10 | Chú thích dưới SVG | `text-xs text-muted-light` (2,09:1 ❌) | **12/400 `--muted-strong`** (5,01:1 ✅) | 00/7.2 |
 | 11 | `sr-only aria-live="polite"` mô tả radar | có | **bỏ** | mô tả tĩnh không đổi → vùng live thừa; giữ `role="img"` + `aria-label` + `<desc>` + `tabIndex={0}` (đủ, 00/7.6) |
@@ -159,7 +159,7 @@ margin-top 32 (00/5.2) · grid-cols-1 lg:grid-cols-2 · gap-4 md:gap-6 · aria-l
 |---|---|---|---|---|
 | Hàng radar + xếp hạng | 1 cột | 1 cột | **2 cột** | 2 cột |
 | Section 2 biểu đồ | 1 cột | 1 cột | **2 cột** | 2 cột |
-| Radar SVG (viewBox 288, `max-w-[340px]`) | 302px → font 12,6 | 340 → 14,2 | **288 → 12,0** | 340 → 14,2 |
+| Radar SVG (viewBox 272, `max-w-[340px]`) — svg đo được 29/9 | 300px → font 13,2 | 340 → 15,0 | **278 → 12,3** | 340 → 15,0 |
 | Bảng xếp hạng khối | **danh sách thẻ (D1)** | cuộn ngang (`overflow-x-auto` + region) | cuộn ngang | full width |
 | Bảng Top học sinh | **danh sách thẻ (D2)** | cuộn ngang | cuộn ngang | full width |
 | `BieuDoCot` (nhiều cột) | flex-1 tự co ≤56px/cột, gap 16, nhãn xuống 2 dòng | như 390 | như 390 | như 390 |
@@ -234,7 +234,7 @@ chân:   link “Xem passport →” 14/600 --portal-dark, khối cao 44px (targ
 | AN4 | Rỗng | 4 nhóm `Empty` (A3) + **không render radar SVG khi `skill_map` rỗng** | 00/4.8 |
 | AN5 | `<style>` cục bộ | Bỏ `@keyframes fadeUp` trùng → dùng `.reveal-up`; **bỏ selector `*` trong media reduced-motion**; `drawRadar` có rule reduced-motion riêng + `strokeDashoffset` mặc định 0 | 00/7.8, G4 |
 | AN6 | Hàng 1 | Bỏ `hover:shadow` 2 Card; `gap-4 md:gap-6`; `margin-bottom 32`; `h2` 18/700 | 00/4.1/5.2 |
-| AN7 | Radar | Bảng 11 số ở B2a (SIZE 288, font 12 `--ink-soft`, giá trị 12/700 `--ink`, lưới dashed `#ede7e1`, trục `#cfc6bc`, polygon S1 2.5px, dot r4) | 00/6.1/6.3 |
+| AN7 | Radar | Bảng 11 số ở B2a (SIZE 272, font 12 `--ink-soft`, giá trị 12/700 `--ink`, lưới dashed `#ede7e1`, trục `#cfc6bc`, polygon S1 2.5px, dot r4) | 00/6.1/6.3 |
 | AN8 | Radar | Dòng “rồi sao?” 14/400 `--ink-soft` + caption 12 `--muted-strong` + bỏ `sr-only aria-live` thừa | C |
 | AN9 | Bảng xếp hạng | Header 12/700 `--muted-strong` + `--line-strong`; badge hạng 4.3 (1 portal-soft, còn lại trung tính); điểm TB 14/700 `--ink` bỏ 3 màu; padding 12; hover `/40` | 00/4.3/4.7 |
 | AN10 | Bảng xếp hạng | Dòng “rồi sao?” dưới `h2` + link → `--portal-dark` | C, G9 |
@@ -244,6 +244,7 @@ chân:   link “Xem passport →” 14/600 --portal-dark, khối cao 44px (targ
 | AN14 | 2 bảng | Wrapper `overflow-x-auto` → `role="region" aria-label tabIndex={0}`; hover hàng `bg-portal-soft/40`, không transform | 00/4.7/7.6 |
 | AN15 | Responsive | <768: 2 bảng → **danh sách thẻ D1/D2**; lưới 2 cột ≥1024; gap 16/24 | 00/4.7/5.2 |
 | AN16 | Đo | Devtools: mọi `<text>` trong radar nằm trong viewBox, font hiển thị **≥12px** ở 390/768/1024/1440 → ghi số đo vào mục G, sai → báo pane 1 (không tự đổi font) | 00/7.1 |
+| AN16·kết quả | **29/9 — pane 1 đo** (Playwright, `fontSize_user × rect.width / viewBox.width`): 1024 → **11,58px ❌** (cột 278), 390 → 12,5 · 768/1440 → 14,17 (viewBox 288 cũ). P2 báo 11,6 ✓. → chốt SIZE **272** ở B2a-1, dự kiến mới: **12,27 / 13,2 / 15,0 / 15,0** — P2 đo lại sau khi sửa (CHƯA ĐO cho tới khi code) | |
 
 ---
 
@@ -251,7 +252,7 @@ chân:   link “Xem passport →” 14/600 --portal-dark, khối cao 44px (targ
 
 | Thành phần | Số chuẩn |
 |---|---|
-| Radar SVG | viewBox **288×288** · RADIUS **88** · nhãn 12/600 `--ink-soft` · giá trị 12/700 `--ink` · max-w **340** |
+| Radar SVG | viewBox **272×272** · RADIUS **83** · nhãn 12/600 `--ink-soft` · giá trị 12/700 `--ink` · max-w **340** · font hiển thị ≥12 ở mọi cỡ (đo 29/9: 12,3–15,0px) |
 | Grid hàng 1 & section | 1 cột **<1024** · 2 cột **≥1024** · gap **16/24** · khối cách nhau **32** · PageHeader → khối đầu **24** |
 | Card | radius **20** · padding **24** · tiêu đề **18/700** — không hover-shadow |
 | Bảng (≥768) | header 12/700 `--muted-strong` · padding header 10/12 · hàng min-height **44** · padding 12 · border-bottom `--line-strong` (header) / `--line` (hàng) |

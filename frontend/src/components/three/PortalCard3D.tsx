@@ -53,7 +53,7 @@ export function PortalCard3D() {
               <Icon size={24} style={{ color: role.color }} aria-hidden="true" />
             </div>
             <h3 className="mb-1 text-lg font-extrabold text-ink">{role.label}</h3>
-            <p className="text-sm leading-relaxed text-muted">{role.description}</p>
+            <p className="text-sm leading-relaxed text-muted-strong">{role.description}</p>
             <div className="mt-4 flex items-center gap-1.5 text-sm font-bold" style={{ color: role.color }}>
               Đăng nhập <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
             </div>

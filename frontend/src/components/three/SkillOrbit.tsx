@@ -110,7 +110,7 @@ function SkillOrbitFallback({ data }: { data?: SkillOrbitData }) {
           <circle cx="36" cy="36" r="11" fill="#F97316" opacity="0.35" />
         </svg>
         <p className="text-sm font-semibold text-ink">Skill Orbit đang chờ dữ liệu</p>
-        <p className="text-xs text-muted">Hoàn thành đánh giá để xem kỹ năng của bạn.</p>
+        <p className="text-xs text-muted-strong">Hoàn thành đánh giá để xem kỹ năng của bạn.</p>
       </div>
     );
   }
@@ -130,8 +130,8 @@ function SkillOrbitFallback({ data }: { data?: SkillOrbitData }) {
         <div role="list" aria-label="Danh sách kỹ năng" className="absolute inset-0">
           {skills.map((skill, index) => {
             const angle = (Math.PI * 2 * index) / skills.length - Math.PI / 2;
-            // Bán kính quỹ đạo tối đa 38% + nửa node ~8,2% = 46,2% < 50% nên luôn nằm trong khung
-            const orbitPct = 30 + (Math.max(0, Math.min(10, skill.level)) / 10) * 8;
+            // Bán kính tâm 36% + nửa node 56/2 = 12,7% → 48,7% < 50% nên luôn nằm trong khung
+            const orbitPct = 30 + (Math.max(0, Math.min(10, skill.level)) / 10) * 6;
             const leftPct = 50 + Math.cos(angle) * orbitPct;
             const topPct = 50 + Math.sin(angle) * orbitPct;
             return (
@@ -139,11 +139,11 @@ function SkillOrbitFallback({ data }: { data?: SkillOrbitData }) {
                 key={skill.name}
                 role="listitem"
                 aria-label={`${skill.name}: ${skill.level}/10`}
-                className="absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-portal/30 bg-portal-soft text-center text-[8px] font-semibold leading-tight text-portal-dark"
+                className="absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-portal/30 bg-portal-soft text-center text-xs font-semibold leading-tight text-portal-dark"
                 style={{ left: `${leftPct}%`, top: `${topPct}%` }}
                 title={`${skill.name}: ${skill.level}/10`}
               >
-                {skill.name.slice(0, 6)}
+                {skill.name}
               </div>
             );
           })}

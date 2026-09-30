@@ -126,7 +126,7 @@ margin-top 16 (hàng phụ trong khối bảng) · flex justify-center gap-1
 | 3 | Khoảng cách | `margin-top 32` (hiện `mt-6` = 24) |
 | 4 | `height={280}` | **giữ** (khung chuẩn của component) |
 | 5 | Props `tieuDe` / `tomTat` / `nodes` / `links` | **giữ nguyên** — `tomTatNhanTai` đang trả lời “rồi sao?” đúng (điểm TB, kỹ năng phổ biến, giải thích đường nối) |
-| 6 | Bọc ngoài (nếu cần chống SVG cao quá — xem E10) | **phương án dự phòng P2 tự làm được:** bọc `<div className="mx-auto w-full max-w-[560px]">` quanh `<DataNetwork>` (giới hạn bề rộng figure, không sửa component) — **chỉ dùng nếu E10 chưa được P5 mở quyền** |
+| 6 | Bọc ngoài (nếu cần chống SVG cao quá — xem E10) | **phương án dự phòng P2 tự làm được:** bọc `<div className="mx-auto w-full max-w-[560px]">` quanh `<DataNetwork>` (giới hạn bề rộng figure, không sửa component) — **chỉ dùng nếu E10 chưa được P5 mở quyền** → ***ĐÃ ÁP ở Đợt 4*** *(Talents.tsx:505; đo 29/9: figure 560×720,81 @1024 VÀ @1440 — xem E10)* |
 
 > **Sửa bên trong `DataNetwork.tsx` → xem MỤC E (đề nghị, chờ P5).**
 
@@ -153,12 +153,12 @@ margin-top 16 (hàng phụ trong khối bảng) · flex justify-center gap-1
 | Kết quả | **danh sách thẻ (D1)** | **bảng** 7 cột, region cuộn | bảng (nội dung 696px ≥ min-w) | bảng full (1096px) |
 | Nút hành động | **44px** (cảm ứng) | 36px (sm 00/4.2) | 36px | 36px |
 | Phân trang | 44×44 | 44×44 | 44×44 | 44×44 |
-| `DataNetwork` | full-width (svg `w-full`) | full-width | full-width | full-width → **xem E10** |
+| `DataNetwork` | max-w **560** mx-auto (B6-6) | max-w 560 | max-w 560 | max-w 560 (đo 560×720,81 — E10 đã khép) |
 
 **→ Chốt breakpoint “đổi từ lưới sang danh sách dọc”:**
 - **Bảng kết quả → danh sách thẻ dọc khi `< 768px`** (00/4.7).
 - **Bộ lọc: 1 cột <768 · 2 cột 768–1279 · 3 cột ≥1280** (lý do số ở B2-3).
-- Khối mạng luôn là 1 khối full-width (không nằm lưới).
+- Khối mạng luôn là 1 khối (không nằm lưới); bề rộng **max 560, mx-auto** (B6-6 — đã áp ở Đợt 4, đo 560×720,81).
 
 ### D1. Bảng → danh sách thẻ (< 768)
 ```
@@ -169,14 +169,19 @@ hàng 3: “Khối” …… Khối {grade} 14/600 --ink
 hàng 4: “Điểm năng lực” …… {talent_score} 14/700 --ink tabular-nums
 hàng 5: “Điểm kỹ thuật” …… {technical_score} 14/700 --ink tabular-nums
 hàng 6: “Kỹ năng nổi bật” …… các chip 12/600 (như B4-9, wrap, gap 6)
-chân:   flex gap-8 … 2 nút h 44 flex-1: “Xem hồ sơ” (btn-secondary) · “Mời phỏng vấn” (btn-primary)
+chân:   flex gap-2 … 2 nút h 44 flex-1: “Xem hồ sơ” (btn-secondary) · “Mời phỏng vấn” (btn-primary)
         khi mời lỗi → chip tone nguy hiểm (A2-2) chiếm hàng riêng trên 2 nút
 ```
 - label 12/600 `--muted-strong` trái · giá trị phải · gap 8 · padding 16 (00/4.7).
+- **gap-2 (8px) — sửa 29/9 cho khớp thực tế:** đặc tả cũ ghi `gap-8` nhưng code thật là `gap-2` (Talents.tsx, ô `oThaoTac`, đo `getComputedStyle` = 8px) → chốt 8px cho cả 2 trang (xem `../dot4/03` D1): 2 nút đã `flex-1` full bề rộng, gap 32 sẽ lấy 32px của cả 2 nút trong thẻ 390.
 
 ---
 
 ## E. ĐỀ NGHỊ MỞ QUYỀN SỬA `components/three/**` CHO ĐỢT 4 — **CHỜ P5 QUYẾT, KHÔNG PHẢI ĐÃ CHỐT**
+
+> **29/9 — ĐỢT 5 ĐÃ CHỐT:** P5 mở quyền sửa `three/**` cho vòng cuối → trạng thái từng E (CÒN ĐÚNG /
+> BỎ / ĐÃ XONG) + phiếu sửa đầy đủ ở **`../dot5/04-datanetwork-va-cac-e.md`**. Dưới đây giữ nguyên
+> nguyên bản Đợt 4 để đối chiếu.
 
 > `DataNetwork.tsx` nằm trong `three/**` → Đợt 4 P2 **không được sửa**. Dưới đây là các lỗi thật
 > đã đọc được trong source (29/09). Nếu P5 mở quyền → sửa theo bảng; nếu không → ghi lại cho Đợt 5.
@@ -192,9 +197,9 @@ chân:   flex gap-8 … 2 nút h 44 flex-1: “Xem hồ sơ” (btn-secondary) �
 | E7 | nhãn SVG (247/251/255) | `fontSize 9.5` / `7.5` (**< 12px ❌**) | **12** (hiển thị ≥12) — **cần đo trước**: `RONG=300`, cột trái nhãn `text-anchor=end` tại `x−14` → nếu tràn thì phải **tăng `RONG`** (bố cục!) → thuộc phạm vi P5 | 00/7.1 + 6.1 |
 | E8 | màu nhóm (43–50) | `grade #8B5CF6` ngoài 6 chuỗi · `default #8A87A3` | `grade` → **`#0D9488` (S4)** · giữ `talent #C44296` (S3) · `skill #F97316` (S5) · `default #6F6C8A` | 00/6.1 |
 | E9 | đường nối (230–231) | `#c7c9d9 opacity .8` ≈ **1,6:1 ❌** (đường mang thông tin cần ≥3:1) | **`#6F6C8A` đặc**, `strokeWidth 1.5` | 00/7.1 (đường viền/thành phần mang thông tin ≥3:1) |
-| E10 | `<svg>` (218) | `viewBox 0 0 300 {cao}` + `h-auto w-full` → **cao theo tỉ lệ**: 1440 (rộng ~1096) → cao ≈ 1096/300 × `caoSvg` (516) ≈ **1.883px**; 1024 → ≈ 696/300×516 ≈ **1.200px** | thêm giới hạn bề rộng trong component (`max-width: 560px` + `margin: 0 auto` cho `<svg>`, hoặc set `height` cố định + `preserveAspectRatio`) | *Chưa đo bằng devtools — P2 đo trước khi báo; nếu đúng thì đây là lỗi bố cục lớn nhất trang. Trong lúc chờ: dùng B6-6 (bọc `max-w-[560px]` từ `Talents.tsx`).* |
+| E10 | `<svg>` (218) | `viewBox 0 0 300 {cao}` + `h-auto w-full` → **cao theo tỉ lệ**: 1440 (rộng ~1096) → cao ≈ 1096/300 × `caoSvg` (516) ≈ **1.883px**; 1024 → ≈ 696/300×516 ≈ **1.200px** | thêm giới hạn bề rộng trong component (`max-width: 560px` + `margin: 0 auto` cho `<svg>`, hoặc set `height` cố định + `preserveAspectRatio`) | ***ĐÃ XONG 29/9 — BỎ việc sửa component:*** *bọc B6-6 đã thật sự nằm trong code → đo: figure **560×720,81** · svg **518×493,81** (viewBox 300×286) @1440 VÀ @1024 — không còn 1.883/1.200 (sai dự đoán Đợt 4 vì bề rộng đã bị chặn 560). Cực trị CHƯA ĐO: `caoSvg = 56+46·K` (K≤15 kỹ năng chung) → cao ≤ 518/300×746 ≈ **1.288px** — xem `../dot5/04`.* |
 
-**Cách kiểm nhanh E10 (P2 chạy, không cần sửa file):** `document.querySelector('figure svg').getBoundingClientRect()` → so chiều cao với 280 (prop `height`).
+**Cách kiểm nhanh E10 (P2 chạy, không cần sửa file):** `document.querySelector('figure svg').getBoundingClientRect()` → so chiều cao với 280 (prop `height`). → ***Kết quả 29/9 (pane 1 đo):*** *cao svg = **493,81px** (không phải 1.883), figure = 720,81 ≥ minHeight 280 ✓ — E10 khép lại.*
 
 ---
 

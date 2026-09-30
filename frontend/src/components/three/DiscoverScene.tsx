@@ -138,7 +138,7 @@ function KhungDuPhongDiscover({ duLieu }: { duLieu: KetQuaDaGom[] }) {
           <circle cx="36" cy="36" r="11" fill="#F97316" opacity="0.35" />
         </svg>
         <p className="text-sm font-semibold text-ink">Hãy làm bài test đầu tiên</p>
-        <p className="text-xs text-muted">Kết quả của bạn sẽ hiện thành bản đồ 3D ở đây.</p>
+        <p className="text-xs text-muted-strong">Kết quả của bạn sẽ hiện thành bản đồ 3D ở đây.</p>
       </div>
     );
   }

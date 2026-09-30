@@ -26,6 +26,18 @@ function nowMs(): number {
   return runtimeGlobal.performance?.now?.() ?? Date.now();
 }
 
+// Cảnh báo WebGL đúng 1 lần cho mỗi sceneId trong một phiên SPA (phiếu PS0, tiêu chí T4).
+// Chỉ ghi devtools để dev phát hiện lỗi im lặng; người dùng chỉ thấy nội dung dự phòng 2D.
+const daBaoWebGLLoi = new Set<string>();
+
+function baoWebGLKhongKhaDung(sceneId: string, lyDo: string): void {
+  if (daBaoWebGLLoi.has(sceneId)) return;
+  daBaoWebGLLoi.add(sceneId);
+  console.warn(
+    `[FTalentHub] Scene "${sceneId}": WebGL không khả dụng (${lyDo}) — đang hiển thị nội dung dự phòng 2D.`
+  );
+}
+
 function disposeTexture(value: unknown): void {
   if (!value || typeof value !== "object") return;
   const candidate = value as { isTexture?: unknown; dispose?: () => void };
@@ -163,8 +175,13 @@ class SceneController implements SceneAPI {
       this.mounting = false;
       this.running = false;
       this.cleanupContext();
-      if (error instanceof Error && error.name === "SceneUnsupportedError") this.onState("unsupported");
-      else this.onState("failed");
+      if (error instanceof Error && error.name === "SceneUnsupportedError") {
+        baoWebGLKhongKhaDung(this.sceneId, "thiết bị không đủ cấu hình");
+        this.onState("unsupported");
+      } else {
+        baoWebGLKhongKhaDung(this.sceneId, "không tạo được WebGL context");
+        this.onState("failed");
+      }
       throw error;
     }
   }
@@ -239,6 +256,7 @@ class SceneController implements SceneAPI {
       event.preventDefault();
       this.running = false;
       this.stopLoop();
+      baoWebGLKhongKhaDung(this.sceneId, "mất context");
       this.onState("lost");
     };
     this.contextRestoredHandler = () => {

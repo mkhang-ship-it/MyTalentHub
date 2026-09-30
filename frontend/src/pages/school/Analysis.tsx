@@ -19,10 +19,10 @@ interface Analysis {
   }[];
 }
 
-// viewBox radar 288 = đúng chiều rộng cột hẹp nhất (696/2−48), font 12 hiện đúng 12px.
-const SIZE = 288;
+// viewBox radar 272 = cột hẹp nhất render 278px, font 12 hiện 12,27px (quyết định dot5/01).
+const SIZE = 272;
 const CENTER = SIZE / 2;
-const RADIUS = 88;
+const RADIUS = 83;
 
 function polar(i: number, n: number, r: number): [number, number] {
   const angle = (Math.PI * 2 * i) / n - Math.PI / 2;

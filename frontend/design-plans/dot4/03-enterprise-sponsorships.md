@@ -201,8 +201,9 @@ hàng 2: “Lĩnh vực” …… FIELD_NAMES 14/600 --ink
 hàng 3: “Số tiền” …… {dinhDangTien} 14/700 --ink tabular-nums
 hàng 4: “Điều kiện” …… nội dung 14/400 --ink-soft (rỗng → “—”)
 hàng 5: “Ngày” …… {created_at} 14/600 --muted-strong tabular-nums
-chân:   justify-end gap-8 → 2 nút 44×44: Sửa (secondary) · Xóa (tone nguy hiểm, B7-11)
+chân:   justify-end gap-2 → 2 nút 44×44: Sửa (secondary) · Xóa (tone nguy hiểm, B7-11)
 ```
+- **gap-2 (8px) — sửa 29/9** theo việc P2 nhường: “gap-8 chân thẻ lịch sử mobile trông thưa”. Đo thật tại 390 (Playwright, `getComputedStyle(group).gap`): cũ = **32px** giữa 2 nút 44×44 = 32/268 = **11,9%** bề rộng trong thẻ; còn hàng bảng ≥768 của chính trang là `gap-2` (Sponsorships.tsx:617, đo 8px) → 32px làm 2 chế độ lệch nhau. 8px vẫn tách đủ 2 vùng chạm 44px.
 
 ---
 

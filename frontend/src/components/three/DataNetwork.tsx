@@ -44,9 +44,9 @@ const MAU_NHOM: Record<string, string> = {
   talent: "#C44296",
   skill: "#F97316",
   project: "#EC4899",
-  grade: "#8B5CF6",
+  grade: "#0D9488",
   class: "#C44296",
-  default: "#8A87A3",
+  default: "#6F6C8A",
 };
 
 function nhanNhom(group?: string): string {
@@ -141,8 +141,8 @@ export default function DataNetwork({ nodes, links, mode = "school", reducedMoti
   const caoSvg = Math.max(180, 56 + Math.max(nhanTai.length, kyNang.length, 1) * buocDong);
   const nutVe: NutVe[] = useMemo(() => {
     const viTri = new Map<string | number, { x: number; y: number }>();
-    nhanTai.forEach((n, i) => viTri.set(n.id, { x: 78, y: 34 + i * buocDong }));
-    kyNang.forEach((n, i) => viTri.set(n.id, { x: 222, y: 34 + i * buocDong }));
+    nhanTai.forEach((n, i) => viTri.set(n.id, { x: 90, y: 34 + i * buocDong }));
+    kyNang.forEach((n, i) => viTri.set(n.id, { x: 210, y: 34 + i * buocDong }));
     return [...nhanTai, ...kyNang].map((n) => {
       const p = viTri.get(n.id) ?? { x: 150, y: 30 };
       const [dong1, dong2] = xuongDong(n.label);
@@ -161,60 +161,55 @@ export default function DataNetwork({ nodes, links, mode = "school", reducedMoti
   return (
     <figure
       ref={containerRef}
-      className="relative overflow-hidden rounded-2xl border border-line bg-white text-ink p-4 sm:p-5"
+      className="relative overflow-hidden rounded-[20px] border border-line bg-white text-ink p-4 sm:p-5"
       style={height ? { minHeight: height } : undefined}
       aria-label={`${tieuDe ?? label}. ${tomTat ?? ""} ${moTa}`}
     >
       {tieuDe && <h3 className="font-semibold text-ink">{tieuDe}</h3>}
-      {tomTat && <p className="mt-1 text-sm text-muted leading-relaxed">{tomTat}</p>}
-      {/* Chờ vùng nhìn, KHÔNG phải chờ mạng. Nói đúng việc đang chờ gì: dữ liệu
-          đã có sẵn từ props, chỉ là biểu đồ chưa được vẽ cho tới khi người dùng
-          cuộn tới. Ghi "Đang tải dữ liệu mạng…" ở đây là sai — nó khiến người
-          dùng tưởng đang chờ tải, và nếu họ không cuộn tới thì cứ treo mãi. */}
-      {!visible && (
-        <div className="flex h-40 items-center justify-center text-xs text-muted">
-          Biểu đồ sẽ hiện khi bạn cuộn tới.
-        </div>
-      )}
-      {visible && duLieuRong && (
-        <p role="status" className="mt-4 rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm text-muted">
+      {tomTat && <p className="mt-1 text-sm text-ink-soft leading-relaxed">{tomTat}</p>}
+      {/* Chú thích: legend + checkbox render ở mọi trạng thái để khối không nhảy
+          chiều cao khi cuộn tới (phiếu E11) — chỉ có <svg> là bị hoãn. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" aria-label="Chú giải màu">
+        {nhomHien.map((g) => (
+          <span key={g} className="inline-flex items-center gap-1.5 font-medium text-ink">
+            <span
+              className="inline-block h-3 w-3 rounded-full shrink-0"
+              style={{ background: MAU_NHOM[g] ?? MAU_NHOM.default }}
+              aria-hidden="true"
+            />
+            {nhanNhom(g)}
+          </span>
+        ))}
+        <span className="text-muted-strong" aria-hidden="true">—</span>
+        <span className="text-muted-strong">{moTa}</span>
+      </div>
+      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-xs text-muted-strong">
+        <input
+          type="checkbox"
+          checked={chiKyNangChung}
+          onChange={(e) => setChiKyNangChung(e.target.checked)}
+          className="h-4 w-4 accent-portal border-line-control"
+        />
+        Chỉ hiện kỹ năng chung của từ 2 nhân tài trở lên
+      </label>
+      {duLieuRong ? (
+        <p role="status" className="mt-4 rounded-xl border border-dashed border-line-strong bg-canvas-soft/60 px-4 py-8 text-center text-sm font-semibold text-ink-soft">
           Chưa đủ dữ liệu để vẽ mạng liên kết (cần ít nhất 1 nhân tài có kỹ năng).
         </p>
-      )}
-      {visible && !duLieuRong && (
-        <>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" aria-label="Chú giải màu">
-            {nhomHien.map((g) => (
-              <span key={g} className="inline-flex items-center gap-1.5 font-medium text-ink">
-                <span
-                  className="inline-block h-3 w-3 rounded-full shrink-0"
-                  style={{ background: MAU_NHOM[g] ?? MAU_NHOM.default }}
-                  aria-hidden="true"
-                />
-                {nhanNhom(g)}
-              </span>
-            ))}
-            <span className="text-muted-light" aria-hidden="true">—</span>
-            <span className="text-muted">{moTa}</span>
-          </div>
-          <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={chiKyNangChung}
-              onChange={(e) => setChiKyNangChung(e.target.checked)}
-              className="h-4 w-4 accent-pink-600"
-            />
-            Chỉ hiện kỹ năng chung của từ 2 nhân tài trở lên
-          </label>
-          {isReduced ? (
-            <ul className="mt-3 space-y-1 text-xs text-muted" aria-label="Danh sách liên kết kỹ năng">
-              {lienKetHien.map((l, i) => {
-                const tu = nutVe.find((n) => n.nut.id === l.source)?.nut.label ?? String(l.source);
-                const den = nutVe.find((n) => n.nut.id === l.target)?.nut.label ?? String(l.target);
-                return <li key={i}>{tu} — có kỹ năng {den}</li>;
-              })}
-            </ul>
-          ) : (
+      ) : !visible ? (
+        // Khung giữ chỗ cao đúng bằng svg thật (aspect-ratio) để không nhảy bố cục.
+        <div aria-hidden="true" className="mt-2 flex w-full items-center justify-center" style={{ aspectRatio: `300 / ${caoSvg}` }}>
+          <span className="text-xs text-muted-strong">Biểu đồ sẽ hiện khi bạn cuộn tới.</span>
+        </div>
+      ) : isReduced ? (
+        <ul className="mt-3 space-y-1 text-xs text-muted-strong" aria-label="Danh sách liên kết kỹ năng">
+          {lienKetHien.map((l, i) => {
+            const tu = nutVe.find((n) => n.nut.id === l.source)?.nut.label ?? String(l.source);
+            const den = nutVe.find((n) => n.nut.id === l.target)?.nut.label ?? String(l.target);
+            return <li key={i}>{tu} — có kỹ năng {den}</li>;
+          })}
+        </ul>
+      ) : (
             <svg viewBox={`0 0 ${RONG} ${caoSvg}`} className="mt-2 h-auto w-full" role="img" aria-label={label} tabIndex={0}>
               <title>{tieuDe ?? label}</title>
               <desc>{moTa}</desc>
@@ -227,9 +222,8 @@ export default function DataNetwork({ nodes, links, mode = "school", reducedMoti
                     <line
                       key={`${String(l.source)}-${String(l.target)}-${i}`}
                       x1={tu.x} y1={tu.y} x2={den.x} y2={den.y}
-                      stroke="#c7c9d9"
-                      strokeOpacity="0.8"
-                      strokeWidth={1.4}
+                      stroke="#6F6C8A"
+                      strokeWidth={1.5}
                       strokeLinecap="round"
                     >
                       <title>{`${tu.nut.label} — có kỹ năng ${den.nut.label}`}</title>
@@ -244,15 +238,15 @@ export default function DataNetwork({ nodes, links, mode = "school", reducedMoti
                     <g key={nut.id} role="group" aria-label={`${nut.label} — ${nhanNhom(nut.group)}`} tabIndex={0}>
                       <title>{`${nut.label} — ${nhanNhom(nut.group)}`}</title>
                       <circle cx={x} cy={y} r={8} fill={mauNhom(nut)} stroke="#ffffff" strokeWidth="1.5" />
-                      <text x={benTrai ? x - 14 : x + 14} y={dong2 ? y - 4 : y + 1} textAnchor={benTrai ? "end" : "start"} fontSize="9.5" fontWeight="600" fill="#2b2a3d">
+                      <text x={benTrai ? x - 14 : x + 14} y={dong2 ? y - 7 : y + 1} textAnchor={benTrai ? "end" : "start"} fontSize="12" fontWeight="600" fill="#2b2a3d">
                         {dong1}
                       </text>
                       {dong2 && (
-                        <text x={benTrai ? x - 14 : x + 14} y={y + 8} textAnchor={benTrai ? "end" : "start"} fontSize="9.5" fontWeight="600" fill="#2b2a3d">
+                        <text x={benTrai ? x - 14 : x + 14} y={y + 8} textAnchor={benTrai ? "end" : "start"} fontSize="12" fontWeight="600" fill="#2b2a3d">
                           {dong2}
                         </text>
                       )}
-                      <text x={benTrai ? x - 14 : x + 14} y={y + (dong2 ? 19 : 12)} textAnchor={benTrai ? "end" : "start"} fontSize="7.5" fill="#8A87A3">
+                      <text x={benTrai ? x - 14 : x + 14} y={y + (dong2 ? 22 : 16)} textAnchor={benTrai ? "end" : "start"} fontSize="12" fill="var(--muted-strong)">
                         {nhanNhom(nut.group)}
                       </text>
                     </g>
@@ -261,8 +255,6 @@ export default function DataNetwork({ nodes, links, mode = "school", reducedMoti
               </g>
             </svg>
           )}
-        </>
-      )}
     </figure>
   );
 }

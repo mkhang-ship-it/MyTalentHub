@@ -670,7 +670,7 @@ export default function Sponsorships() {
                         <dd className="text-sm font-semibold tabular-nums text-muted-strong">{d.created_at}</dd>
                       </div>
                     </dl>
-                    <div className="mt-2 flex items-center justify-end gap-8" role="group" aria-label={`Thao tác cho tài trợ ${d.project_title}`}>
+                    <div className="mt-2 flex items-center justify-end gap-2" role="group" aria-label={`Thao tác cho tài trợ ${d.project_title}`}>
                       <button
                         type="button"
                         onClick={() => handleEdit(d)}

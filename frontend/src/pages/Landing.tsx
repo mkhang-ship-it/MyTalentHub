@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { TalentConstellation } from "../components/three/TalentConstellation";
-import { PortalCard3D } from "../components/three/PortalCard3D";
 import { LogoMark, LogoWordmark } from "../components/Logo";
 import {
   Sparkles,
@@ -9,7 +7,20 @@ import {
   ShieldCheck,
   BrainCircuit,
   ArrowRight,
+  Building2,
+  GraduationCap,
+  School,
+  Users,
 } from "lucide-react";
+
+// 4 cổng vai trò — bản 2D tĩnh (thay PortalCard3D: bỏ perspective + nghiêng 3D
+// theo chuột, giữ nguyên nội dung/link để không thêm khối mới).
+const VAI_TRO = [
+  { key: "student", label: "Học sinh", icon: GraduationCap, color: "#A1458F", soft: "#F9EEF7", link: "/login?role=student", description: "Khám phá năng khiếu, tích lũy trải nghiệm và xây dựng hồ sơ năng lực số." },
+  { key: "teacher", label: "Giáo viên", icon: Users, color: "#27308E", soft: "#ECEFF9", link: "/login?role=teacher", description: "Quản lý sân chơi, chấm điểm rubric và đồng hành cùng học viên phát triển." },
+  { key: "school", label: "Nhà trường", icon: School, color: "#9B6AB5", soft: "#F4EEF8", link: "/login?role=school", description: "Theo dõi KPI, phân tích năng lực và tạo báo cáo minh bạch cho phụ huynh." },
+  { key: "enterprise", label: "Doanh nghiệp", icon: Building2, color: "#C44296", soft: "#FBEFF7", link: "/login?role=enterprise", description: "Tìm kiếm nhân tài, tuyển thực tập và tài trợ dự án phát triển kỹ năng." },
+] as const;
 
 export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -148,8 +159,9 @@ export default function Landing() {
           <div className="pointer-events-none absolute top-1/3 right-10 h-32 w-32 rounded-full opacity-20 bg-white" aria-hidden="true" />
 
           <div className="relative mx-auto max-w-6xl px-5 md:px-6 pt-14 pb-[72px] md:pt-[72px] md:pb-[88px] lg:pt-24 lg:pb-28">
-            <div className="grid grid-cols-1 lg:grid-cols-[7fr_5fr] gap-12 items-start">
-              <div className="max-w-3xl flex-1">
+            {/* Hero 1 cột 2D — đã bỏ TalentConstellation (canvas 378×458).
+                Không thêm khối mới lấp chỗ; trang ngắn lại là tốt. */}
+            <div className="max-w-3xl">
               <div className="anim-fade-up inline-flex h-8 items-center gap-2 rounded-full bg-[rgba(255,255,255,.12)] px-3.5 text-xs font-bold text-white backdrop-blur-sm mb-6 border border-[rgba(255,255,255,.28)]">
                 <Sparkles size={14} /> Hệ sinh thái tài năng đa lĩnh vực
               </div>
@@ -182,18 +194,33 @@ export default function Landing() {
                 </a>
               </div>
             </div>
-            <div className="w-full lg:w-[380px] flex-shrink-0 hidden lg:block" aria-label="3D scene preview">
-              <div className="rounded-3xl overflow-hidden border border-[rgba(255,255,255,.25)] bg-[rgba(255,255,255,.08)] backdrop-blur-md shadow-[0_24px_60px_rgba(0,0,0,.30)] h-[460px]">
-                <TalentConstellation className="w-full h-full" />
-              </div>
-            </div>
-          </div>
         </div>
         </section>
 
-        {/* 4 thẻ cổng — tràn lên hero 72px (01 B3). Component giữ nguyên. */}
+        {/* 4 thẻ cổng — tràn lên hero 72px (01 B3). Bản 2D tĩnh, không nghiêng 3D. */}
         <section id="vai-tro" className="mx-auto max-w-6xl px-5 md:px-6 -mt-10 md:-mt-[72px] relative z-10 scroll-mt-[88px]">
-          <PortalCard3D />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {VAI_TRO.map((role) => {
+              const Icon = role.icon;
+              return (
+                <Link
+                  key={role.key}
+                  to={role.link}
+                  className="group relative rounded-2xl border border-line bg-surface p-6 shadow-soft transition-[box-shadow,border-color] duration-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  style={{ borderTopWidth: 4, borderTopColor: role.color }}
+                >
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl shadow-md transition-transform duration-300 group-hover:scale-110" style={{ background: role.soft }}>
+                    <Icon size={24} style={{ color: role.color }} aria-hidden="true" />
+                  </div>
+                  <h3 className="mb-1 text-lg font-extrabold text-ink">{role.label}</h3>
+                  <p className="text-sm leading-relaxed text-muted-strong">{role.description}</p>
+                  <div className="mt-4 flex items-center gap-1.5 text-sm font-bold" style={{ color: role.color }}>
+                    Đăng nhập <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </section>
 
         {/* Khối tính năng */}

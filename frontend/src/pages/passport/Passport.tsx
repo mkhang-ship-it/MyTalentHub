@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { get } from "../../api/client";
 import { Card, Empty, ErrorBox, PageHeader } from "../../components/ui";
-import { PassportCard2D } from "./PassportCard2D";
+import { PassportHoloCard } from "../../components/three/PassportHoloCard";
 import { PassportDetailDialog } from "./PassportDetailDialog";
 import { FIELD_NAMES, type Passport } from "./shared";
 
@@ -86,7 +86,7 @@ export default function Passport() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Cột trái - thẻ 2D bấm để mở chi tiết */}
         <div className="space-y-4 h-full">
-          <PassportCard2D data={data} onRequestOpen={() => setDetailOpen(true)} className="h-full" />
+          <PassportHoloCard data={data} onRequestOpen={() => setDetailOpen(true)} className="h-full" />
         </div>
 
         {/* Cột phải - nội dung chi tiết */}

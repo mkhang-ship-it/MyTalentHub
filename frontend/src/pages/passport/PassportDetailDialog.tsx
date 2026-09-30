@@ -11,7 +11,7 @@ import {
   Target,
   X,
 } from "lucide-react";
-import { PassportCard2D } from "./PassportCard2D";
+import { PassportHoloCard } from "../../components/three/PassportHoloCard";
 import { QrCode } from "../../components/qr/QrCode";
 import { FIELD_NAMES, type Passport } from "./shared";
 
@@ -51,7 +51,7 @@ function The2D({ data, onActivate, label }: The2DProps) {
         }
       >
         {/* Mặt trước */}
-        <PassportCard2D data={data} size="dialog" />
+        <PassportHoloCard data={data} size="dialog" />
         {/* Mặt sau — hiện tĩnh bên dưới, không lật 3D */}
         <div className="mt-4">
           <PassportCardBack data={data} />

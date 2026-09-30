@@ -23,7 +23,6 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  X,
   Star,
   Home,
   Settings,
@@ -168,7 +167,7 @@ function NavItem({ item, p }: { item: { to: string; label: string; icon: typeof 
     <NavLink
       to={item.to}
       className={({ isActive }) =>
-        `relative flex min-h-[44px] items-center gap-2.5 rounded-lg px-2.5 py-3 text-sm transition-all duration-200 ease-out ${
+        `relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200 ease-out ${
           isActive
             ? "font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
             : "text-ink-soft hover:-translate-y-0.5 hover:bg-canvas-soft hover:text-ink hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
@@ -252,25 +251,6 @@ export default function Layout() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Đóng drawer bằng phím Escape (điện thoại dùng bàn phím ngoài / nút Back mapped)
-  useEffect(() => {
-    if (!drawerOpen) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setDrawerOpen(false);
-        setRoleSwitcherOpen(false);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
-
-  // Đổi trang là đóng drawer (điều hướng chính của điện thoại)
-  useEffect(() => {
-    setDrawerOpen(false);
-    setRoleSwitcherOpen(false);
-  }, [pathname]);
-
   async function handleLogout() {
     await logout();
     navigate("/login", { replace: true });
@@ -301,7 +281,6 @@ export default function Layout() {
 
       {/* Desktop sidebar / Mobile drawer */}
       <aside
-        aria-label="Điều hướng chính"
         className={`
           fixed lg:sticky lg:top-0 z-50 lg:z-0
           flex h-screen w-[280px] shrink-0 flex-col border-r border-line bg-surface
@@ -312,24 +291,16 @@ export default function Layout() {
         style={{ boxShadow: "0 0 0 transparent" }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 border-b border-line px-5 py-3">
+        <div className="flex items-center gap-2.5 border-b border-line px-5 py-5">
           <LogoMark size={36} />
           <LogoWordmark compact />
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(false)}
-            aria-label="Đóng menu"
-            className="ml-auto flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-3 text-ink hover:bg-canvas-soft lg:hidden"
-          >
-            <X size={22} strokeWidth={2} />
-          </button>
         </div>
 
         {/* Home link - Desktop sidebar */}
-        <div className="px-4 py-2 border-b border-line">
+        <div className="px-4 py-3 border-b border-line">
           <NavLink
             to="/"
-            className="flex min-h-[44px] items-center gap-2.5 rounded-lg px-2.5 py-3 text-sm font-medium transition-all duration-200 ease-out text-ink-soft hover:-translate-y-0.5 hover:bg-canvas-soft hover:text-ink hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-200 ease-out text-ink-soft hover:-translate-y-0.5 hover:bg-canvas-soft hover:text-ink hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
             title="Về trang chủ"
             aria-label="Về trang chủ"
           >
@@ -341,11 +312,8 @@ export default function Layout() {
         {/* Active role state badge + Role switcher */}
         <div className="px-4 pt-3">
           <div className="relative">
-            <button
-              type="button"
-              aria-expanded={roleSwitcherOpen}
-              aria-label="Chuyển cổng"
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-widest shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
               style={{
                 backgroundColor: tone.accentSoft,
                 color: tone.accentDark,
@@ -356,7 +324,7 @@ export default function Layout() {
               <Star size={12} strokeWidth={2.5} />
               {isOwn ? "Cổng đang hoạt động" : "Trải nghiệm cổng"}
               <ChevronDown size={12} className={roleSwitcherOpen ? "rotate-180" : ""} />
-            </button>
+            </div>
             {/* Role switcher dropdown - Desktop sidebar */}
             {roleSwitcherOpen && (
               <div
@@ -371,7 +339,7 @@ export default function Layout() {
                     <button
                       key={p.key}
                       onClick={() => switchPortal(p.key)}
-                      className={`w-full flex min-h-[44px] items-center gap-2.5 px-3 py-3 text-sm font-medium transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors ${
                         isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
                       }`}
                       style={{
@@ -465,7 +433,7 @@ export default function Layout() {
               <button
                 onClick={handleLogout}
                 title="Đăng xuất"
-                className="rounded-lg p-3 text-muted transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 hover:shadow-sm shrink-0 flex min-h-[44px] min-w-[44px] items-center justify-center"
+                className="rounded-lg p-1.5 text-muted transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 hover:shadow-sm shrink-0"
                 aria-label="Đăng xuất"
               >
                 <LogOut size={16} strokeWidth={2.5} />
@@ -478,10 +446,10 @@ export default function Layout() {
       {/* Main content */}
       <main className="relative min-w-0 flex-1" style={mainStyle}>
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center gap-1 bg-surface/80 px-3 py-2 backdrop-blur-md border-b border-line lg:hidden transition-all duration-300">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-surface/80 px-4 py-3 backdrop-blur-md border-b border-line lg:hidden transition-all duration-300">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="rounded-xl p-3 -ml-1 flex min-h-[44px] min-w-[44px] items-center justify-center text-ink hover:bg-canvas-soft transition-colors duration-200"
+            className="rounded-xl p-2 -ml-1 text-ink hover:bg-canvas-soft transition-colors duration-200"
             aria-label="Mở menu"
           >
             <Menu size={22} strokeWidth={2} />
@@ -494,7 +462,7 @@ export default function Layout() {
           <div className="ml-auto flex items-center gap-2 relative">
             <NavLink
               to="/"
-              className="rounded-xl p-3 flex min-h-[44px] min-w-[44px] items-center justify-center text-ink hover:bg-canvas-soft transition-colors duration-200"
+              className="rounded-xl p-2 text-ink hover:bg-canvas-soft transition-colors duration-200"
               title="Về trang chủ"
               aria-label="Về trang chủ"
             >
@@ -503,7 +471,7 @@ export default function Layout() {
             <div className="relative">
               <button
                 onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
-                className="rounded-xl bg-canvas-soft px-3.5 py-2.5 min-h-[44px] min-w-[44px] text-[10px] font-extrabold uppercase tracking-wider text-ink shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 flex items-center gap-1"
+                className="rounded-xl bg-canvas-soft px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-ink shadow-sm transition-all duration-200 hover:shadow-md active:scale-95 flex items-center gap-1"
                 style={{ color: tone.accentDark }}
                 aria-label="Chuyển cổng"
               >
@@ -524,7 +492,7 @@ export default function Layout() {
                       <button
                         key={p.key}
                         onClick={() => switchPortal(p.key)}
-                        className={`w-full flex min-h-[44px] items-center gap-2 px-3 py-3 text-sm font-medium transition-colors ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
                           isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
                         }`}
                         style={{
@@ -554,7 +522,7 @@ export default function Layout() {
         </header>
 
         {/* Desktop main padding */}
-        <div className="relative min-w-0 p-4 sm:p-6 lg:p-8 pb-6 lg:pb-8">
+        <div className="relative min-w-0 p-5 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           {/* Background decoration */}
           <div
             aria-hidden
@@ -595,7 +563,7 @@ export default function Layout() {
           {/* Home link - Mobile bottom navigation */}
           <NavLink
             to="/"
-            className="relative flex min-h-[48px] min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
+            className="relative flex min-w-[4.25rem] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
           >
             <Home size={20} strokeWidth={2} />
             <span className="max-w-[4.5rem] line-clamp-2 text-center leading-tight">Trang chủ</span>
@@ -605,7 +573,7 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `relative flex min-h-[48px] min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-extrabold transition-all duration-200 ${
+                `relative flex min-w-[4.25rem] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-extrabold transition-all duration-200 ${
                   isActive
                     ? "-translate-y-1 text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
                     : "text-muted hover:-translate-y-0.5 hover:text-ink"
@@ -625,7 +593,7 @@ export default function Layout() {
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
-              className="relative flex min-h-[48px] min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
+              className="relative flex min-w-[4.25rem] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-extrabold transition-all duration-200 text-muted hover:-translate-y-0.5 hover:text-ink"
               aria-label="Chuyển cổng"
             >
               <Users size={20} strokeWidth={2} />
@@ -645,7 +613,7 @@ export default function Layout() {
                     <button
                       key={p.key}
                       onClick={() => switchPortal(p.key)}
-                      className={`w-full flex min-h-[44px] items-center gap-2 px-3 py-3 text-xs font-bold transition-colors ${
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold transition-colors ${
                         isActivePortal ? "text-white" : "text-ink hover:bg-canvas-soft"
                       }`}
                       style={{

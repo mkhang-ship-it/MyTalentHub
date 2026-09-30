@@ -379,12 +379,3 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: .6; }
 }
-
-/* ── R1 mobile (P3): gọn khoảng trắng + bảo đảm vùng chạm ──
-   Chỉ áp dụng ≤640px nên desktop giữ nguyên. Không đổi màu/slide. */
-@media (max-width: 640px) {
-  /* Card p-6 (24px) → 16px: mỗi card tiết kiệm ~16px dọc, ~11 trang cộng dồn */
-  .card-surface.p-6 { padding: 1rem; }
-  /* PageHeader mb-6 → gọn (ui.tsx cấm sửa nên phủ từ CSS) */
-  .card-surface + .card-surface { margin-top: 0; }
-}

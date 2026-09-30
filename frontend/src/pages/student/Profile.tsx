@@ -218,9 +218,9 @@ export default function Profile() {
       <PageHeader title="Hồ sơ năng lực" subtitle="Quản lý thông tin cá nhân, theo dõi năng lực, thành tích, chứng chỉ và dự án (slide 11)." />
 
       {/* Header card với cover gradient (slide 11) */}
-      <Card interactive reveal revealDelay={0.05} className="overflow-hidden !p-0 mb-4 sm:mb-6 transition-responsive">
-        <div className="h-16 sm:h-24 hero-gradient" />
-        <div className="px-4 sm:px-6 pb-4 sm:pb-5">
+      <Card interactive reveal revealDelay={0.05} className="overflow-hidden !p-0 mb-6 transition-responsive">
+        <div className="h-24 hero-gradient" />
+        <div className="px-6 pb-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex items-end gap-4">
               <div className="-mt-10 h-20 w-20 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg border-4 border-white">
@@ -233,17 +233,17 @@ export default function Profile() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 pb-1">
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-line bg-white px-4 py-2.5 text-xs font-semibold text-ink hover:bg-canvas-soft">
+            <div className="flex gap-2 pb-1">
+              <button className="rounded-full border border-line bg-white px-4 py-1.5 text-xs font-semibold text-ink hover:bg-canvas-soft">
                 Chia sẻ hồ sơ
               </button>
-              <button className="inline-flex min-h-[44px] items-center justify-center rounded-full cta-gradient px-4 py-2.5 text-xs font-semibold text-white">
+              <button className="rounded-full cta-gradient px-4 py-1.5 text-xs font-semibold text-white">
                 Chỉnh sửa
               </button>
             </div>
           </div>
           {/* Stats cam (slide 11) */}
-          <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-3 sm:gap-4 border-t border-line pt-3 sm:pt-4 stagger-children">
+          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-line pt-4 stagger-children">
             <div>
               <div className="text-2xl font-extrabold text-orange-500">{data.talent_score}</div>
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Điểm năng lực</div>
@@ -260,7 +260,7 @@ export default function Profile() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Kỹ năng — 2 cột + thanh gradient (slide 11) */}
         <Card className="lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
@@ -356,7 +356,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={handleCancelCert}
-                  className="inline-flex min-h-[44px] items-center justify-center px-4 py-2.5 rounded-xl border border-line text-sm text-muted hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                  className="px-4 py-2 rounded-xl border border-line text-sm text-muted hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                   disabled={submitting}
                 >
                   Hủy
@@ -364,7 +364,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex min-h-[44px] items-center justify-center px-4 py-2.5 rounded-xl cta-gradient text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+                  className="px-4 py-2 rounded-xl cta-gradient text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
                 >
                   {submitting ? (
                     <>
@@ -381,7 +381,7 @@ export default function Profile() {
           {!showCertForm && (
             <button
               onClick={() => setShowCertForm(true)}
-              className="mb-4 inline-flex min-h-[44px] items-center gap-1.5 text-sm px-4 py-2.5 rounded-full cta-gradient text-white font-semibold hover:brightness-105 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
+              className="mb-4 flex items-center gap-1.5 text-sm px-3 py-2 rounded-full cta-gradient text-white font-semibold hover:brightness-105 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2"
             >
               <Plus size={14} aria-hidden="true" /> Thêm chứng chỉ
             </button>
@@ -409,7 +409,7 @@ export default function Profile() {
                     <button
                       onClick={() => handleEditCert(c)}
                       disabled={!c.id}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-xs p-3 rounded-lg border border-line text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-xs px-2 py-1 rounded-lg border border-line text-ink hover:bg-canvas-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Chỉnh sửa chứng chỉ ${c.title}`}
                       title={c.id ? "" : "Chứng chỉ này thiếu ID, không thể sửa"}
                     >
@@ -418,7 +418,7 @@ export default function Profile() {
                     <button
                       onClick={() => handleDeleteCert(c)}
                       disabled={!c.id}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-xs p-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label={`Xoá chứng chỉ ${c.title}`}
                       title={c.id ? "" : "Chứng chỉ này thiếu ID, không thể xoá"}
                     >
@@ -434,7 +434,7 @@ export default function Profile() {
       </div>
 
       {/* Gợi ý nhóm theo năng khiếu (slide 5) */}
-      <div className="mt-4 sm:mt-6">
+      <div className="mt-6">
         <Card>
           <div className="flex items-center gap-2 mb-1">
             <Compass size={18} className="text-emerald-500" />
@@ -509,7 +509,7 @@ export default function Profile() {
       </div>
 
       {/* Dự án đã tham gia (slide 11) */}
-      <div className="mt-4 sm:mt-6">
+      <div className="mt-6">
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Briefcase size={18} className="text-pink-500" />
@@ -542,7 +542,7 @@ export default function Profile() {
       </div>
 
       {/* Link đến trang Đánh giá riêng */}
-      <div className="mt-4 sm:mt-6">
+      <div className="mt-6">
         <Card className="bg-portal-soft/30 border-portal-soft">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -551,7 +551,7 @@ export default function Profile() {
             </div>
             <Link
               to="/student/evaluations"
-              className="inline-flex min-h-[44px] items-center text-sm text-portal font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded px-3 py-2.5"
+              className="text-sm text-portal font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2 rounded px-2 py-1"
             >
               Xem đánh giá đầy đủ →
             </Link>

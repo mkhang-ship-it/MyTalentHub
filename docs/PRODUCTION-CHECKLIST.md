@@ -37,7 +37,7 @@ không giấu nợ kỹ thuật.
       `bgh@ftalenthub.edu.vn`).
 - [ ] `VITE_API_PROXY` — (chỉ lúc dev) URL backend cho Vite proxy `/api`
       (ví dụ `http://127.0.0.1:8001`); khi chạy qua nginx trong Docker thì
-      không cần vì nginx đã proxy `/api` về service `api`.
+      không cần vì nginx trong cùng container đã proxy `/api` về uvicorn.
 
 ## 2. Tài khoản và dữ liệu
 
@@ -188,11 +188,12 @@ không giấu nợ kỹ thuật.
       chưa từng build/run thật. Bắt buộc build thử thành công trên máy có
       Docker trước khi dùng để deploy.
 - [ ] Lệnh kiểm chạy khi đã có Docker (từ gốc repo):
-      `docker compose up --build -d` → chờ `docker compose ps` báo cả hai
-      service healthy → `curl http://localhost:8001/api/v1/health` và mở
+      `docker compose up --build -d` → chờ `docker compose ps` báo service `app`
+      healthy → `curl http://localhost:8001/api/v1/health` và mở
       http://localhost:5173 → nạp dữ liệu demo lần đầu
-      `docker compose exec api python -m app.seed` → xong `docker compose down`
+      `docker compose exec app python -m app.seed` → xong `docker compose down`
       (giữ volume) và xác nhận restart không mất dữ liệu.
+      (`--profile tach` nếu muốn dựng bản 2 service như cũ.)
 
 ## 8. Công cụ vận hành (P4 — vòng 1+2, đã xong và chạy thử)
 

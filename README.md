@@ -127,7 +127,8 @@ xem `.env.example` ở gốc repo.
 │   └── PRODUCTION-CHECKLIST.md  # việc cần làm trước khi lên production
 ├── .github/workflows/ci.yml    # CI: backend unittest, frontend tsc/eslint/build, docker build
 ├── Dockerfile               # backend multi-stage (python:3.12-slim, non-root)
-└── docker-compose.yml       # 2 service api+web, volume lưu SQLite
+├── Dockerfile.fullstack     # 1 container: nginx + uvicorn (đang deploy Render)
+└── docker-compose.yml       # mặc định 1 service `app`; `--profile tach` cho bản 2 service
 ```
 
 ## Chạy kiểm thử
@@ -154,11 +155,14 @@ khi viết test mới).
 ## Chạy bằng Docker
 
 ```bash
-docker compose up --build -d   # dựng + chạy nền
-docker compose logs -f         # xem log gộp (api + web)
-docker compose logs -f api     # chỉ xem log backend
+docker compose up --build -d   # dựng + chạy nền (1 container: nginx + uvicorn)
+docker compose logs -f         # xem log gộp
 docker compose down            # dừng, GIỮ dữ liệu SQLite trong volume
 ```
+
+Bản 2 service tách riêng (cũ) vẫn dựng được nếu thêm `--profile tach` — nhưng
+**đừng dùng trên Render**: Render sẽ biến service web thành Static Site và
+mọi request `/api` trả 404. Xem `docs/DEPLOY-RENDER.md`.
 
 - Web: http://localhost:5173 (nginx phục vụ `dist`, proxy `/api` về backend —
   không cần `VITE_API_PROXY`).
@@ -166,7 +170,7 @@ docker compose down            # dừng, GIỮ dữ liệu SQLite trong volume
 - **Lần đầu phải nạp dữ liệu demo** (volume mới chứa DB trống — `create_all` chỉ
   tạo schema, chưa có tài khoản nào):
   ```bash
-  docker compose exec api python -m app.seed
+  docker compose exec app python -m app.seed
   ```
 - Dữ liệu SQLite sống trong volume `ftalenthub-sqlite` nên restart không mất;
   `docker compose down -v` sẽ **xoá** volume (mất dữ liệu) — cân nhắc kỹ.

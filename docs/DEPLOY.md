@@ -1,15 +1,27 @@
-# Triển khai production (qua reverse proxy)
+# Triển khai production (1 container)
 
-Hạ tầng chuẩn: client → reverse proxy (kết thúc TLS) → `web` (nginx, HTTP nội
-bộ) + `api` (uvicorn :8001, chỉ nghe nội bộ). Ứng dụng không tự làm TLS — nó
-chỉ cần nhận đúng header `X-Forwarded-Proto`/`X-Forwarded-For` mà proxy gửi
-xuống (nginx đã gắn sẵn hai header này khi proxy `/api`).
+> **Hạ tầng đã đổi: 2 service → 1 service.** Bản cũ dựng `web` (nginx) + `api`
+> (uvicorn) thành hai container. Cách đó **không dùng được trên Render**: Render
+> tự tạo service web thành *Static Site* dù đã chọn runtime Docker, nên `/login`
+> trả 404 và mọi `POST /api/v1/auth/login` đều 404. Chi tiết và cách sửa:
+> [`docs/DEPLOY-RENDER.md`](DEPLOY-RENDER.md) (mục 0 kể lại bằng chứng).
+
+Mô hình đang chạy trên production: **một container** (`Dockerfile.fullstack`)
+chứa cả nginx lẫn uvicorn. nginx nghe :80, giữ `try_files` cho SPA, chuyển
+`/api` xuống uvicorn :8001 trong cùng container. Ứng dụng không tự làm TLS —
+Render kết thúc TLS và gửi xuống header `X-Forwarded-Proto`/`X-Forwarded-For`
+(nginx đã gắn sẵn hai header này khi proxy `/api`).
+
+Cấu hình nginx cho production là **`frontend/nginx.main.conf`** (phải có dòng
+`include mime.types;` — thiếu dòng này thì mọi tài nguyên trả sai
+`Content-Type` và trang trắng dù HTTP vẫn 200). `frontend/nginx.conf` là bản
+dev, không dùng cho production.
 
 ## 1. Chọn mô hình TLS
 
-- **Khuyên dùng — TLS kết thúc ở proxy ngoài** (Cloudflare / ALB / Traefik /
-  nginx hệ thống): dùng `frontend/nginx.conf` (bản dev, không TLS) cho service
-  `web` như cũ. Không cần chứng thư trong container.
+- **Khuyên dùng — TLS kết thúc ở proxy ngoài** (Render / Cloudflare / ALB /
+  Traefik / nginx hệ thống): dùng `frontend/nginx.main.conf` như cũ. Không cần
+  chứng thư trong container.
 - **TLS kết thúc ở chính nginx của app**: dùng `frontend/nginx.tls.conf`
   (redirect 80→443, chứng thư, HSTS) bằng cách mount đè lúc chạy, không cần
   sửa Dockerfile:
@@ -17,23 +29,28 @@ xuống (nginx đã gắn sẵn hai header này khi proxy `/api`).
   docker run -d -p 80:80 -p 443:443 \
     -v $PWD/frontend/nginx.tls.conf:/etc/nginx/conf.d/default.conf:ro \
     -v /etc/letsencrypt:/etc/nginx/tls:ro \
-    fth-web
+    fth-app   # image dựng từ Dockerfile.fullstack
   ```
   Đổi `ssl_certificate*` trong file nếu cert không nằm ở `/etc/nginx/tls/`.
   Không commit key lên repo.
 
 ## 2. Thứ tự khởi động
 
+Trong 1 container, `scripts/start-all-in-one.sh` tự chạy đúng thứ tự nên không
+phải làm tay các bước dưới khi deploy; giữ lại để dựng tay khi debug.
+
 1. Chuẩn bị volume DB (SQLite) hoặc database PostgreSQL + `DATABASE_URL`.
-2. Dựng `api` trước, chờ healthy: `curl http://127.0.0.1:8001/api/v1/health`
+2. uvicorn lên trước, chờ healthy: `curl http://127.0.0.1:8001/api/v1/health`
    → `{"status":"ok",...}` (migration nhẹ + `create_all` chạy tự động).
-3. Nạp dữ liệu lần đầu (DB mới): `docker compose exec api python -m app.seed`.
+3. Nạp dữ liệu lần đầu (DB mới): `docker compose exec app python -m app.seed`,
+   hoặc đặt `AUTO_SEED_ON_EMPTY=true` để script tự nạp khi DB rỗng.
    Bỏ qua bước này trên DB production thật.
-4. Dựng `web`, mở frontend, đăng nhập thử 1 tài khoản mỗi vai trò.
+4. nginx lên sau, mở frontend, đăng nhập thử 1 tài khoản mỗi vai trò.
 5. Chạy kiểm sau deploy ở mục 4.
 
-Với `docker compose`: `docker compose up --build -d` (thứ tự đã có
-`depends_on` + healthcheck; xem `docker-compose.yml`).
+Với `docker compose`: `docker compose up --build -d` — mặc định dựng **service
+`app` duy nhất** (xem `docker-compose.yml`). Muốn tách thành 2 service như bản
+cũ thì thêm `--profile tach`.
 
 ## 3. Biến môi trường BẮT BUỘC ở production
 
@@ -89,4 +106,5 @@ nginx trong Docker thì không cần vì nginx đã proxy `/api`.
    `bash scripts/backup.sh --restore backend/backups/<file.db.gz>`
    (chỉ thay khi integrity đạt, giữ bản `.bak`; xem `scripts/backup.sh`).
 3. Chạy lại image/tag hoặc commit trước đó đã biết tốt, kiểm lại mục 4.
-4. Nếu chỉ hỏng frontend: rollback mỗi service `web`, giữ `api` chạy.
+4. Nếu chỉ hỏng frontend: rollback image `fth-app`. Lưu ý frontend và API nằm
+   chung một container nên **không rollback riêng được** như bản 2 service cũ.

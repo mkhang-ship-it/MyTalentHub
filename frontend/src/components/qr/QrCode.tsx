@@ -62,14 +62,23 @@ export function QrCode({
     );
   }
   return (
-    <figure className={`inline-block rounded-2xl bg-white p-3 shadow ${className}`}>
+    // inline-block + max-w-full: thẻ luôn gọn trong cha, không bị câu chữ bên trong
+    // trong figcaption kéo giãn theo bề rộng câu (URL dài từng làm figure 384–464px).
+    // figcaption giới hạn bề rộng theo ô QR (tối thiểu 140px) ⇒ thẻ ôm sát mã.
+    <figure
+      className={`inline-block max-w-full rounded-2xl bg-white p-3 shadow ${className}`}
+      style={{ maxWidth: `min(100%, ${Math.max(ketQua.rong, 140) + 24}px)` }}
+    >
       {/* SVG do chính bộ mã hoá nội bộ sinh ra từ chuỗi mã, không chứa dữ liệu ngoài */}
       <span
-        className="block overflow-hidden rounded-lg"
+        className="mx-auto block overflow-hidden rounded-lg"
         style={{ width: ketQua.rong, height: ketQua.rong }}
         dangerouslySetInnerHTML={{ __html: ketQua.svg }}
       />
-      <figcaption className="mt-2 max-w-full text-center text-[11px] leading-snug text-slate-500">
+      <figcaption
+        className="mt-2 mx-auto max-w-full text-center text-[11px] leading-snug text-slate-500"
+        style={{ maxWidth: Math.max(ketQua.rong, 140) }}
+      >
         {hienChu ? (
           <span className="block break-all font-mono text-xs font-semibold text-slate-700">{ketQua.noiDung}</span>
         ) : null}

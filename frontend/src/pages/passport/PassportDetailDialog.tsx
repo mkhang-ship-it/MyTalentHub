@@ -32,7 +32,9 @@ interface The2DProps {
 /** Chú thích tiếng Việt: thẻ 2D tĩnh — mặt trước và mặt sau xếp chồng, không xoay 3D. */
 function The2D({ data, onActivate, label }: The2DProps) {
   return (
-    <div className="w-full">
+    // min-w-0 + figure max-w-full: ôm QR figure trong khung thẻ (bản trang và
+    // bản hộp thoại đều đi qua đây), caption xuống dòng thay vì bị cắt giữa chừng.
+    <div className="w-full min-w-0 max-w-full [&_figure]:max-w-full [&_figure]:shrink">
       <div
         className={onActivate ? "cursor-zoom-in select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-portal focus-visible:ring-offset-2" : "select-none"}
         role={onActivate ? "button" : undefined}
@@ -76,13 +78,14 @@ function PassportCardBack({ data }: { data: Passport }) {
         </div>
       </div>
 
-      {/* Trung tâm: tiêu đề + QR thật quét được + mã */}
-      <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      {/* Trung tâm: tiêu đề + QR thật quét được + mã (min-w-0 ôm figure) */}
+      <div className="mt-4 flex min-w-0 flex-1 flex-col items-center justify-center gap-3 text-center [&_figure]:max-w-full">
         <p className="text-base font-extrabold tracking-wide text-white">Talent Passport</p>
         <QrCode
           ma={data.qr_code}
           kichThuoc={112}
           hienChu
+          className="max-w-full"
           nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
         />
         <p className="max-w-[260px] text-[11px] leading-snug text-white/70">
@@ -206,12 +209,15 @@ export function PassportDetailDialog({ data, open, onClose }: PassportDetailDial
               <p className="text-xs text-muted-strong">Thẻ 2D — mặt trước và mặt sau hiện liền nhau.</p>
             </div>
 
-            {/* QR thật quét được + mã định danh (kichThuoc 112 KHÔNG ĐỔI — ô 2px sàn) */}
-            <div className="rounded-xl border border-line bg-white p-3 text-center">
+            {/* QR thật quét được + mã định danh (kichThuoc 112 KHÔNG ĐỔI — ô 2px sàn).
+                Hộp chặn figure: max-w-full + min-w-0 (không overflow-hidden để chú
+                thích không bị cắt giữa chữ — để caption tự xuống dòng). */}
+            <div className="min-w-0 max-w-full rounded-xl border border-line bg-white p-3 text-center [&_figure]:max-w-full">
               <QrCode
                 ma={data.qr_code}
                 kichThuoc={112}
                 hienChu
+                className="max-w-full"
                 nhan={`Mã QR Talent Passport ${data.qr_code} — dùng camera điện thoại để quét xác thực`}
               />
               <div className="mt-1 text-xs text-muted-strong">Cập nhật {data.updated_at}</div>

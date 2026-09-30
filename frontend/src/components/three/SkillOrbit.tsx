@@ -25,6 +25,23 @@ export interface SkillOrbitProps {
   className?: string;
 }
 
+// Chú thích tiếng Việt: màu huy hiệu theo tên (DB trả "blue", "violet", …).
+// Bản cũ truyền thẳng tên màu cho three.Color → "blue" ra xanh dương tuyệt đối
+// 0x0000ff (ô vuông chói trên nền sáng); "amber"/"emerald" thì three không hiểu.
+// Map sang hex để ô marker 3D và chú thích dưới ảnh luôn giống nhau.
+const MAU_HUY_HIEU: Record<string, string> = {
+  blue: "#3B82F6",
+  violet: "#8B5CF6",
+  amber: "#F59E0B",
+  emerald: "#10B981",
+};
+
+function mauHuyHieu(color?: string): string {
+  if (!color) return "#F97316";
+  if (color.startsWith("#")) return color;
+  return MAU_HUY_HIEU[color] ?? "#F97316";
+}
+
 function createOrbitScene(three: typeof import("three"), data: SkillOrbitData): SceneBuildResult {
   const { Group, Mesh, SphereGeometry, MeshStandardMaterial, RingGeometry, MeshBasicMaterial, BoxGeometry, Color, DoubleSide } = three;
   const root = new Group();
@@ -80,16 +97,30 @@ function createOrbitScene(three: typeof import("three"), data: SkillOrbitData): 
     root.add(node);
   });
 
-  data.badges?.filter((badge) => badge.unlocked).slice(0, 4).forEach((badge, index, unlocked) => {
-    const angle = (Math.PI * 2 * index) / Math.max(1, unlocked.length) + Math.PI / 4;
-    const marker = new Mesh(
-      new BoxGeometry(0.18, 0.18, 0.045),
-      new MeshStandardMaterial({ color: new Color(badge.color || 0xf97316), emissive: new Color(badge.color || 0xf97316), emissiveIntensity: 0.45 })
+  // Chú thích tiếng Việt: huy hiệu đặt NGAY NGOÀI quả trung tâm, gắn trên một
+  // vòng riêng cùng mặt phẳng XY với các vòng kia. Bản cũ đặt marker ở bán
+  // kính 1.9 — xa hơn vòng cam ngoài cùng (1.873) và ở lệch sang mặt phẳng XZ
+  // — nên ô vuông lơ lửng tách rời, không bám vào đâu và không có nhãn.
+  const badgeRingRadius = 0.7;
+  const huyHieu = (data.badges ?? []).filter((badge) => badge.unlocked).slice(0, 4);
+  if (huyHieu.length > 0) {
+    const badgeRing = new Mesh(
+      new RingGeometry(badgeRingRadius - 0.02, badgeRingRadius + 0.02, 48),
+      new MeshBasicMaterial({ color: 0x284b8c, transparent: true, opacity: 0.5, side: DoubleSide })
     );
-    marker.position.set(Math.cos(angle) * 1.9, 0.2, Math.sin(angle) * 1.9);
-    marker.rotation.y = angle;
-    root.add(marker);
-  });
+    root.add(badgeRing);
+    huyHieu.forEach((badge, index) => {
+      const angle = (Math.PI * 2 * index) / huyHieu.length + Math.PI / 4;
+      const mau = new Color(mauHuyHieu(badge.color));
+      const marker = new Mesh(
+        new BoxGeometry(0.18, 0.18, 0.045),
+        new MeshStandardMaterial({ color: mau, emissive: mau, emissiveIntensity: 0.45 })
+      );
+      marker.position.set(Math.cos(angle) * badgeRingRadius, Math.sin(angle) * badgeRingRadius, 0);
+      marker.rotation.z = angle;
+      root.add(marker);
+    });
+  }
 
   return {
     root,
@@ -160,16 +191,57 @@ export function SkillOrbit({ data, className = "" }: SkillOrbitProps) {
     [data, hasData]
   );
 
+  // Chú thích tiếng Việt: chú thích BẰNG CHỮ ngay dưới khối 3D — cảnh 3D không
+  // đủ chỗ cho label, nên tên kỹ năng/huy hiệu hiện ở đây (dữ liệu nào hiện
+  // tên đó, không bịa thêm). Nền trắng + chữ --ink để đọc được trên thẻ sáng.
+  const skillsHien = (data?.skills ?? []).slice(0, 8);
+  const huyHieuHien = (data?.badges ?? []).filter((b) => b.unlocked).slice(0, 4);
+
   // Chú thích tiếng Việt: 3D hiện qua SceneCanvas, 2D chỉ hiện khi WebGL hỏng (prop fallback).
   return (
-    <div className={className} style={{ position: "relative", width: "100%", height: 320, minHeight: 280 }}>
-      <SceneCanvas
-        className="absolute inset-0"
-        config={{ sceneId: "skill-orbit-scene", dprCap: 1.5, failIfMajorPerformanceCaveat: true, prefersReducedMotion: true }}
-        buildScene={buildScene}
-        fallback={<SkillOrbitFallback data={data} />}
-        decorative
-      />
+    <div className={className} style={{ width: "100%" }}>
+      <div style={{ position: "relative", width: "100%", height: 320, minHeight: 280 }}>
+        <SceneCanvas
+          className="absolute inset-0"
+          config={{ sceneId: "skill-orbit-scene", dprCap: 1.5, failIfMajorPerformanceCaveat: true, prefersReducedMotion: true }}
+          buildScene={buildScene}
+          fallback={<SkillOrbitFallback data={data} />}
+          decorative
+        />
+      </div>
+      {(skillsHien.length > 0 || huyHieuHien.length > 0) && (
+        <ul role="list" aria-label="Chú thích tên kỹ năng và huy hiệu trong Skill Orbit" className="mt-3 flex flex-wrap items-center gap-2">
+          {skillsHien.map((skill) => {
+            const level = Math.max(0, Math.min(10, skill.level));
+            // Cùng công thức màu với node 3D (hue = 0.82 - level/10 × 0.12) để
+            // chấm tròn trong ảnh khớp chip chữ bên dưới.
+            const mau = `hsl(${Math.round((0.82 - (level / 10) * 0.12) * 360)} 72% 55%)`;
+            return (
+              <li
+                key={skill.name}
+                role="listitem"
+                aria-label={`${skill.name}: ${level}/10`}
+                className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-xs font-semibold text-ink shadow-sm"
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: mau }} aria-hidden="true" />
+                <span className="whitespace-nowrap">{skill.name}</span>
+                <span className="tabular-nums text-muted-strong">{level}/10</span>
+              </li>
+            );
+          })}
+          {huyHieuHien.map((badge) => (
+            <li
+              key={badge.name}
+              role="listitem"
+              aria-label={`Huy hiệu ${badge.name}`}
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-white px-2.5 text-xs font-semibold text-ink shadow-sm"
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: mauHuyHieu(badge.color) }} aria-hidden="true" />
+              <span className="whitespace-nowrap">Huy hiệu {badge.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

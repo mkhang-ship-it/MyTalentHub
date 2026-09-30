@@ -84,8 +84,12 @@ export default function Passport() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Cột trái - thẻ 2D bấm để mở chi tiết */}
-        <div className="space-y-4 h-full">
+        {/* Cột trái - thẻ 2D bấm để mở chi tiết.
+            Chặn QR tràn mép thẻ từ phía THẺ: figure của QrCode từng bị caption
+            (một dòng ~440px) kéo rộng 464px vượt thẻ ~347px. Card-side: min-w-0
+            cho cột lưới + max-w-full/co-figure để ôm nội dung, kể cả khi component
+            con đổi kích thước (gốc rễ do P2 sửa trong components/qr). */}
+        <div className="min-w-0 max-w-full space-y-4 h-full [&_figure]:max-w-full [&_figure]:shrink">
           <PassportHoloCard data={data} onRequestOpen={() => setDetailOpen(true)} className="h-full" />
         </div>
 

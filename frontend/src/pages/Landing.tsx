@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { TalentConstellation } from "../components/three/TalentConstellation";
+import { RobotChat } from "../components/chat/RobotChat";
 import { PortalCard3D } from "../components/three/PortalCard3D";
 import { LogoMark, LogoWordmark } from "../components/Logo";
 import {
@@ -13,6 +14,12 @@ import {
 
 export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
+  // Mở khung chat khi người dùng bấm vào robot 3D.
+  const [chatMo, setChatMo] = useState(false);
+  // Robot trượt xuống bao nhiêu px khi mở chat. Dùng chung MỘT hằng số cho cả
+  // transform bên dưới và prop dayXuong của RobotChat — hai chỗ lệch nhau là khung
+  // chat tính nhầm đáy và bung ra sai cỡ.
+  const robotDayXuong = chatMo ? 280 : 0;
 
   useEffect(() => {
     // Giữ nguyên cơ chế hiện dần khi cuộn bằng IntersectionObserver (đặc tả 01 phần A).
@@ -136,9 +143,14 @@ export default function Landing() {
 
       <main>
         {/* Hero: gradient giữ nguyên dải màu + scrim bắt buộc (01 B2, 00 mục 7.3) */}
+        {/* lg:pb-[180px] chừa chỗ cho robot dịch xuống 280px khi mở chat mà không bị
+            overflow-hidden của chính section này cắt mất chân robot.
+            Đệm này KHÔNG phải trang trí: nó là trần của khung chat — khung neo đáy
+            cạnh robot nên robot dịch xuống bao nhiêu thì khung có chỗ bung lên bấy
+            nhiêu. Số đo thật: đáy canvas khi mở = 951, đáy hero = 963. */}
         <section
           ref={heroRef}
-          className="relative overflow-hidden bg-[linear-gradient(105deg,#1B2A5E_0%,#27308E_46%,#C44296_100%)] text-white"
+          className="relative overflow-hidden bg-[linear-gradient(105deg,#1B2A5E_0%,#27308E_46%,#C44296_100%)] text-white lg:pb-[180px]"
         >
           {/* Lớp scrim navy để chữ 14–18px đạt tương phản trên điểm sáng nhất */}
           <div className="scrim-navy pointer-events-none absolute inset-0" aria-hidden="true" />
@@ -182,10 +194,27 @@ export default function Landing() {
                 </a>
               </div>
             </div>
-            <div className="w-full lg:w-[380px] flex-shrink-0 hidden lg:block" aria-label="3D scene preview">
-              <div className="rounded-3xl overflow-hidden border border-[rgba(255,255,255,.25)] bg-[rgba(255,255,255,.08)] backdrop-blur-md shadow-[0_24px_60px_rgba(0,0,0,.30)] h-[460px]">
-                <TalentConstellation className="w-full h-full" />
-              </div>
+            {/* h-[460px] đặt ở THẺ CHA, không đặt lên component: SceneCanvas ghi cứng
+                height:"100%" bằng inline style nên class h-[...] truyền vào sẽ bị ghi đè.
+                Khung trang trí (viền/nền/bo góc) đã bỏ theo yêu cầu — chỉ còn khung định khổ. */}
+            {/* Robot đặt CAO khi chat đóng. Khi bấm mở chat, robot DỊCH XUỐNG 100px
+                để nhường chỗ cho bong bóng bung lên; đóng chat thì trở lại vị trí cũ.
+                Dùng inline style vì Tailwind KHÔNG sinh rule cho lg:translate-y-[200px]
+                (đo thật: transform vẫn là ma trận đơn vị).
+                280px là giá trị lớn nhất an toàn: hero có overflow-hidden, robot dịch
+                quá sẽ bị cắt ở đáy — vì vậy section hero có thêm lg:pb-[180px].
+                Khoảng này quyết định khung chat cao được bao nhiêu (xem GIOI_HAN
+                trong RobotChat.tsx) nên hai con số phải khớp nhau. */}
+            <div
+              className="relative w-full lg:w-[440px] flex-shrink-0 hidden lg:block h-[500px] mt-0 lg:mt-[10px] transition-transform duration-300 ease-out"
+              style={{ transform: `translateY(${robotDayXuong}px)` }}
+              aria-label="3D scene preview"
+            >
+              {/* Bong bóng chat neo ở góc trái, trên đầu con robot; bấm thì bung lên. */}
+              <RobotChat mo={chatMo} doiMo={setChatMo} dayXuong={robotDayXuong} />
+            {/* Bấm vào robot: MỞ chat khi đang đóng, ĐÓNG khi đang mở (toggle).
+                onWave chỉ chạy khi bấm chứ không phải kéo — hành vi vẫy tay giữ nguyên. */}
+              <TalentConstellation className="w-full" onWave={() => setChatMo((v) => !v)} />
             </div>
           </div>
         </div>

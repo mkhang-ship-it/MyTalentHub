@@ -9,6 +9,7 @@ from starlette.routing import Mount
 
 from .database import Base, SessionLocal, engine, _run_migrations, ensure_indexes
 from .routers import auth, enterprise, passport, school, student, teacher
+from .routers import ai_chat
 from .ai.router import router as ai_router
 from .core.errors import install_error_handlers, request_logging_middleware
 from .core.logging_conf import setup_logging  # noqa: F401
@@ -107,7 +108,17 @@ def _auto_seed_if_empty() -> None:
 async def lifespan(_app: FastAPI):
     """Chuẩn bị CSDL lúc khởi động server, không phải lúc import module."""
     prepare_database()
-    yield
+    try:
+        yield
+    finally:
+        # Đóng HTTP client của AI (chỉ provider OpenAI-compatible mới có).
+        # Không đóng sẽ để lại kết nối treo, in cảnh báo khi tiến trình thoát.
+        try:
+            from .ai.service import get_ai_service
+
+            await get_ai_service().aclose()
+        except Exception:
+            log.debug("Không đóng được AI client", exc_info=True)
 
 
 app = FastAPI(title="FTalentHub API", version="1.0.0", lifespan=lifespan)
@@ -172,6 +183,7 @@ _include_router_with_prefix(teacher.router, API)
 _include_router_with_prefix(school.router, API)
 _include_router_with_prefix(enterprise.router, API)
 _include_router_with_prefix(passport.router, API)
+_include_router_with_prefix(ai_chat.router, API)
 _include_router_with_prefix(ai_router, API)
 
 

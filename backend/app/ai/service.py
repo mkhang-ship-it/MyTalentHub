@@ -1,6 +1,6 @@
 """
 AI Service Module for FTalentHub
-Integrates with Gemini/Anthropic for dynamic AI suggestions
+Integrates with an OpenAI-compatible router (9router) / Gemini / Anthropic.
 """
 
 import os
@@ -13,10 +13,180 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# CẤU HÌNH — đọc từ biến môi trường, KHÔNG sửa code khi đổi nhà cung cấp
+# ---------------------------------------------------------------------------
+# 9router (và mọi proxy OpenAI-compatible khác: OpenRouter, LiteLLM, vLLM…)
+# dùng chung một kiểu gọi: POST {base}/chat/completions với Authorization Bearer.
+# Base URL mặc định là địa chỉ 9router trên máy — sếp chỉ cần dán API key.
+AI_BASE_URL = (os.getenv("AI_BASE_URL") or "http://localhost:20128/v1").rstrip("/")
+# Để trống thì tự chọn model khả dụng từ /v1/models (xem _tu_dong_chon_model).
+AI_MODEL = (os.getenv("AI_MODEL") or "").strip()
+
+# Model Gemini dùng cho mọi lời gọi. Đọc từ biến môi trường để đổi model
+# không cần sửa code; mặc định là model đang hoạt động (model cũ
+# 'gemini-1.5-flash' đã bị Google thu hồi, gọi lên trả 404).
+GEMINI_MODEL = os.getenv("GEMINI_MODEL") or "gemini-3.6-flash"
+
+#: Số giây chờ tối đa cho một lời gọi AI. Proxy có thể phải xếp hàng và
+#: fallback qua nhiều provider nên cần rộng hơn gọi Gemini trực tiếp.
+AI_TIMEOUT_SECONDS = float(os.getenv("AI_TIMEOUT_SECONDS") or "60")
+
+#: System prompt cho endpoint chat công khai (khách chưa đăng nhập).
+#: Ngắn gọn, tiếng Việt, tập trung định hướng nghề nghiệp/kỹ năng/hoạt động.
+PUBLIC_CHAT_SYSTEM_PROMPT = (
+    "Bạn là trợ lý của FTalentHub, hỗ trợ học sinh về định hướng nghề nghiệp, "
+    "kỹ năng và hoạt động ngoại khóa. Trả lời ngắn gọn, tối đa 3-4 câu, bằng "
+    "tiếng Việt, thân thiện và thực tế; gợi ý cụ thể về ngành nghề, kỹ năng cần "
+    "học và sân chơi phù hợp. Không phán xét hay ép buộc; tôn trọng sự lựa chọn "
+    "của người học."
+)
+
+
+class AIUnavailableError(Exception):
+    """AI không sẵn sàng hoặc trả lỗi.
+
+    Khác với các hàm analyze/roadmap/chat cũ (âm thầm dùng fallback), endpoint
+    công khai cần biết rõ để trả 503 thay vì bịa câu trả lời.
+    """
+
 
 class AIProvider(Enum):
+    OPENAI_COMPAT = "openai_compat"   # 9router / OpenRouter / mọi proxy OpenAI-compatible
     GEMINI = "gemini"
     ANTHROPIC = "anthropic"
+
+
+class _RouterError(Exception):
+    """Lỗi từ proxy OpenAI-compatible. Giữ `status` để biết lỗi gì."""
+
+    def __init__(self, message: str, status: Optional[int] = None):
+        super().__init__(message)
+        self.status = status
+
+
+def _noi_dung_sse(text: str) -> str:
+    """Gom nội dung từ các dòng SSE `data: {...}` (bỏ qua dòng `[DONE]`)."""
+    doan: List[str] = []
+    for dong in text.splitlines():
+        dong = dong.strip()
+        if not dong.startswith("data:"):
+            continue
+        phan = dong[5:].strip()
+        if not phan or phan == "[DONE]":
+            continue
+        try:
+            obj = json.loads(phan)
+        except ValueError:
+            continue
+        for ch in obj.get("choices") or []:
+            if not isinstance(ch, dict):
+                continue
+            delta = ch.get("delta") or {}
+            noi_dung = delta.get("content") if isinstance(delta, dict) else None
+            if isinstance(noi_dung, str):
+                doan.append(noi_dung)
+    return "".join(doan)
+
+
+def _noi_dung_message(value: Any) -> str:
+    """Lấy text từ `message.content`, chịu được dạng khối nội dung."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(
+            b.get("text", "") for b in value if isinstance(b, dict) and isinstance(b.get("text"), str)
+        )
+    return ""
+
+
+def _rut_noi_dung(text: str) -> str:
+    """Rút câu trả lời từ body của proxy.
+
+    9router trả `content-type: text/event-stream` NGAY CẢ KHI không bật stream:
+    body là một JSON hoàn chỉnh rồi gắn thêm `data: [DONE]`. `json.loads` sẽ
+    vỡ với lỗi "Extra data" vì có dữ liệu thừa sau JSON, nên phải đọc bằng
+    `raw_decode` (tự dừng ở cuối JSON, bỏ qua phần thừa). Còn nếu body là
+    SSE thật (nhiều dòng `data:`) thì gom nội dung các chunk `delta`.
+    """
+    body = (text or "").lstrip()
+    if not body:
+        raise _RouterError("AI trả về nội dung rỗng.")
+
+    if body.startswith("data:"):
+        noi_dung = _noi_dung_sse(body)
+        if not noi_dung.strip():
+            raise _RouterError("AI trả về dữ liệu không đúng định dạng.")
+        return noi_dung
+
+    try:
+        # raw_decode bỏ qua mọi thứ nằm sau JSON, không cần tự cắt chuỗi.
+        data, _ = json.JSONDecoder().raw_decode(body)
+    except ValueError as exc:
+        raise _RouterError("AI trả về dữ liệu không đúng định dạng.") from exc
+
+    choices = data.get("choices") if isinstance(data, dict) else None
+    if not choices:
+        raise _RouterError("AI trả về dữ liệu không đúng định dạng.")
+    first = choices[0]
+    message = first.get("message") if isinstance(first, dict) else None
+    noi_dung = _noi_dung_message(message.get("content") if isinstance(message, dict) else None)
+    if not noi_dung.strip():
+        raise _RouterError("AI trả về nội dung rỗng.")
+    return noi_dung
+
+
+def _loi_roi(resp: Any) -> str:
+    """Rút thông điệp lỗi từ response của proxy.
+
+    Chỉ lấy `error.message`; KHÔNG ghi nguyên body (có thể chứa key trong
+    thông báo gỡ lỗi của một số proxy).
+    """
+    try:
+        err = resp.json().get("error")
+        if isinstance(err, dict):
+            msg = err.get("message")
+            if isinstance(msg, str) and msg.strip():
+                return msg.strip()
+        if isinstance(err, str) and err.strip():
+            return err.strip()
+    except Exception:
+        pass
+    return f"AI trả về lỗi {resp.status_code}"
+
+
+def _loi_la_thieu_model(exc: _RouterError) -> bool:
+    """Lỗi này có phải do không tìm thấy model không."""
+    text = str(exc).lower()
+    return any(
+        k in text
+        for k in ("model not found", "unknown model", "no such model", "invalid model", "does not exist")
+    )
+
+
+def _chon_provider_mac_dinh() -> AIProvider:
+    """Chọn provider theo biến môi trường AI_PROVIDER.
+
+    Mặc định "auto": có AI_API_KEY thì dùng proxy 9router, không thì lùi về
+    Gemini/Anthropic. Nhờ vậy sếp chỉ cần DÁN KEY là chạy, không phải sửa
+    thêm biến nào khác; xoá key thì tự quay lại nhà cung cấp cũ.
+    """
+    lua_chon = (os.getenv("AI_PROVIDER") or "auto").strip().lower()
+    if lua_chon in ("openai_compat", "9router", "router", "openai"):
+        return AIProvider.OPENAI_COMPAT
+    if lua_chon == "gemini":
+        return AIProvider.GEMINI
+    if lua_chon == "anthropic":
+        return AIProvider.ANTHROPIC
+    # auto
+    if os.getenv("AI_API_KEY"):
+        return AIProvider.OPENAI_COMPAT
+    if os.getenv("GEMINI_API_KEY"):
+        return AIProvider.GEMINI
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return AIProvider.ANTHROPIC
+    # Chưa có key nào: chọn router để thông báo lỗi nói đúng việc cần làm.
+    return AIProvider.OPENAI_COMPAT
 
 
 @dataclass
@@ -59,38 +229,74 @@ class AIRoadmapResult:
 class AIService:
     """Main AI service for generating suggestions"""
     
-    def __init__(self, provider: AIProvider = AIProvider.GEMINI):
-        self.provider = provider
+    def __init__(self, provider: Optional[AIProvider] = None):
+        # Truyền None ⇒ tự chọn theo AI_PROVIDER / key có sẵn trong .env.
+        self.provider = provider or _chon_provider_mac_dinh()
         self.api_key = self._get_api_key()
         self.client = None
+        #: Model đã dùng thực tế. Rỗng nghĩa là chưa chốt, sẽ tự dò từ /v1/models.
+        self.model = AI_MODEL
         self._init_client()
     
     def _get_api_key(self) -> Optional[str]:
         """Get API key from environment"""
+        if self.provider == AIProvider.OPENAI_COMPAT:
+            return os.getenv("AI_API_KEY")
         if self.provider == AIProvider.GEMINI:
             return os.getenv("GEMINI_API_KEY")
-        elif self.provider == AIProvider.ANTHROPIC:
+        if self.provider == AIProvider.ANTHROPIC:
             return os.getenv("ANTHROPIC_API_KEY")
         return None
-    
+
     def _init_client(self):
-        """Initialize AI client"""
+        """Initialize AI client.
+
+        Với proxy OpenAI-compatible không cần SDK: dùng httpx gọi thẳng
+        POST {AI_BASE_URL}/chat/completions nên nhẹ và không phụ thuộc gói cài thêm.
+        """
         if not self.api_key:
             logger.warning(f"No API key found for {self.provider.value}. AI features will use fallback.")
             return
-        
+
         try:
-            if self.provider == AIProvider.GEMINI:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.client = genai.GenerativeModel('gemini-1.5-flash')
+            if self.provider == AIProvider.OPENAI_COMPAT:
+                import httpx
+                self.client = httpx.AsyncClient(
+                    base_url=AI_BASE_URL,
+                    timeout=httpx.Timeout(AI_TIMEOUT_SECONDS, connect=10.0),
+                )
+            elif self.provider == AIProvider.GEMINI:
+                # SDK mới 'google-genai'. SDK cũ 'google.generativeai' đã bị
+                # Google ngừng hỗ trợ nên không dùng nữa.
+                from google import genai
+                self.client = genai.Client(api_key=self.api_key)
             elif self.provider == AIProvider.ANTHROPIC:
                 import anthropic
                 self.client = anthropic.Anthropic(api_key=self.api_key)
         except ImportError as e:
             logger.warning(f"AI provider library not installed: {e}")
             self.client = None
+
+    async def aclose(self) -> None:
+        """Đóng HTTP client. Chỉ có ý nghĩa với provider dùng httpx."""
+        client = self.client
+        if client is not None and hasattr(client, "aclose"):
+            self.client = None
+            await client.aclose()
     
+    async def _generate(
+        self,
+        prompt: str,
+        as_json: bool,
+        messages: Optional[List[Dict[str, str]]] = None,
+    ) -> str:
+        """Gọi đúng nhà cung cấp đang cấu hình. Gom chỗ rẽ nhánh về một chỗ."""
+        if self.provider == AIProvider.GEMINI:
+            return await self._call_gemini(prompt, as_json=as_json)
+        if self.provider == AIProvider.ANTHROPIC:
+            return await self._call_anthropic(prompt)
+        return await self._call_openai_compat(prompt, as_json=as_json, messages=messages)
+
     async def analyze_student(self, profile: StudentProfile) -> AIAnalysisResult:
         """Analyze student profile and generate insights"""
         if not self.client:
@@ -99,11 +305,7 @@ class AIService:
         prompt = self._build_analysis_prompt(profile)
         
         try:
-            if self.provider == AIProvider.GEMINI:
-                response = await self._call_gemini(prompt)
-            else:
-                response = await self._call_anthropic(prompt)
-            
+            response = await self._generate(prompt, as_json=True)
             return self._parse_analysis_response(response, profile)
         except Exception as e:
             logger.error(f"AI analysis failed: {e}")
@@ -117,11 +319,7 @@ class AIService:
         prompt = self._build_roadmap_prompt(profile, analysis)
         
         try:
-            if self.provider == AIProvider.GEMINI:
-                response = await self._call_gemini(prompt)
-            else:
-                response = await self._call_anthropic(prompt)
-            
+            response = await self._generate(prompt, as_json=True)
             return self._parse_roadmap_response(response, profile)
         except Exception as e:
             logger.error(f"AI roadmap failed: {e}")
@@ -135,18 +333,97 @@ class AIService:
         prompt = self._build_chat_prompt(profile, message, context or [])
         
         try:
-            if self.provider == AIProvider.GEMINI:
-                response = await self._call_gemini(prompt)
-            else:
-                response = await self._call_anthropic(prompt)
-            return response
+            return await self._generate(prompt, as_json=False)
         except Exception as e:
             logger.error(f"AI chat failed: {e}")
             return self._fallback_chat(message)
     
+    async def chat_public(self, message: str, history: List[Dict[str, str]] = None) -> str:
+        """Chat công khai cho khách chưa đăng nhập.
+
+        Khác với `chat_with_student` (âm thầm fallback), hàm này NÉM
+        AIUnavailableError khi thiếu key hoặc AI lỗi để router trả 503.
+        Tuyệt đối không để lộ key/stack trace ra ngoài.
+        """
+        if not self.client:
+            raise AIUnavailableError(
+                "Trợ lý AI chưa được cấu hình. Hãy dán API key vào dòng AI_API_KEY "
+                "trong backend/.env rồi khởi động lại backend."
+            )
+
+        prompt = self._build_public_chat_prompt(message, history or [])
+        try:
+            # Proxy OpenAI-compatible nhận đúng vai trò system/user/assistant;
+            # Gemini/Anthropic thì dùng bản chuỗi đã gộp ở trên.
+            messages = (
+                self._build_public_chat_messages(message, history or [])
+                if self.provider == AIProvider.OPENAI_COMPAT
+                else None
+            )
+            reply = await self._generate(prompt, as_json=False, messages=messages)
+        except AIUnavailableError:
+            raise
+        except Exception as e:
+            # Nhận diện lỗi cấu hình để thông báo dùng được, còn lại thì giấu.
+            if isinstance(e, _RouterError):
+                logger.error("Public AI chat lỗi (%s): %s", e.status, str(e)[:200])
+                if e.status in (401, 403):
+                    raise AIUnavailableError(
+                        "AI từ chối API key. Hãy kiểm tra lại key trong backend/.env."
+                    )
+                if _loi_la_thieu_model(e):
+                    raise AIUnavailableError(
+                        "Proxy AI chưa có model phù hợp. Hãy đặt AI_MODEL trong backend/.env."
+                    )
+                if not self.model:
+                    raise AIUnavailableError(
+                        "Không kết nối được proxy AI. Hãy kiểm tra 9router còn chạy không."
+                    )
+            else:
+                logger.error("Public AI chat failed: %s", type(e).__name__)
+            raise AIUnavailableError("Trợ lý AI đang bận, vui lòng thử lại sau.")
+
+        reply = (reply or "").strip()
+        if not reply:
+            raise AIUnavailableError("Trợ lý AI chưa trả về nội dung, vui lòng thử lại.")
+        return reply
+    
     # ============================================================
     # PROMPT TEMPLATES
     # ============================================================
+    
+    def _build_public_chat_messages(self, message: str, history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Dựng đúng cấu trúc messages cho chat công khai.
+
+        Quan trọng: system prompt phải nằm ở role "system" chứ không gộp vào
+        tin nhắn "user". Khi gộp, model hiểu nhầm đó là người dùng đang kể
+        chuyện nên nó tự nhận vai trò của chính nó — đã xảy ra thật: robot
+        tự giới thiệu là "trợ lý Kira AI" rồi trả lời về gói cước, thanh toán
+        thay vì định hướng nghề nghiệp.
+        """
+        msgs: List[Dict[str, str]] = [{"role": "system", "content": PUBLIC_CHAT_SYSTEM_PROMPT}]
+        for turn in history[-10:]:
+            role = turn.get("role")
+            content = (turn.get("content") or "").strip()
+            if not content:
+                continue
+            msgs.append({"role": "user" if role == "user" else "assistant", "content": content})
+        msgs.append({"role": "user", "content": message})
+        return msgs
+
+    def _build_public_chat_prompt(self, message: str, history: List[Dict[str, str]]) -> str:
+        """Bản chuỗi của prompt chat công khai — dùng cho Gemini/Anthropic."""
+        lines = [PUBLIC_CHAT_SYSTEM_PROMPT, ""]
+        for turn in history[-10:]:
+            role = turn.get("role")
+            content = (turn.get("content") or "").strip()
+            if not content:
+                continue
+            label = "Người dùng" if role == "user" else "Trợ lý"
+            lines.append(f"{label}: {content}")
+        lines.append(f"Người dùng: {message}")
+        lines.append("Trợ lý:")
+        return "\n".join(lines)
     
     def _build_analysis_prompt(self, profile: StudentProfile) -> str:
         assessments_text = "\n".join([
@@ -262,16 +539,21 @@ Hãy trả lời tự nhiên, khuyến khích, thực tế, bằng tiếng Việ
     # AI PROVIDER CALLS
     # ============================================================
     
-    async def _call_gemini(self, prompt: str) -> str:
-        import google.generativeai as genai
+    async def _call_gemini(self, prompt: str, as_json: bool = False) -> str:
+        """Gọi Gemini qua SDK mới 'google-genai'.
+
+        as_json=True  → buộc trả JSON (dùng cho analyze + roadmap).
+        as_json=False → trả văn bản tự nhiên (dùng cho chat); TUYỆT ĐỐI không
+        truyền response_mime_type, nếu không chat sẽ nhận về JSON.
+        """
+        config = {"temperature": 0.7, "max_output_tokens": 2048}
+        if as_json:
+            config["response_mime_type"] = "application/json"
         response = await asyncio.to_thread(
-            self.client.generate_content,
-            prompt,
-            generation_config=genai.GenerationConfig(
-                temperature=0.7,
-                max_output_tokens=2048,
-                response_mime_type="application/json"
-            )
+            self.client.models.generate_content,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=config,
         )
         return response.text
     
@@ -284,6 +566,121 @@ Hãy trả lời tự nhiên, khuyến khích, thực tế, bằng tiếng Việ
             messages=[{"role": "user", "content": prompt}]
         )
         return response.content[0].text
+
+    # ------------------------------------------------------------------
+    # PROXY OPENAI-COMPATIBLE (9router, OpenRouter, LiteLLM, vLLM…)
+    # ------------------------------------------------------------------
+
+    async def _post_chat(self, payload: Dict[str, Any]) -> str:
+        """POST /chat/completions và rút phần text của câu trả lời đầu tiên."""
+        # stream=false để mong nhận JSON thuần; bên dưới vẫn phòng thủ cho cả SSE.
+        body = dict(payload)
+        body.setdefault("stream", False)
+        try:
+            resp = await self.client.post(
+                "/chat/completions",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        except Exception as exc:  # lỗi mạng, timeout, proxy không chạy
+            raise _RouterError(f"Không kết nối được AI: {type(exc).__name__}") from exc
+
+        if resp.status_code >= 400:
+            raise _RouterError(_loi_roi(resp), resp.status_code)
+
+        return _rut_noi_dung(resp.text)
+
+    async def _liet_ke_model(self) -> List[str]:
+        """Lấy danh sách model mà proxy đang phục vụ."""
+        try:
+            resp = await self.client.get(
+                "/models",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            if resp.status_code >= 400:
+                return []
+            data = resp.json().get("data") or []
+            return [str(m.get("id")) for m in data if isinstance(m, dict) and m.get("id")]
+        except Exception as exc:
+            logger.warning("Không đọc được /models: %s", type(exc).__name__)
+            return []
+
+    @staticmethod
+    def _model_chat_duoc(models: List[str]) -> Optional[str]:
+        """Chọn một model thích hợp để chat.
+
+        Bỏ qua loại không chat được (image/video/tts/embedding) vì gọi chúng
+        bằng /chat/completions sẽ lỗi. Ưu tiên model flash/rẻ cho chatbot
+        hỏi đáp, có kèm ký tự phân loại provider để câu trả lời đúng thương hiệu.
+        """
+        loai_bo = ("image", "video", "tts", "speech", "embed", "audio", "whisper")
+        candidates = [m for m in models if not any(k in m.lower() for k in loai_bo)]
+        if not candidates:
+            return None
+        for uu_tien in ("flash", "mini", "free", "lite"):
+            for m in candidates:
+                if uu_tien in m.lower():
+                    return m
+        return candidates[0]
+
+    async def _tu_dong_chon_model(self) -> str:
+        """Chốt model dùng cho các lời gọi sau. Ném lỗi nếu không có model nào."""
+        if self.model:
+            return self.model
+        chon = self._model_chat_duoc(await self._liet_ke_model())
+        if not chon:
+            raise _RouterError(
+                "Không tìm thấy model nào. Hãy đặt AI_MODEL trong backend/.env."
+            )
+        logger.info("Tự chọn model AI: %s", chon)
+        self.model = chon
+        return chon
+
+    async def _call_openai_compat(
+        self,
+        prompt: str,
+        as_json: bool = False,
+        messages: Optional[List[Dict[str, str]]] = None,
+    ) -> str:
+        """Gọi AI qua proxy OpenAI-compatible.
+
+        Truyền `messages` thì dùng nguyên cấu trúc (kèm role system); bỏ trống
+        thì coi `prompt` là một tin nhắn user đơn lẻ.
+
+        as_json=True  → thêm response_format để bắt buộc trả JSON (analyze/roadmap).
+        as_json=False → để nguyên văn bản tự nhiên (chat); TUYỆT ĐỐI không thêm
+        response_format, nếu không câu trả lời chat sẽ bị bọc JSON.
+
+        Danh sách model của proxy thay đổi theo tài khoản, nên khi gặp lỗi
+        "không tìm thấy model" sẽ tự dò lại /models rồi thử model khác đúng
+        một lần — nhờ vậy sếp không phải chỉnh tay AI_MODEL khi 9router đổi model.
+        """
+        model = await self._tu_dong_chon_model()
+        payload: Dict[str, Any] = {
+            "model": model,
+            "messages": messages if messages else [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "max_tokens": 2048,
+        }
+        if as_json:
+            payload["response_format"] = {"type": "json_object"}
+
+        try:
+            return await self._post_chat(payload)
+        except _RouterError as exc:
+            if not _loi_la_thieu_model(exc):
+                raise
+            logger.warning("Model '%s' không dùng được, đang dò model khác.", model)
+            # Xoá model đã chốt để _tu_dong_chon_model dò lại từ /models.
+            self.model = ""
+            thu_lai = await self._tu_dong_chon_model()
+            if thu_lai == model:
+                raise
+            payload["model"] = thu_lai
+            return await self._post_chat(payload)
     
     # ============================================================
     # RESPONSE PARSING
@@ -401,8 +798,11 @@ Hãy trả lời tự nhiên, khuyến khích, thực tế, bằng tiếng Việ
 _ai_service_instance: Optional[AIService] = None
 
 
-def get_ai_service(provider: AIProvider = AIProvider.GEMINI) -> AIService:
-    """Get or create AI service singleton"""
+def get_ai_service(provider: Optional[AIProvider] = None) -> AIService:
+    """Get or create AI service singleton.
+
+    Không truyền `provider` ⇒ tự chọn theo AI_PROVIDER và key có sẵn trong .env.
+    """
     global _ai_service_instance
     if _ai_service_instance is None:
         _ai_service_instance = AIService(provider)
@@ -429,3 +829,12 @@ async def chat_with_ai(profile: StudentProfile, message: str, context: List[Dict
     """Chat with AI - convenience function"""
     service = get_ai_service()
     return await service.chat_with_student(profile, message, context)
+
+
+async def chat_public(message: str, history: List[Dict[str, str]] = None) -> str:
+    """Chat công khai (khách chưa đăng nhập) - convenience function.
+
+    Ném AIUnavailableError khi AI không sẵn sàng hoặc lỗi.
+    """
+    service = get_ai_service()
+    return await service.chat_public(message, history)

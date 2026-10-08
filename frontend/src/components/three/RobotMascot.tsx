@@ -26,6 +26,12 @@ export interface RobotMascotProps extends Omit<SceneCanvasProps, "buildScene"> {
   bobAmplitude?: number;
   /** Bob frequency in Hz. Default: 0.6 */
   bobFrequency?: number;
+  /**
+   * Gọi khi người dùng BẤM robot (bấm chứ không kéo) — robot vẫy tay.
+   * Dùng để mở khung chat, nên bấm vào model cũng mở được chatbot.
+   * Kéo xoay KHÔNG gọi callback này (giữ nguyên hành vi cũ).
+   */
+  onWave?: () => void;
 }
 
 function RobotFallback() {
@@ -63,7 +69,9 @@ function createRobotScene(
   const size = new three.Vector3();
   box.getSize(size);
   const maxDim = Math.max(size.x, size.y, size.z);
-  const scale = maxDim > 0 ? 2.65 / maxDim : 1;
+  // 3.05 thay cho 2.65: robot trông nhỏ trong khung 460px. Camera dùng chung cho mọi
+  // scene (z=4.2, fov 50) nên không sửa camera; chỉ phóng riêng model này.
+  const scale = maxDim > 0 ? 3.05 / maxDim : 1;
   model.scale.setScalar(scale);
 
   const center = new three.Vector3();
@@ -105,6 +113,7 @@ export function RobotMascot({
   bobAmplitude = 0.08,
   bobFrequency = 0.6,
   config,
+  onWave,
   ...rest
 }: RobotMascotProps) {
   const [canRender3D, setCanRender3D] = useState(false);
@@ -158,7 +167,8 @@ export function RobotMascot({
   }, []);
   const handleWave = useCallback(() => {
     motionRef.current.wave = 1;
-  }, []);
+    onWave?.();
+  }, [onWave]);
   const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const motion = motionRef.current;
     if (motion.activePointerId !== event.pointerId) return;
